@@ -59,3 +59,6 @@ Regenerate with `python3 tools/make_icons.py` (needs `pip install playwright`). 
 - Tune-up needs ADB debugging on. Some Fire OS versions block on-device ADB; it then prints the commands to run from a computer.
 - Wallpaper photos: put them in Pictures/Download, or the app's own folder shown in Settings > Wallpaper.
 - Untested on devices other than a Fire TV Stick 3rd Gen (2020).
+
+## Friends: setting up
+See [GUIDE.md](GUIDE.md) for the step-by-step install and clean-up guide.
