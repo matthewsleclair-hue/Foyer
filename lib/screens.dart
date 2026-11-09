@@ -1297,6 +1297,7 @@ class UpdateScreen extends StatefulWidget {
 
 class _UpdateScreenState extends State<UpdateScreen> {
   String _ver = '…';
+  String _name = '0';
   int _build = 0;
   String _msg = '';
   double? _prog;
@@ -1310,15 +1311,16 @@ class _UpdateScreenState extends State<UpdateScreen> {
       try {
         final m = await kChannel.invokeMapMethod<String, dynamic>('appVersion');
         _build = (m?['code'] as num?)?.toInt() ?? 0;
-        if (mounted) setState(() => _ver = '${m?['name']} ($_build)');
+        _name = (m?['name'] as String?) ?? '0';
+        if (mounted) setState(() => _ver = '$_name ($_build)');
       } catch (_) {}
     }();
   }
 
   Future<void> _check() async {
-    final url = SettingsScope.read(context).updateUrl;
-    if (url.isEmpty) {
-      setState(() => _msg = 'Set an update link first.');
+    final cfg = SettingsScope.read(context);
+    if (cfg.updateUrl.isEmpty) {
+      setState(() => _msg = 'Set the GitHub repo first.');
       return;
     }
     setState(() {
@@ -1326,17 +1328,17 @@ class _UpdateScreenState extends State<UpdateScreen> {
       _msg = 'Checking…';
     });
     try {
-      final r = await UpdateApi.check(url, _build);
+      final r = await UpdateApi.check(cfg.updateUrl, cfg.updateToken, _build, _name);
       kUpdate.value = r;
       if (!mounted) return;
       setState(() {
         _found = r;
         _msg = r == null
             ? 'You are up to date.'
-            : 'Version ${r.version} is available.${r.notes.isEmpty ? '' : '\n${r.notes}'}';
+            : 'Version ${r.version} is available.${r.notes.trim().isEmpty ? '' : '\n${r.notes.trim()}'}';
       });
     } catch (e) {
-      if (mounted) setState(() => _msg = 'Could not check: $e');
+      if (mounted) setState(() => _msg = 'Could not check: ${UpdateApi.friendly(e)}');
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -1344,6 +1346,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
   Future<void> _install() async {
     final u = _found;
     if (u == null || _busy) return;
+    final cfg = SettingsScope.read(context);
     setState(() {
       _busy = true;
       _prog = 0;
@@ -1351,7 +1354,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
     });
     try {
       final path = (await kChannel.invokeMethod<String>('updatePath')) ?? '';
-      await UpdateApi.download(u.url, path, (p) {
+      await UpdateApi.download(u.url, path, cfg.updateToken, (p) {
         if (mounted) setState(() => _prog = p);
       });
       final r = await kChannel.invokeMethod<String>('installApk', {'path': path});
@@ -1360,7 +1363,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
           ? 'Allow Foyer to install apps on the screen that just opened, then press Install again.'
           : (r == 'started' ? 'Confirm the install on the next screen.' : 'The download could not be installed.'));
     } catch (e) {
-      if (mounted) setState(() => _msg = 'Update failed: $e');
+      if (mounted) setState(() => _msg = 'Update failed: ${UpdateApi.friendly(e)}');
     }
     if (mounted) {
       setState(() {
@@ -1383,29 +1386,40 @@ class _UpdateScreenState extends State<UpdateScreen> {
     return SettingsPage(
       title: 'Updates',
       subtitle:
-          'Checks a link you set for a newer Foyer. The link points to a small update.json file next to the APK (see the README).',
+          'Gets new versions from the latest GitHub release of your repo. A private repo needs a read-only access token.',
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           kv('Installed', _ver),
-          kv('Update link', s.updateUrl.isEmpty ? 'Not set' : s.updateUrl),
+          kv('Source', s.updateUrl.isEmpty ? 'Not set' : s.updateUrl),
+          kv('Access token', s.updateToken.isEmpty ? 'None (public repos only)' : 'Set'),
           const SizedBox(height: 18),
           Wrap(spacing: 18, runSpacing: 18, children: [
+            PillButton(label: 'Check now', primary: true, autofocus: true, onSelect: _check),
+            if (_found != null)
+              PillButton(label: 'Download and install ${_found!.version}', primary: true, onSelect: _install),
             PillButton(
-                label: 'Set update link',
-                autofocus: true,
+                label: 'Change repo',
                 onSelect: () async {
-                  final v = await askText(context, 'Update link', s.updateUrl,
-                      hint: 'https://…/update.json', maxLength: 300);
+                  final v = await askText(context, 'GitHub repo', s.updateUrl,
+                      hint: 'owner/repo', maxLength: 120);
                   if (v != null) {
                     s.change(() => s.updateUrl = v);
                     kUpdate.value = null;
                     setState(() => _found = null);
                   }
                 }),
-            PillButton(label: 'Check now', primary: true, onSelect: _check),
-            if (_found != null)
-              PillButton(label: 'Download and install ${_found!.version}', primary: true, onSelect: _install),
+            PillButton(
+                label: s.updateToken.isEmpty ? 'Add access token' : 'Change access token',
+                onSelect: () async {
+                  final v = await askText(context, 'GitHub access token', '',
+                      hint: 'github_pat_…', maxLength: 200);
+                  if (v != null) {
+                    s.change(() => s.updateToken = v);
+                    kUpdate.value = null;
+                    setState(() => _found = null);
+                  }
+                }),
           ]),
           const SizedBox(height: 26),
           if (_prog != null)

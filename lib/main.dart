@@ -34,15 +34,27 @@ final Set<LogicalKeyboardKey> _selectKeys = {
 };
 
 int? _build;
-Future<int> appBuild() async {
-  if (_build != null) return _build!;
+String? _buildName;
+Future<void> _loadVersion() async {
+  if (_build != null) return;
   try {
     final m = await kChannel.invokeMapMethod<String, dynamic>('appVersion');
     _build = (m?['code'] as num?)?.toInt() ?? 0;
+    _buildName = (m?['name'] as String?) ?? '0';
   } catch (_) {
     _build = 0;
+    _buildName = '0';
   }
-  return _build!;
+}
+
+Future<int> appBuild() async {
+  await _loadVersion();
+  return _build ?? 0;
+}
+
+Future<String> appName() async {
+  await _loadVersion();
+  return _buildName ?? '0';
 }
 
 int clampIdx(int i, int hi) => i < 0 ? 0 : (i > hi ? hi : i);
@@ -70,7 +82,8 @@ class Settings extends ChangeNotifier {
   String ssSource = 'colors'; // colors | mine | online
   bool autoStart = true;
   bool perfMode = false;
-  String updateUrl = '';
+  String updateUrl = 'matthewsleclair-hue/Foyer';
+  String updateToken = '';
 
   Map<String, dynamic> toJson({bool secrets = true}) => {
         'v': 5,
@@ -95,6 +108,7 @@ class Settings extends ChangeNotifier {
           'plexUrl': plexUrl,
           'plexName': plexName,
           'clientId': clientId,
+          'updateToken': updateToken,
         },
       };
 
@@ -137,6 +151,7 @@ class Settings extends ChangeNotifier {
       plexUrl = _s(j['plexUrl'], plexUrl);
       plexName = _s(j['plexName'], plexName);
       clientId = _s(j['clientId'], clientId);
+      updateToken = _s(j['updateToken'], updateToken);
     }
   }
 
@@ -1518,7 +1533,8 @@ class _HomeScreenState extends State<HomeScreen>
     if (!force && url == _updateSig) return;
     _updateSig = url;
     try {
-      kUpdate.value = await UpdateApi.check(url, await appBuild());
+      kUpdate.value =
+          await UpdateApi.check(url, s.updateToken, await appBuild(), await appName());
     } catch (_) {}
   }
 

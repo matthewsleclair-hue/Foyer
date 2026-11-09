@@ -22,12 +22,29 @@ The package id stays `com.leclair.leclair_home` so updates and settings keep wor
 If you switch to a new signing key: back up settings in the app (Settings > Backup and restore),
 `adb uninstall com.leclair.leclair_home`, install the signed build, then restore.
 
-## Updates (Settings > Updates)
-`tools/release.sh` writes `update.json`:
-`{"version":"1.0.0","build":26110920,"url":"<direct APK link>","notes":"..."}`
-Host `Foyer.apk` and `update.json` somewhere with direct links (a public GitHub release works), then put the link to
-`update.json` in Settings > Updates. `UPDATE_APK_URL=<link> tools/release.sh` fills the APK link in for you.
-Bump `VERSION` to change the displayed version name. The build number always goes up automatically.
+## Updates from GitHub (Settings > Updates)
+Foyer reads the latest GitHub Release of the repo set in Settings > Updates (default `matthewsleclair-hue/Foyer`).
+
+Publish a new version:
+
+    brew install gh && gh auth login      # once
+    tools/publish.sh ~/Downloads/leclair_home "What changed"
+
+That builds the signed APK and creates a release tagged `v<VERSION>+<build>` with `Foyer.apk` attached.
+On the stick: Settings > Updates > Check now > Download and install. A small orange dot also appears on the
+home screen's settings icon when a newer version exists.
+
+Private repo: create a fine-grained token (GitHub > Settings > Developer settings > Personal access tokens),
+limited to this repo with **Contents: Read-only**, and add it in Settings > Updates > Add access token. It is
+stored on the TV only and is never included in backups or debug reports. A public repo needs no token.
+
+Not using GitHub? Settings > Updates also accepts a link to a small JSON file
+(`{"version":"1.0.1","build":26110901,"url":"<direct apk link>","notes":""}`).
+`tools/release.sh` writes one as `update.json`.
+Bump `VERSION` to change the version name; the build number goes up automatically (hourly), so you can publish at most once per hour.
+
+## Icon
+Regenerate with `python3 tools/make_icons.py` (needs `pip install playwright`). Previews are in `docs/`.
 
 ## Notes
 - Home button: double-press Home to reach the stock Fire TV home. "Use as my Home screen" in Tune-up disables
