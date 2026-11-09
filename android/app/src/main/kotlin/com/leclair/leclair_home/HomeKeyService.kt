@@ -48,7 +48,7 @@ class HomeKeyService : AccessibilityService() {
             Log.d(TAG, "HOME key action=${event.action}")
         }
         if (event.keyCode != KeyEvent.KEYCODE_HOME) return false
-        if (event.action == KeyEvent.ACTION_UP) {
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
             val now = System.currentTimeMillis()
             val double = now - lastUp < 450
             lastUp = if (double) 0L else now
