@@ -341,6 +341,12 @@ Future<void> openFireSettings(BuildContext context) async {
   }
 }
 
+Future<void> openAmazonHome(BuildContext context) async {
+  try {
+    await kChannel.invokeMethod<bool>('openAmazonHome');
+  } catch (_) {}
+}
+
 final List<_Group> _groups = [
   _Group(Icons.home_rounded, 'Home screen', 'Name, apps, weather, Plex', (c, s) => [
     _HubItem(Icons.badge_rounded, 'Name and clock',
@@ -385,7 +391,9 @@ final List<_Group> _groups = [
   ]),
   _Group(Icons.build_rounded, 'Fire TV tools', 'Home button, tune-up and cleanup', (c, s) => [
     _HubItem(Icons.keyboard_return_rounded, 'Home button',
-        'Make the remote\'s Home button open Foyer', () => _editStep(c, 4)),
+        s.pinned.isEmpty ? 'Keep Foyer in front of Amazon\'s home' : 'Keep Foyer in front of Amazon\'s home', () => _editStep(c, 4)),
+    _HubItem(Icons.home_work_rounded, 'Amazon home screen',
+        'Open the stock Fire TV home for a moment', () => openAmazonHome(c)),
     _HubItem(Icons.build_rounded, 'Tune-up',
         'Remove ads and bloat, free memory, debug report', () => _push(c, const TuneUpScreen())),
   ]),
@@ -1261,7 +1269,6 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
                   _kv('Home button', yn(_d['homeKey'], 'On', 'Off')),
                   _kv('Ads and tracking', '${_active(kAdsPkgs)} still active of ${_present(kAdsPkgs)}'),
                   _kv('Amazon extras', '${_active(kContentPkgs)} still active of ${_present(kContentPkgs)}'),
-                  _kv('Amazon home', _state[kAmazonHome] == 2 ? 'Disabled (Foyer is home)' : 'Active'),
                   _kv('Amazon screensaver', saverOff ? 'Off' : (_state[kAmazonSaver] == 1 ? 'On' : 'Not found')),
                 ]),
               ),
@@ -1315,21 +1322,6 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
                       _addLog('Home button turned on.');
                     },
                   )),
-          PillButton(
-              label: _state[kAmazonHome] == 2 ? 'Restore Amazon home' : 'Use as my Home screen',
-              primary: true,
-              onSelect: () {
-                if (_state[kAmazonHome] == 2) {
-                  _run('Restoring Amazon home', ['pm enable $kAmazonHome']);
-                } else {
-                  showMenu2(context, 'Replace Amazon home?', [
-                    MenuChoice('Yes, make Foyer my home screen',
-                        () => _run('Switching home screen', ['pm disable-user --user 0 $kAmazonHome'])),
-                    MenuChoice('You can undo this with Restore Amazon home.', null),
-                    MenuChoice('Cancel', () {}),
-                  ]);
-                }
-              }),
           PillButton(
               label: saverOff ? 'Amazon screensaver on' : 'Amazon screensaver off',
               onSelect: () => saverOff

@@ -733,8 +733,6 @@ class _SetupScreenState extends State<SetupScreen> {
   // home button
   bool _hkEnabled = false;
   bool _hkCanEnable = false;
-  bool _amazonOff = false;
-  String _hkMsg = '';
 
   @override
   void initState() {
@@ -780,21 +778,9 @@ class _SetupScreenState extends State<SetupScreen> {
         _hkEnabled = m['enabled'] as bool? ?? false;
         _hkCanEnable = m['canEnable'] as bool? ?? false;
       });
-      final d = await kChannel.invokeMapMethod<String, dynamic>('diagnostics', {'packages': [kAmazonHome]});
-      final st = (d?['states'] as Map?)?[kAmazonHome];
-      if (mounted) setState(() => _amazonOff = st == 2);
     } catch (_) {}
   }
 
-  Future<void> _toggleAmazonHome() async {
-    setState(() => _hkMsg = 'Working…');
-    final err = await adbQuick([
-      _amazonOff ? 'pm enable $kAmazonHome' : 'pm disable-user --user 0 $kAmazonHome'
-    ]);
-    if (!mounted) return;
-    setState(() => _hkMsg = err ?? (_amazonOff ? 'Amazon home restored.' : 'Done. Press Home on the remote to test.'));
-    await _refreshHomeKey();
-  }
 
   Future<void> _setHomeKey(bool on) async {
     try {
@@ -1173,42 +1159,25 @@ class _SetupScreenState extends State<SetupScreen> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Best method: replace Amazon\'s home',
-            style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        Text(
-            _amazonOff
-                ? 'Amazon\'s home screen is off, so the Home button opens Foyer.'
-                : 'Turns off Amazon\'s home screen (reversible), so the Home button falls through to Foyer. Needs ADB debugging on.',
-            style: body),
-        const SizedBox(height: 16),
-        PillButton(
-            label: _amazonOff ? 'Restore Amazon home' : 'Use Foyer as my home',
-            primary: true,
-            autofocus: true,
-            onSelect: _toggleAmazonHome),
-        if (_hkMsg.isNotEmpty)
-          Padding(padding: const EdgeInsets.only(top: 12), child: Text(_hkMsg, style: body)),
-        const SizedBox(height: 18),
-        const Text('If that fails, run this on your computer (undo with pm enable):', style: body),
+        Text(_hkEnabled ? 'The Home button service is on.' : 'Home button service',
+            style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
-        cmd('adb shell pm disable-user --user 0 com.amazon.tv.launcher'),
-        const SizedBox(height: 30),
-        const Text('Backup method: remote key service',
-            style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        if (_hkEnabled) ...[
-          const Text('On. (Many Fire OS versions ignore this for the Home key.)', style: body),
-          const SizedBox(height: 12),
-          PillButton(label: 'Turn off', onSelect: () => _setHomeKey(false)),
-        ] else if (_hkCanEnable)
-          PillButton(label: 'Turn on key service', onSelect: () => _setHomeKey(true))
+        const SizedBox(
+            width: 1300,
+            child: Text(
+                'Fire OS does not allow Amazon\'s home screen to be turned off. Instead, Foyer watches for it and brings itself back to the front, and it also catches the Home key. Double-press Home to reach Amazon\'s home when you want it.',
+                style: body)),
+        const SizedBox(height: 22),
+        if (_hkEnabled)
+          PillButton(label: 'Turn off', autofocus: true, onSelect: () => _setHomeKey(false))
+        else if (_hkCanEnable)
+          PillButton(label: 'Turn on', primary: true, autofocus: true, onSelect: () => _setHomeKey(true))
         else ...[
-          const Text('One-time permission, run on your computer:', style: body),
+          const Text('One-time permission. Run this on your computer, then choose Check again:', style: body),
           const SizedBox(height: 10),
           cmd('adb shell pm grant com.leclair.leclair_home android.permission.WRITE_SECURE_SETTINGS'),
-          const SizedBox(height: 12),
-          PillButton(label: 'Check again', onSelect: _refreshHomeKey),
+          const SizedBox(height: 16),
+          PillButton(label: 'Check again', autofocus: true, onSelect: _refreshHomeKey),
         ],
       ]),
     );

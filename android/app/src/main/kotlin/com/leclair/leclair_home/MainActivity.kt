@@ -99,6 +99,7 @@ class MainActivity : FlutterActivity() {
                     }.start()
                 }
                 "openFireSettings" -> result.success(openFireSettings())
+                "openAmazonHome" -> result.success(openAmazonHome())
                 "readTokenFile" -> Thread {
                     val t = readTokenFile()
                     runOnUiThread { result.success(t) }
@@ -248,6 +249,19 @@ class MainActivity : FlutterActivity() {
             } catch (e: Exception) { }
         }
         return written
+    }
+
+    /** Opens Amazon's own home screen (Foyer's redirect is paused for a few seconds). */
+    private fun openAmazonHome(): Boolean {
+        HomeKeyService.allowAmazonUntil = System.currentTimeMillis() + 8000
+        return try {
+            startActivity(
+                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                    .setPackage(HomeKeyService.AMAZON_HOME)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            )
+            true
+        } catch (e: Exception) { false }
     }
 
     /** Opens the stock Fire TV settings app. Tries a few ways because Fire OS builds differ. */
