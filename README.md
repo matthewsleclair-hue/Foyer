@@ -34,6 +34,13 @@ That builds the signed APK and creates a release tagged `v<VERSION>+<build>` wit
 On the stick: Settings > Updates > Check now > Download and install. A small orange dot also appears on the
 home screen's settings icon when a newer version exists.
 
+Quick way to get the token onto the stick (typing 90 characters with a remote is painful):
+
+    printf '%s' 'github_pat_xxx' > /tmp/foyer-token.txt
+    adb push /tmp/foyer-token.txt /sdcard/Android/data/com.leclair.leclair_home/files/foyer-token.txt
+    rm /tmp/foyer-token.txt
+Then Settings > Updates > Load token from file. The file is deleted from the stick after it is read.
+
 Private repo: create a fine-grained token (GitHub > Settings > Developer settings > Personal access tokens),
 limited to this repo with **Contents: Read-only**, and add it in Settings > Updates > Add access token. It is
 stored on the TV only and is never included in backups or debug reports. A public repo needs no token.

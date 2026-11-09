@@ -1410,7 +1410,27 @@ class _UpdateScreenState extends State<UpdateScreen> {
                   }
                 }),
             PillButton(
-                label: s.updateToken.isEmpty ? 'Add access token' : 'Change access token',
+                label: 'Load token from file',
+                onSelect: () async {
+                  try {
+                    await kChannel.invokeMethod<bool>('requestStorage');
+                    final t = await kChannel.invokeMethod<String>('readTokenFile');
+                    if (t == null || t.isEmpty) {
+                      setState(() => _msg = 'No foyer-token.txt found. Send it from your computer first (see the README).');
+                    } else {
+                      s.change(() => s.updateToken = t);
+                      kUpdate.value = null;
+                      setState(() {
+                        _found = null;
+                        _msg = 'Token loaded and the file was deleted from the stick.';
+                      });
+                    }
+                  } catch (_) {
+                    setState(() => _msg = 'Could not read the token file.');
+                  }
+                }),
+            PillButton(
+                label: s.updateToken.isEmpty ? 'Type access token' : 'Change access token',
                 onSelect: () async {
                   final v = await askText(context, 'GitHub access token', '',
                       hint: 'github_pat_…', maxLength: 200);

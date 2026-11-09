@@ -98,6 +98,10 @@ class MainActivity : FlutterActivity() {
                         runOnUiThread { result.success(r) }
                     }.start()
                 }
+                "readTokenFile" -> Thread {
+                    val t = readTokenFile()
+                    runOnUiThread { result.success(t) }
+                }.start()
                 "appVersion" -> result.success(mapOf("name" to versionName(), "code" to versionCode()))
                 "updatePath" -> result.success(File(appDir(), "update.apk").absolutePath)
                 "installApk" -> result.success(installApk(call.argument<String>("path") ?: ""))
@@ -243,6 +247,28 @@ class MainActivity : FlutterActivity() {
             } catch (e: Exception) { }
         }
         return written
+    }
+
+    /** Reads (then deletes) foyer-token.txt from the app folder or Download. */
+    private fun readTokenFile(): String? {
+        val files = ArrayList<File>()
+        files.add(File(appDir(), "foyer-token.txt"))
+        if (hasStorage()) {
+            try {
+                @Suppress("DEPRECATION")
+                files.add(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "foyer-token.txt"))
+            } catch (e: Exception) { }
+        }
+        for (f in files) {
+            try {
+                if (f.isFile && f.length() in 1..2000) {
+                    val t = f.readText().trim()
+                    try { f.delete() } catch (e: Exception) { }
+                    if (t.isNotEmpty()) return t
+                }
+            } catch (e: Exception) { }
+        }
+        return null
     }
 
     // ── version, app options, updates ──
