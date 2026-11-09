@@ -70,14 +70,19 @@ class HomeKeyService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
-        val pkg = event.packageName?.toString() ?: return
-        val cls = event.className?.toString() ?: ""
+        if (event == null) return
+        val pkg: String? = when (event.eventType) {
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> event.packageName?.toString()
+            AccessibilityEvent.TYPE_WINDOWS_CHANGED -> try { rootInActiveWindow?.packageName?.toString() } catch (e: Exception) { null }
+            else -> null
+        }
         if (pkg != AMAZON_HOME) return
-        Log.d(TAG, "Amazon window: $cls")
-        if (!cls.contains("HomeActivity")) return
+        val cls = event.className?.toString() ?: ""
+        Log.d(TAG, "Amazon window: type=${event.eventType} $cls")
+        // Settings, search etc. from Amazon are fine; only the home screen is redirected.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && !cls.contains("Home")) return
         val now = System.currentTimeMillis()
-        if (now < allowAmazonUntil || now - lastRedirect < 1500) return
+        if (now < allowAmazonUntil || now - lastRedirect < 600) return
         lastRedirect = now
         Log.d(TAG, "redirecting to Foyer")
         openFoyer()
