@@ -273,6 +273,8 @@ class MainActivity : FlutterActivity() {
 
     /** Opens the stock Fire TV settings app. Tries a few ways because Fire OS builds differ. */
     private fun openFireSettings(): String {
+        // pause Foyer's Home redirect so Amazon's settings are not pulled back to Foyer
+        HomeKeyService.allowAmazonUntil = System.currentTimeMillis() + 15000
         val tries = listOf<() -> Intent?>(
             { launchIntent("com.amazon.tv.settings.v2") },
             { Intent(Settings.ACTION_SETTINGS) },
