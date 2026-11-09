@@ -7,6 +7,7 @@ ADS="com.amazon.recess com.amazon.tv.acr com.amazon.hybridadidservice com.amazon
 EXTRAS="com.amazon.minitv.android.app com.amazon.imdb.tv.android.app com.amazon.bueller.photos com.amazon.bueller.music com.amazon.gamehub com.amazon.tv.livetv com.amazon.tv.support com.amazon.tv.csapp"
 if [ "$1" = "undo" ]; then ACT=enable; else ACT=disable-user; fi
 for p in $ADS $EXTRAS; do
-  [ "$ACT" = enable ] && adb shell pm enable "$p" >/dev/null 2>&1 || adb shell pm disable-user --user 0 "$p" 2>&1 | tail -1
+  if [ "$ACT" = enable ]; then adb shell pm enable "$p" 2>&1 | tail -1
+  else adb shell pm disable-user --user 0 "$p" 2>&1 | tail -1; fi
   echo "$ACT $p"
 done
