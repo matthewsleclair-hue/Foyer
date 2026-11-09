@@ -256,7 +256,7 @@ String adbFriendly(Object? error) {
     return 'No answer. If a prompt appeared on the TV, choose Always allow, then try again.';
   }
   if (e.contains('EOF') || e.contains('reset')) {
-    return 'The stick closed the connection. Check the TV for an "Allow" prompt and choose Always allow, make sure ADB debugging is on, then try again. If it keeps happening, run the command from your computer.';
+    return 'This Fire TV hangs up on apps that try to use its ADB, before any Allow prompt. It is a Fire OS limit, not a setting. Do the tune-up from your computer instead: adb connect <stick IP>:5555, then bash tools/tuneup.sh in the Foyer folder.';
   }
   return 'ADB problem: $e';
 }
