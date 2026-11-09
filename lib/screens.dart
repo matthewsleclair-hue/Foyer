@@ -450,7 +450,7 @@ class SettingsHub extends StatelessWidget {
               const SizedBox(height: 28),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
                   child: Column(children: [
                     for (var i = 0; i < rows.length; i++)
                       Padding(
@@ -485,7 +485,7 @@ class _GroupScreen extends StatelessWidget {
     return SettingsPage(
       title: group.title,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
         child: Column(children: [
           for (var i = 0; i < rows.length; i++)
             Padding(
