@@ -98,6 +98,7 @@ class MainActivity : FlutterActivity() {
                         runOnUiThread { result.success(r) }
                     }.start()
                 }
+                "openFireSettings" -> result.success(openFireSettings())
                 "readTokenFile" -> Thread {
                     val t = readTokenFile()
                     runOnUiThread { result.success(t) }
@@ -247,6 +248,24 @@ class MainActivity : FlutterActivity() {
             } catch (e: Exception) { }
         }
         return written
+    }
+
+    /** Opens the stock Fire TV settings app. Tries a few ways because Fire OS builds differ. */
+    private fun openFireSettings(): String {
+        val tries = listOf<() -> Intent?>(
+            { launchIntent("com.amazon.tv.settings.v2") },
+            { Intent(Settings.ACTION_SETTINGS) },
+            { launchIntent("com.amazon.tv.settings") }
+        )
+        for (t in tries) {
+            try {
+                val i = t() ?: continue
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(i)
+                return "ok"
+            } catch (e: Exception) { }
+        }
+        return "failed"
     }
 
     /** Reads (then deletes) foyer-token.txt from the app folder or Download. */

@@ -279,7 +279,7 @@ class LauncherApp extends StatelessWidget {
       );
 }
 
-enum _Mode { home, hub, edit }
+enum _Mode { home, hub }
 
 class Root extends StatefulWidget {
   const Root({super.key});
@@ -290,7 +290,6 @@ class Root extends StatefulWidget {
 class _RootState extends State<Root> {
   bool _ready = false;
   _Mode _mode = _Mode.home;
-  int _only = 0;
 
   @override
   void initState() {
@@ -308,19 +307,8 @@ class _RootState extends State<Root> {
     if (!s.setupDone) {
       return SetupScreen(firstRun: true, onDone: () => setState(() => _mode = _Mode.home));
     }
-    if (_mode == _Mode.edit) {
-      return SetupScreen(
-          firstRun: false,
-          only: _only,
-          onDone: () => setState(() => _mode = _Mode.hub));
-    }
     if (_mode == _Mode.hub) {
-      return SettingsHub(
-          onClose: () => setState(() => _mode = _Mode.home),
-          onEdit: (step) => setState(() {
-                _only = step;
-                _mode = _Mode.edit;
-              }));
+      return SettingsHub(onClose: () => setState(() => _mode = _Mode.home));
     }
     return HomeScreen(onOpenSettings: () => setState(() => _mode = _Mode.hub));
   }
@@ -745,6 +733,8 @@ class _SetupScreenState extends State<SetupScreen> {
   // home button
   bool _hkEnabled = false;
   bool _hkCanEnable = false;
+  bool _amazonOff = false;
+  String _hkMsg = '';
 
   @override
   void initState() {
@@ -790,7 +780,20 @@ class _SetupScreenState extends State<SetupScreen> {
         _hkEnabled = m['enabled'] as bool? ?? false;
         _hkCanEnable = m['canEnable'] as bool? ?? false;
       });
+      final d = await kChannel.invokeMapMethod<String, dynamic>('diagnostics', {'packages': [kAmazonHome]});
+      final st = (d?['states'] as Map?)?[kAmazonHome];
+      if (mounted) setState(() => _amazonOff = st == 2);
     } catch (_) {}
+  }
+
+  Future<void> _toggleAmazonHome() async {
+    setState(() => _hkMsg = 'Working…');
+    final err = await adbQuick([
+      _amazonOff ? 'pm enable $kAmazonHome' : 'pm disable-user --user 0 $kAmazonHome'
+    ]);
+    if (!mounted) return;
+    setState(() => _hkMsg = err ?? (_amazonOff ? 'Amazon home restored.' : 'Done. Press Home on the remote to test.'));
+    await _refreshHomeKey();
   }
 
   Future<void> _setHomeKey(bool on) async {
@@ -912,7 +915,7 @@ class _SetupScreenState extends State<SetupScreen> {
     'Liquid glass blurs the wallpaper behind each panel. It looks best, but can stutter on an older Fire Stick.',
     'Pick up to $kMaxPinned apps for your home screen. They appear in the order you select them.',
     'Optional. Show Continue Watching from your Plex server on the home screen.',
-    'Optional. Make the Home button on your remote open this launcher instead of Amazon\'s screen.',
+    'Make the Home button on your remote open Foyer instead of Amazon\'s screen.',
   ];
 
   @override
@@ -1160,38 +1163,55 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   Widget _homeKeyStep() {
-    const body = TextStyle(fontSize: 28, color: Colors.white70);
-    const mono = TextStyle(fontSize: 24, fontFamily: 'monospace');
-    if (_hkEnabled) {
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('The Home button is on.', style: TextStyle(fontSize: 40, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 12),
-        const Text('Pressing Home on your remote now opens Foyer.', style: body),
-        const SizedBox(height: 32),
-        PillButton(label: 'Turn off', onSelect: () => _setHomeKey(false)),
-      ]);
-    }
-    if (_hkCanEnable) {
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        PillButton(label: 'Turn on Home button', autofocus: true, onSelect: () => _setHomeKey(true)),
-        const SizedBox(height: 24),
-        const Text('Select Next to skip this.', style: body),
-      ]);
-    }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('One-time permission. Run this on your computer:', style: body),
-      const SizedBox(height: 16),
-      Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-            color: Colors.black38, borderRadius: BorderRadius.circular(20)),
-        child: const Text(
-            'adb shell pm grant com.leclair.leclair_home android.permission.WRITE_SECURE_SETTINGS',
-            style: mono),
-      ),
-      const SizedBox(height: 28),
-      PillButton(label: 'Check again', autofocus: true, onSelect: _refreshHomeKey),
-    ]);
+    const body = TextStyle(fontSize: 26, color: Colors.white70);
+    const mono = TextStyle(fontSize: 22, fontFamily: 'monospace');
+    Widget cmd(String t) => Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: Colors.black38, borderRadius: BorderRadius.circular(18)),
+          child: Text(t, style: mono),
+        );
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Best method: replace Amazon\'s home',
+            style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Text(
+            _amazonOff
+                ? 'Amazon\'s home screen is off, so the Home button opens Foyer.'
+                : 'Turns off Amazon\'s home screen (reversible), so the Home button falls through to Foyer. Needs ADB debugging on.',
+            style: body),
+        const SizedBox(height: 16),
+        PillButton(
+            label: _amazonOff ? 'Restore Amazon home' : 'Use Foyer as my home',
+            primary: true,
+            autofocus: true,
+            onSelect: _toggleAmazonHome),
+        if (_hkMsg.isNotEmpty)
+          Padding(padding: const EdgeInsets.only(top: 12), child: Text(_hkMsg, style: body)),
+        const SizedBox(height: 18),
+        const Text('If that fails, run this on your computer (undo with pm enable):', style: body),
+        const SizedBox(height: 10),
+        cmd('adb shell pm disable-user --user 0 com.amazon.tv.launcher'),
+        const SizedBox(height: 30),
+        const Text('Backup method: remote key service',
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        if (_hkEnabled) ...[
+          const Text('On. (Many Fire OS versions ignore this for the Home key.)', style: body),
+          const SizedBox(height: 12),
+          PillButton(label: 'Turn off', onSelect: () => _setHomeKey(false)),
+        ] else if (_hkCanEnable)
+          PillButton(label: 'Turn on key service', onSelect: () => _setHomeKey(true))
+        else ...[
+          const Text('One-time permission, run on your computer:', style: body),
+          const SizedBox(height: 10),
+          cmd('adb shell pm grant com.leclair.leclair_home android.permission.WRITE_SECURE_SETTINGS'),
+          const SizedBox(height: 12),
+          PillButton(label: 'Check again', onSelect: _refreshHomeKey),
+        ],
+      ]),
+    );
   }
 }
 

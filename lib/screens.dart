@@ -310,69 +310,110 @@ void _push(BuildContext c, Widget w) =>
 
 // ───────────────────────── settings hub ─────────────────────────
 
+class _HubItem {
+  _HubItem(this.icon, this.title, this.subtitle, this.onSelect);
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onSelect;
+}
+
+class _Group {
+  _Group(this.icon, this.title, this.subtitle, this.items);
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<_HubItem> Function(BuildContext c, Settings s) items;
+}
+
+/// Opens one step of the first-run setup on its own (0 name/clock, 1 glass, 2 apps, 3 Plex, 4 Home button).
+void _editStep(BuildContext c, int step) => _push(
+    c, SetupScreen(firstRun: false, only: step, onDone: () => Navigator.of(c).pop()));
+
+Future<void> openFireSettings(BuildContext context) async {
+  var r = 'failed';
+  try {
+    r = (await kChannel.invokeMethod<String>('openFireSettings')) ?? 'failed';
+  } catch (_) {}
+  if (r != 'ok' && context.mounted) {
+    showInfo(context, 'Could not open Fire TV settings',
+        'Double-press Home for the Amazon home screen, or run on your computer: adb shell am start -a android.settings.SETTINGS');
+  }
+}
+
+final List<_Group> _groups = [
+  _Group(Icons.home_rounded, 'Home screen', 'Name, apps, weather, Plex', (c, s) => [
+    _HubItem(Icons.badge_rounded, 'Name and clock',
+        '${s.name}, ${s.clock24 ? '24-hour' : '12-hour'} clock', () => _editStep(c, 0)),
+    _HubItem(Icons.apps_rounded, 'Pinned apps', '${s.pinned.length} on your home screen',
+        () => _editStep(c, 2)),
+    _HubItem(
+        Icons.wb_sunny_rounded,
+        'Weather',
+        s.weatherCity.isEmpty
+            ? 'Off'
+            : '${s.weatherCity}, ${s.weatherF ? 'Fahrenheit' : 'Celsius'}',
+        () => _push(c, const WeatherScreen())),
+    _HubItem(Icons.video_library_rounded, 'Plex',
+        s.plexToken.isEmpty ? 'Not linked' : 'Linked to ${s.plexName}', () => _editStep(c, 3)),
+  ]),
+  _Group(Icons.palette_rounded, 'Appearance', 'Glass style, wallpaper, performance', (c, s) => [
+    _HubItem(Icons.blur_on_rounded, 'Glass style', s.liquid ? 'Liquid glass' : 'Simple glass',
+        () => _editStep(c, 1)),
+    _HubItem(
+        Icons.wallpaper_rounded,
+        'Wallpaper',
+        s.wallMode == 'photo'
+            ? 'Your photo'
+            : (s.wallMode == 'preset'
+                ? kWallPresets[clampIdx(int.tryParse(s.wallValue) ?? 0, kWallPresets.length - 1)].name
+                : 'Follows the selected app'),
+        () => _push(c, const WallpaperScreen())),
+    _HubItem(Icons.speed_rounded, 'Performance mode',
+        s.perfMode ? 'On: no blur, lighter animations' : 'Off',
+        () => s.change(() => s.perfMode = !s.perfMode)),
+  ]),
+  _Group(Icons.bedtime_rounded, 'Screensaver and power', 'Screensaver, start on boot, restart', (c, s) => [
+    _HubItem(Icons.bedtime_rounded, 'Screensaver',
+        s.ssMinutes == 0 ? 'Off' : 'Starts after ${s.ssMinutes} min idle',
+        () => _push(c, const ScreensaverScreen())),
+    _HubItem(Icons.power_settings_new_rounded, 'Start on boot',
+        s.autoStart ? 'On: opens Foyer when the stick starts' : 'Off',
+        () => s.change(() => s.autoStart = !s.autoStart)),
+    _HubItem(Icons.restart_alt_rounded, 'Restart Fire TV',
+        'Reboots the stick (needs ADB debugging on)', () => restartStick(c)),
+  ]),
+  _Group(Icons.build_rounded, 'Fire TV tools', 'Home button, tune-up and cleanup', (c, s) => [
+    _HubItem(Icons.keyboard_return_rounded, 'Home button',
+        'Make the remote\'s Home button open Foyer', () => _editStep(c, 4)),
+    _HubItem(Icons.build_rounded, 'Tune-up',
+        'Remove ads and bloat, free memory, debug report', () => _push(c, const TuneUpScreen())),
+  ]),
+  _Group(Icons.system_update_rounded, 'Backup and updates', 'Updates, backup and restore', (c, s) => [
+    _HubItem(
+        Icons.system_update_rounded,
+        'Updates',
+        kUpdate.value != null
+            ? 'Version ${kUpdate.value!.version} is available'
+            : (s.updateUrl.isEmpty ? 'Set up an update link' : 'Check for a newer version'),
+        () => _push(c, const UpdateScreen())),
+    _HubItem(Icons.backup_rounded, 'Backup and restore',
+        'Save your settings to a file, or load them back',
+        () => _push(c, const BackupScreen())),
+  ]),
+];
+
 class SettingsHub extends StatelessWidget {
-  const SettingsHub({super.key, required this.onClose, required this.onEdit});
+  const SettingsHub({super.key, required this.onClose});
   final VoidCallback onClose;
-  final void Function(int step) onEdit; // 0 name/clock, 1 glass, 2 apps, 3 Plex, 4 Home button
 
   @override
   Widget build(BuildContext context) {
-    final s = SettingsScope.of(context);
     final rows = <_HubItem>[
-      _HubItem(Icons.home_rounded, 'Name and clock',
-          '${s.name}, ${s.clock24 ? '24-hour' : '12-hour'} clock', () => onEdit(0)),
-      _HubItem(Icons.blur_on_rounded, 'Glass style',
-          s.liquid ? 'Liquid glass' : 'Simple glass', () => onEdit(1)),
-      _HubItem(Icons.apps_rounded, 'Pinned apps',
-          '${s.pinned.length} on your home screen', () => onEdit(2)),
-      _HubItem(Icons.video_library_rounded, 'Plex',
-          s.plexToken.isEmpty ? 'Not linked' : 'Linked to ${s.plexName}', () => onEdit(3)),
-      _HubItem(Icons.keyboard_return_rounded, 'Home button',
-          'Make the remote\'s Home button open Foyer', () => onEdit(4)),
-      _HubItem(
-          Icons.wb_sunny_rounded,
-          'Weather',
-          s.weatherCity.isEmpty
-              ? 'Off'
-              : '${s.weatherCity}, ${s.weatherF ? 'Fahrenheit' : 'Celsius'}',
-          () => _push(context, const WeatherScreen())),
-      _HubItem(
-          Icons.wallpaper_rounded,
-          'Wallpaper',
-          s.wallMode == 'photo'
-              ? 'Your photo'
-              : (s.wallMode == 'preset'
-                  ? kWallPresets[clampIdx(int.tryParse(s.wallValue) ?? 0, kWallPresets.length - 1)].name
-                  : 'Follows the selected app'),
-          () => _push(context, const WallpaperScreen())),
-      _HubItem(Icons.bedtime_rounded, 'Screensaver',
-          s.ssMinutes == 0 ? 'Off' : 'Starts after ${s.ssMinutes} min idle',
-          () => _push(context, const ScreensaverScreen())),
-      _HubItem(
-          Icons.speed_rounded,
-          'Performance mode',
-          s.perfMode ? 'On: no blur, lighter animations' : 'Off',
-          () => s.change(() => s.perfMode = !s.perfMode)),
-      _HubItem(
-          Icons.power_settings_new_rounded,
-          'Start on boot',
-          s.autoStart ? 'On: opens Foyer when the stick starts' : 'Off',
-          () => s.change(() => s.autoStart = !s.autoStart)),
-      _HubItem(
-          Icons.system_update_rounded,
-          'Updates',
-          kUpdate.value != null
-              ? 'Version ${kUpdate.value!.version} is available'
-              : (s.updateUrl.isEmpty ? 'Set up an update link' : 'Check for a newer version'),
-          () => _push(context, const UpdateScreen())),
-      _HubItem(Icons.backup_rounded, 'Backup and restore',
-          'Save your settings to a file, or load them back',
-          () => _push(context, const BackupScreen())),
-      _HubItem(Icons.build_rounded, 'Tune-up',
-          'Check your stick, remove ads and bloat, free memory, fix the Home button',
-          () => _push(context, const TuneUpScreen())),
-      _HubItem(Icons.restart_alt_rounded, 'Restart Fire TV',
-          'Reboots the stick (needs ADB debugging on)', () => restartStick(context)),
+      for (final g in _groups)
+        _HubItem(g.icon, g.title, g.subtitle, () => _push(context, _GroupScreen(g))),
+      _HubItem(Icons.settings_rounded, 'Fire TV settings',
+          'Open the stock Wi-Fi, display and sound settings', () => openFireSettings(context)),
     ];
     return PopScope(
       canPop: false,
@@ -405,8 +446,7 @@ class SettingsHub extends StatelessWidget {
               Row(children: [
                 PillButton(label: 'Close', onSelect: onClose),
                 const Spacer(),
-                const Text('Foyer 1.0',
-                    style: TextStyle(fontSize: 22, color: Colors.white38)),
+                const Text('Foyer', style: TextStyle(fontSize: 22, color: Colors.white38)),
               ]),
             ]),
           ),
@@ -416,12 +456,28 @@ class SettingsHub extends StatelessWidget {
   }
 }
 
-class _HubItem {
-  _HubItem(this.icon, this.title, this.subtitle, this.onSelect);
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onSelect;
+class _GroupScreen extends StatelessWidget {
+  const _GroupScreen(this.group);
+  final _Group group;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SettingsScope.of(context); // rebuild when a value changes
+    final rows = group.items(context, s);
+    return SettingsPage(
+      title: group.title,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(children: [
+          for (var i = 0; i < rows.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: _HubRow(item: rows[i], autofocus: i == 0),
+            ),
+        ]),
+      ),
+    );
+  }
 }
 
 class _HubRow extends StatelessWidget {
