@@ -1,0 +1,6 @@
+key.properties
+*.jks
+*.keystore
+*.apk
+update.json
+.DS_Store
