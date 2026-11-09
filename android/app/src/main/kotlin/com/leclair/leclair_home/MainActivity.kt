@@ -422,6 +422,27 @@ class MainActivity : FlutterActivity() {
 
     private fun isOurs(s: String) = ComponentName.unflattenFromString(s) == service
 
+    /** After an update the service is listed as on but not running: switch it off and on again. */
+    private fun ensureHomeKey() {
+        try {
+            if (!canWriteSecure()) return
+            if (homeKeyEnabled() && !prefs.contains("homeKeyWanted")) prefs.edit().putBoolean("homeKeyWanted", true).apply()
+            if (!prefs.getBoolean("homeKeyWanted", false) || HomeKeyService.running) return
+            val others = enabledServices().filter { !isOurs(it) }
+            Settings.Secure.putString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, others.joinToString(":"))
+            Settings.Secure.putString(
+                contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                (others + service.flattenToString()).joinToString(":")
+            )
+            Settings.Secure.putInt(contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED, 1)
+        } catch (e: Exception) { }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ensureHomeKey()
+    }
+
     private fun homeKeyEnabled(): Boolean = enabledServices().any { isOurs(it) }
 
     private fun canWriteSecure(): Boolean =
@@ -429,6 +450,7 @@ class MainActivity : FlutterActivity() {
 
     private fun setHomeKey(on: Boolean): Boolean {
         if (!canWriteSecure()) return false
+        prefs.edit().putBoolean("homeKeyWanted", on).apply()
         val others = enabledServices().filter { !isOurs(it) }
         val list = if (on) others + service.flattenToString() else others
         Settings.Secure.putString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, list.joinToString(":"))

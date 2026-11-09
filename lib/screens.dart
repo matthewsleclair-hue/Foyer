@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show File;
+import 'dart:io' show File, NetworkInterface, InternetAddressType;
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -395,7 +395,7 @@ final List<_Group> _groups = [
     _HubItem(Icons.home_work_rounded, 'Amazon home screen',
         'Open the stock Fire TV home for a moment', () => openAmazonHome(c)),
     _HubItem(Icons.build_rounded, 'Tune-up',
-        'Remove ads and bloat, free memory, debug report', () => _push(c, const TuneUpScreen())),
+        'Debug report and how to remove Amazon ads', () => _push(c, const TuneUpScreen())),
   ]),
   _Group(Icons.system_update_rounded, 'Backup and updates', 'Updates, backup and restore', (c, s) => [
     _HubItem(
@@ -1114,10 +1114,23 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
   final List<String> _log = [];
   final ScrollController _logScroll = ScrollController();
   bool _busy = false;
+  String _ip = '<stick IP>';
 
   @override
   void initState() {
     super.initState();
+    () async {
+      try {
+        for (final ni in await NetworkInterface.list(type: InternetAddressType.IPv4)) {
+          for (final a in ni.addresses) {
+            if (!a.isLoopback) {
+              if (mounted) setState(() => _ip = a.address);
+              return;
+            }
+          }
+        }
+      } catch (_) {}
+    }();
     kChannel.setMethodCallHandler((call) async {
       if (call.method == 'adbLog') _addLog(call.arguments as String);
       return null;
@@ -1252,7 +1265,7 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
     return SettingsPage(
       title: 'Tune-up',
       subtitle:
-          'Removes Amazon ads and extras without a computer. Needs ADB debugging on (Settings > My Fire TV > Developer options). The first time, the TV asks you to allow it: choose Always allow. Everything here can be undone.',
+          'Fire OS does not let apps remove Amazon ads and extras, so this is done once from a computer on the same Wi-Fi. Everything can be undone.',
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1285,9 +1298,14 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
                   child: SizedBox(
                     width: double.infinity,
                     child: Text(
-                        _log.isEmpty ? 'Activity shows here.' : _log.join('\n'),
+                        'On a computer on the same Wi-Fi, open the Foyer folder and run:\n\n'
+                        'bash tools/tuneup.sh $_ip\n\n'
+                        'To undo it:\n\n'
+                        'bash tools/tuneup.sh $_ip undo\n\n'
+                        'Step-by-step help: GUIDE.md in the Foyer GitHub repo.'
+                        '${_log.isEmpty ? '' : '\n\n' + _log.join('\n')}',
                         style: const TextStyle(
-                            fontSize: 20, fontFamily: 'monospace', color: Colors.white70)),
+                            fontSize: 22, fontFamily: 'monospace', color: Colors.white70)),
                   ),
                 ),
               ),
@@ -1297,37 +1315,7 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
         const SizedBox(height: 22),
         Wrap(spacing: 18, runSpacing: 18, children: [
           PillButton(label: 'Scan again', autofocus: true, onSelect: _scan),
-          PillButton(
-              label: 'Remove ads',
-              primary: true,
-              onSelect: () => _run('Disabling ads and tracking', _disableCmds(kAdsPkgs))),
-          PillButton(
-              label: 'Remove extras',
-              primary: true,
-              onSelect: () => _run('Disabling Amazon extras', _disableCmds(kContentPkgs))),
-          PillButton(label: 'Free up memory', primary: true, onSelect: _free),
           PillButton(label: 'Save debug report', onSelect: _report),
-          PillButton(label: 'Restart stick', onSelect: () => restartStick(context)),
-          PillButton(
-              label: 'Undo all',
-              onSelect: () => _run('Restoring everything',
-                  _enableCmds([...kAdsPkgs, ...kContentPkgs, kAmazonSaver]))),
-          PillButton(
-              label: 'Fix Home button',
-              onSelect: () => _run(
-                    'Granting permission',
-                    ['pm grant $kAppPackage android.permission.WRITE_SECURE_SETTINGS'],
-                    after: () async {
-                      await kChannel.invokeMethod('setHomeKey', {'enabled': true});
-                      _addLog('Home button turned on.');
-                    },
-                  )),
-          PillButton(
-              label: saverOff ? 'Amazon screensaver on' : 'Amazon screensaver off',
-              onSelect: () => saverOff
-                  ? _run('Turning Amazon screensaver on', ['pm enable $kAmazonSaver'])
-                  : _run('Turning Amazon screensaver off',
-                      ['pm disable-user --user 0 $kAmazonSaver'])),
         ]),
       ]),
     );

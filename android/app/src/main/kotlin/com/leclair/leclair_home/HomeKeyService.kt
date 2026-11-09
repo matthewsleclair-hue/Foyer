@@ -19,6 +19,7 @@ class HomeKeyService : AccessibilityService() {
     companion object {
         /** Until this time (ms), Amazon's home may stay open (set when the user asks for it). */
         @Volatile var allowAmazonUntil = 0L
+        @Volatile var running = false
         const val TAG = "FoyerHome"
         const val AMAZON_HOME = "com.amazon.tv.launcher"
     }
@@ -39,6 +40,7 @@ class HomeKeyService : AccessibilityService() {
         val info = serviceInfo ?: AccessibilityServiceInfo()
         info.flags = info.flags or AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
         serviceInfo = info
+        running = true
         Log.d(TAG, "service connected")
     }
 
@@ -98,6 +100,16 @@ class HomeKeyService : AccessibilityService() {
         lastRedirect = now
         Log.d(TAG, "redirecting to Foyer")
         fightForFront()
+    }
+
+    override fun onDestroy() {
+        running = false
+        super.onDestroy()
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        running = false
+        return super.onUnbind(intent)
     }
 
     override fun onInterrupt() {}
