@@ -23,7 +23,7 @@ else
   echo "(No signing key yet. Run tools/create_signing.sh once, then use tools/release.sh to build the shareable APK.)"
 fi
 cd "$PROJ"
-flutter build apk --release --build-name "$(cat "$HERE/VERSION" 2>/dev/null || echo 1.0.0)" --build-number "$(date +%y%m%d%H)"
+flutter build apk --release --build-name "$(cat "$HERE/VERSION" 2>/dev/null || echo 1.0.0)" --build-number "$(( 30000000 + ( $(date +%s) - 1767225600 ) / 60 ))"
 if ! adb install -r build/app/outputs/flutter-apk/app-release.apk; then
   echo
   echo "Install failed. If it says UPDATE_INCOMPATIBLE the new signing key differs from the installed one."

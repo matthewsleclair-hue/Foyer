@@ -48,7 +48,7 @@ stored on the TV only and is never included in backups or debug reports. A publi
 Not using GitHub? Settings > Updates also accepts a link to a small JSON file
 (`{"version":"1.0.1","build":26110901,"url":"<direct apk link>","notes":""}`).
 `tools/release.sh` writes one as `update.json`.
-Bump `VERSION` to change the version name; the build number goes up automatically (hourly), so you can publish at most once per hour.
+Bump `VERSION` to change the version name; the build number goes up automatically (every minute), so you can publish as often as you like.
 
 ## Icon
 Regenerate with `python3 tools/make_icons.py` (needs `pip install playwright`). Previews are in `docs/`.

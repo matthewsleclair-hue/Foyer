@@ -11,7 +11,9 @@ cp -R "$HERE/android/." "$PROJ/android/"
 cp "$SIGN/key.properties" "$PROJ/android/key.properties"
 python3 "$HERE/tools/patch_signing.py" "$PROJ"
 cd "$PROJ"
-BUILD="$(date +%y%m%d%H)"   # always goes up, so updates install over old ones
+# Build number = 30,000,000 + minutes since 2026-01-01. Always goes up (so updates install over old
+# builds), changes every minute, and stays far below Android's 2.1 billion limit.
+BUILD="$(( 30000000 + ( $(date +%s) - 1767225600 ) / 60 ))"
 NAME="$(cat "$HERE/VERSION" 2>/dev/null || echo 1.0.0)"
 flutter build apk --release --build-name "$NAME" --build-number "$BUILD"
 OUT="$HERE/Foyer.apk"
