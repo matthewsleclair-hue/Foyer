@@ -256,7 +256,7 @@ String adbFriendly(Object? error) {
     return 'No answer. If a prompt appeared on the TV, choose Always allow, then try again.';
   }
   if (e.contains('EOF') || e.contains('reset')) {
-    return 'This Fire TV hangs up on apps that try to use its ADB, before any Allow prompt. It is a Fire OS limit, not a setting. Do the tune-up from your computer instead: adb connect <stick IP>:5555, then bash tools/tuneup.sh in the Foyer folder.';
+    return 'This Fire TV hangs up on apps that try to use its ADB, before any Allow prompt. It is a Fire OS limit, not a setting. Use Settings > Fire TV tools > Clean up on the TV for the same clean-up by hand.';
   }
   return 'ADB problem: $e';
 }
@@ -347,6 +347,26 @@ Future<void> openAmazonHome(BuildContext context) async {
   } catch (_) {}
 }
 
+final _Group _cleanupGroup = _Group(
+    Icons.cleaning_services_rounded, 'Clean up on the TV', 'No computer needed', (c, s) {
+  void go() => openFireSettings(c);
+  return [
+    _HubItem(Icons.settings_rounded, 'Open Fire TV settings', 'Then follow the steps below', go),
+    _HubItem(Icons.privacy_tip_rounded, 'Turn off: Collect App Usage Data',
+        'Settings > Preferences > Privacy Settings', go),
+    _HubItem(Icons.ads_click_rounded, 'Turn off: Interest-based Ads',
+        'Settings > Preferences > Privacy Settings', go),
+    _HubItem(Icons.data_usage_rounded, 'Turn off: Device Usage Data',
+        'Settings > Preferences > Privacy Settings', go),
+    _HubItem(Icons.play_disabled_rounded, 'Turn off: Video and Audio Autoplay',
+        'Settings > Preferences > Featured Content', go),
+    _HubItem(Icons.notifications_off_rounded, 'Turn off: App notifications',
+        'Settings > Preferences > Notification Settings', go),
+    _HubItem(Icons.apps_rounded, 'Remove apps you never use',
+        'Settings > Applications > Manage Installed Applications', go),
+  ];
+});
+
 final List<_Group> _groups = [
   _Group(Icons.home_rounded, 'Home screen', 'Name, apps, weather, Plex', (c, s) => [
     _HubItem(Icons.badge_rounded, 'Name and clock',
@@ -394,6 +414,9 @@ final List<_Group> _groups = [
         s.pinned.isEmpty ? 'Keep Foyer in front of Amazon\'s home' : 'Keep Foyer in front of Amazon\'s home', () => _editStep(c, 4)),
     _HubItem(Icons.home_work_rounded, 'Amazon home screen',
         'Open the stock Fire TV home for a moment', () => openAmazonHome(c)),
+    _HubItem(Icons.cleaning_services_rounded, 'Clean up on the TV',
+        'Step by step, no computer needed',
+        () => _push(c, _GroupScreen(_cleanupGroup))),
     _HubItem(Icons.build_rounded, 'Tune-up',
         'Remove ads and bloat, free memory, debug report', () => _push(c, const TuneUpScreen())),
   ]),
