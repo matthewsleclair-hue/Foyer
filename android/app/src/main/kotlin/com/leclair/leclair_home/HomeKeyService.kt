@@ -46,6 +46,7 @@ class HomeKeyService : AccessibilityService() {
         try {
             startActivity(
                 Intent(this, MainActivity::class.java)
+                    .putExtra("goHome", true)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             )
         } catch (e: Exception) {

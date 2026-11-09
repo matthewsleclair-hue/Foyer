@@ -254,6 +254,9 @@ Future<bool> launchPackage(String pkg) async =>
 
 // ───────────────────────── app shell ─────────────────────────
 
+final GlobalKey<NavigatorState> kNavKey = GlobalKey<NavigatorState>();
+const MethodChannel kNavChannel = MethodChannel('leclair/nav');
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -264,6 +267,7 @@ class LauncherApp extends StatelessWidget {
   const LauncherApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
+        navigatorKey: kNavKey,
         debugShowCheckedModeBanner: false,
         title: 'Foyer',
         theme: ThemeData(brightness: Brightness.dark, useMaterial3: true),
@@ -294,6 +298,12 @@ class _RootState extends State<Root> {
   @override
   void initState() {
     super.initState();
+    kNavChannel.setMethodCallHandler((call) async {
+      if (call.method == 'goHome') {
+        kNavKey.currentState?.popUntil((r) => r.isFirst);
+        if (mounted) setState(() => _mode = _Mode.home);
+      }
+    });
     SettingsScope.read(context).load().then((_) {
       if (mounted) setState(() => _ready = true);
     });

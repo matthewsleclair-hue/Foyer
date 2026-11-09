@@ -28,15 +28,22 @@ class MainActivity : FlutterActivity() {
     private val prefs by lazy { getSharedPreferences("leclair_home", Context.MODE_PRIVATE) }
     private val service by lazy { ComponentName(this, HomeKeyService::class.java) }
     private var channel: MethodChannel? = null
+    private var navChannel: MethodChannel? = null
     private var pendingStorage: MethodChannel.Result? = null
 
     private val backupName = "Foyer-backup.json"
     private val imageExt = setOf("jpg", "jpeg", "png", "webp")
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra("goHome", false)) navChannel?.invokeMethod("goHome", null)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val ch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/launcher")
         channel = ch
+        navChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/nav")
         ch.setMethodCallHandler { call, result ->
             when (call.method) {
                 "getApps" -> {
