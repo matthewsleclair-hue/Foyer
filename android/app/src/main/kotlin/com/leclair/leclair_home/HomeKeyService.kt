@@ -3,6 +3,8 @@ package com.leclair.leclair_home
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
@@ -23,6 +25,14 @@ class HomeKeyService : AccessibilityService() {
 
     private var lastUp = 0L
     private var lastRedirect = 0L
+    private val handler = Handler(Looper.getMainLooper())
+    private val retry = Runnable { openFoyer() }
+
+    /** Re-launch Foyer a few times so it lands in front as soon as Amazon's home starts. */
+    private fun fightForFront() {
+        handler.removeCallbacks(retry)
+        for (d in longArrayOf(0, 150, 350, 650, 1000, 1500, 2200, 3000)) handler.postDelayed(retry, d)
+    }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -53,6 +63,7 @@ class HomeKeyService : AccessibilityService() {
             val double = now - lastUp < 450
             lastUp = if (double) 0L else now
             if (double) {
+                handler.removeCallbacks(retry)
                 // double-press = escape hatch to the stock Fire TV home
                 allowAmazonUntil = now + 6000
                 try {
@@ -63,7 +74,7 @@ class HomeKeyService : AccessibilityService() {
                     )
                 } catch (e: Exception) { }
             } else {
-                openFoyer()
+                fightForFront()
             }
         }
         return true
@@ -85,7 +96,7 @@ class HomeKeyService : AccessibilityService() {
         if (now < allowAmazonUntil || now - lastRedirect < 600) return
         lastRedirect = now
         Log.d(TAG, "redirecting to Foyer")
-        openFoyer()
+        fightForFront()
     }
 
     override fun onInterrupt() {}
