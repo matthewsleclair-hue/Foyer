@@ -505,6 +505,7 @@ class _HubRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FocusButton(
         autofocus: autofocus,
+        scale: 1.0, // growing the row squares off its corners on some sticks
         scrollIntoView: true,
         onSelect: item.onSelect,
         builder: (_, f) => AnimatedContainer(

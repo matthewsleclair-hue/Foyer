@@ -453,7 +453,9 @@ class FocusButton extends StatefulWidget {
       required this.builder,
       this.onLongPress,
       this.autofocus = false,
+      this.scale = 1.05,
       this.scrollIntoView = false});
+  final double scale;
   final VoidCallback onSelect;
   final VoidCallback? onLongPress;
   final Widget Function(BuildContext context, bool focused) builder;
@@ -503,7 +505,7 @@ class _FocusButtonState extends State<FocusButton> {
         onTap: widget.onSelect,
         onLongPress: widget.onLongPress,
         child: AnimatedScale(
-          scale: _f ? 1.05 : 1.0,
+          scale: _f ? widget.scale : 1.0,
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutCubic,
           child: widget.builder(context, _f),
