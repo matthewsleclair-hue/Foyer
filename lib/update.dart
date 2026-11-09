@@ -26,6 +26,9 @@ class UpdateApi {
     return m == null ? null : '${m[1]}/${m[2]}';
   }
 
+  /// GitHub tokens only contain letters, digits, '_' and '-'. Drop anything else (spaces, quotes, newlines).
+  static String cleanToken(String t) => t.replaceAll(RegExp(r'[^A-Za-z0-9_\-]'), '');
+
   static HttpClient _client() => HttpClient()
     ..connectionTimeout = const Duration(seconds: 8)
     ..userAgent = 'Foyer';
@@ -35,6 +38,7 @@ class UpdateApi {
     try {
       final req = await c.getUrl(uri);
       req.headers.set('Accept', 'application/vnd.github+json');
+      token = cleanToken(token);
       if (token.isNotEmpty && uri.host == 'api.github.com') {
         req.headers.set('Authorization', 'Bearer $token');
       }
@@ -80,7 +84,7 @@ class UpdateApi {
       }
       if (apk == null) throw const FormatException('The latest release has no .apk file attached');
       // with a token, go through the API (works for private repos); otherwise the plain link
-      final url = (token.isNotEmpty ? apk['url'] : apk['browser_download_url']).toString();
+      final url = (cleanToken(token).isNotEmpty ? apk['url'] : apk['browser_download_url']).toString();
       return UpdateInfo(version, build ?? 0, url, (j['body'] ?? '').toString());
     }
     if (!source.trim().startsWith('http')) {
@@ -97,6 +101,7 @@ class UpdateApi {
 
   static Future<void> download(
       String url, String path, String token, void Function(double) onProgress) async {
+    token = cleanToken(token);
     final c = _client();
     try {
       var uri = Uri.parse(url);

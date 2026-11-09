@@ -1418,11 +1418,12 @@ class _UpdateScreenState extends State<UpdateScreen> {
                     if (t == null || t.isEmpty) {
                       setState(() => _msg = 'No foyer-token.txt found. Send it from your computer first (see the README).');
                     } else {
-                      s.change(() => s.updateToken = t);
+                      final clean = UpdateApi.cleanToken(t);
+                      s.change(() => s.updateToken = clean);
                       kUpdate.value = null;
                       setState(() {
                         _found = null;
-                        _msg = 'Token loaded and the file was deleted from the stick.';
+                        _msg = 'Token loaded (${clean.length} characters) and the file was deleted from the stick.';
                       });
                     }
                   } catch (_) {
@@ -1435,7 +1436,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
                   final v = await askText(context, 'GitHub access token', '',
                       hint: 'github_pat_…', maxLength: 200);
                   if (v != null) {
-                    s.change(() => s.updateToken = v);
+                    s.change(() => s.updateToken = UpdateApi.cleanToken(v));
                     kUpdate.value = null;
                     setState(() => _found = null);
                   }
