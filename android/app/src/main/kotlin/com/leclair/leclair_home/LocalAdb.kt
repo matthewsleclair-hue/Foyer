@@ -174,11 +174,16 @@ class LocalAdb(private val dir: File, private val log: (String) -> Unit) {
     }
 
     private fun handshake(kp: KeyPair) {
+        log("Sending hello")
         send(CNXN, VERSION, MAXDATA, "host::\u0000".toByteArray())
         var signed = false
         var keySent = false
         while (true) {
-            val m = recv()
+            val m = try { recv() } catch (e: java.io.EOFException) {
+                log("Stick hung up during sign-in (signed=$signed, keySent=$keySent)")
+                throw e
+            }
+            log("Got " + String(byteArrayOf(m.cmd.toByte(), (m.cmd shr 8).toByte(), (m.cmd shr 16).toByte(), (m.cmd shr 24).toByte())) + " " + m.arg0)
             if (m.cmd == CNXN) return
             if (m.cmd == AUTH && m.arg0 == 1) {
                 if (!signed) {
