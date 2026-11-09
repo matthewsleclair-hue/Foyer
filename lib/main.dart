@@ -1349,6 +1349,7 @@ class _HomeScreenState extends State<HomeScreen>
   Timer? _idleTimer;
   Timer? _updateTimer;
   Timer? _toastTimer;
+  DateTime? _lastUpdateCheck;
   String _toastShownFor = '';
   bool _toast = false;
 
@@ -1389,7 +1390,7 @@ class _HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.addObserver(this);
     _plexTimer = Timer.periodic(const Duration(minutes: 15), (_) => _loadPlex(force: true));
     _weatherTimer = Timer.periodic(const Duration(minutes: 20), (_) => _loadWeather(force: true));
-    _updateTimer = Timer.periodic(const Duration(hours: 12), (_) => _checkUpdate(force: true));
+    _updateTimer = Timer.periodic(const Duration(minutes: 30), (_) => _checkUpdate(force: true));
     kUpdate.addListener(_onUpdateFound);
     HardwareKeyboard.instance.addHandler(_onAnyKey);
     _idleTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkIdle());
@@ -1472,6 +1473,7 @@ class _HomeScreenState extends State<HomeScreen>
       if (_leaving) setState(() => _leaving = false);
       _load();
       _loadPlex(force: true);
+      _checkUpdate(force: true);
     }
   }
 
@@ -1549,6 +1551,9 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
     if (!force && url == _updateSig) return;
+    final now = DateTime.now();
+    if (force && _lastUpdateCheck != null && now.difference(_lastUpdateCheck!).inSeconds < 60) return;
+    _lastUpdateCheck = now;
     _updateSig = url;
     try {
       kUpdate.value =
