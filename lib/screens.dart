@@ -416,8 +416,18 @@ class SettingsHub extends StatelessWidget {
   final VoidCallback onClose;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<UpdateInfo?>(
+        valueListenable: kUpdate,
+        builder: (context, _, __) => _build(context),
+      );
+
+  Widget _build(BuildContext context) {
+    final up = kUpdate.value;
     final rows = <_HubItem>[
+      // Only shown while a newer version is available.
+      if (up != null)
+        _HubItem(Icons.system_update_rounded, 'Update available',
+            'Version ${up.version} is ready to install', () => _push(context, const UpdateScreen())),
       for (final g in _groups)
         _HubItem(g.icon, g.title, g.subtitle, () => _push(context, _GroupScreen(g))),
       _HubItem(Icons.settings_rounded, 'Fire TV settings',

@@ -1348,6 +1348,22 @@ class _HomeScreenState extends State<HomeScreen>
 
   Timer? _idleTimer;
   Timer? _updateTimer;
+  Timer? _toastTimer;
+  String _toastShownFor = '';
+  bool _toast = false;
+
+  void _onUpdateFound() {
+    final u = kUpdate.value;
+    if (u == null || !mounted) return;
+    final key = '${u.version}+${u.build}';
+    if (_toastShownFor == key) return;
+    _toastShownFor = key;
+    setState(() => _toast = true);
+    _toastTimer?.cancel();
+    _toastTimer = Timer(const Duration(seconds: 12), () {
+      if (mounted) setState(() => _toast = false);
+    });
+  }
   String _updateSig = '\u0000';
   DateTime _lastKey = DateTime.now();
   bool _fg = true;
@@ -1374,6 +1390,7 @@ class _HomeScreenState extends State<HomeScreen>
     _plexTimer = Timer.periodic(const Duration(minutes: 15), (_) => _loadPlex(force: true));
     _weatherTimer = Timer.periodic(const Duration(minutes: 20), (_) => _loadWeather(force: true));
     _updateTimer = Timer.periodic(const Duration(hours: 12), (_) => _checkUpdate(force: true));
+    kUpdate.addListener(_onUpdateFound);
     HardwareKeyboard.instance.addHandler(_onAnyKey);
     _idleTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkIdle());
   }
@@ -1438,6 +1455,8 @@ class _HomeScreenState extends State<HomeScreen>
     _weatherTimer?.cancel();
     _idleTimer?.cancel();
     _updateTimer?.cancel();
+    _toastTimer?.cancel();
+    kUpdate.removeListener(_onUpdateFound);
     HardwareKeyboard.instance.removeHandler(_onAnyKey);
     _intro.dispose();
     _focus.dispose();
@@ -1669,6 +1688,22 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Text('Welcome to ${settings.name}',
                       style: const TextStyle(
                           fontSize: 30, fontWeight: FontWeight.w600, letterSpacing: 0.2))))),
+      Positioned(
+          right: 72,
+          top: 132,
+          child: IgnorePointer(
+              child: AnimatedOpacity(
+                  opacity: _toast && kUpdate.value != null ? 1 : 0,
+                  duration: const Duration(milliseconds: 400),
+                  child: Glass(
+                      radius: 32,
+                      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.system_update_rounded, size: 28, color: Color(0xFFFF9F0A)),
+                        const SizedBox(width: 12),
+                        Text('Update ${kUpdate.value?.version ?? ''} is ready. Open Settings.',
+                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
+                      ]))))),
       Positioned(
           right: 72,
           top: 44,
