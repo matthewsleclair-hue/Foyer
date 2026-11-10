@@ -1597,12 +1597,8 @@ class _HomeScreenState extends State<HomeScreen>
       transitionDuration: const Duration(milliseconds: 260),
       reverseTransitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (_, __, ___) => const AllAppsScreen(),
-      transitionsBuilder: (_, a, __, child) => FadeTransition(
-          opacity: a,
-          child: ScaleTransition(
-              scale: Tween<double>(begin: 1.04, end: 1.0)
-                  .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
-              child: child)),
+      // plain fade: the zoom-in made a strip down the right edge of this screen on some sticks
+      transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
     ));
   }
 
