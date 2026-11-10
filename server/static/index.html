@@ -22,7 +22,7 @@ input,textarea{width:100%;font-size:18px;padding:14px;border-radius:12px;border:
 </style></head><body><main>
 <h1>Foyer Drop</h1><p class="sub">Send a note or a photo to the TV.</p>
 <div id="login" class="hide">
-  <p class="msg">Enter the token from your server's setup. It is remembered on this phone.</p>
+  <p class="msg" id="loginmsg">Enter the token from your server's setup. It is remembered on this phone.</p>
   <input id="tok" type="password" placeholder="Token" autocomplete="off">
   <button class="btn" onclick="saveTok()">Continue</button>
 </div>
@@ -47,7 +47,7 @@ const $=id=>document.getElementById(id);
 let T=localStorage.getItem('foyerTok')||'';
 const H=()=>({'Authorization':'Bearer '+T});
 function saveTok(){T=$('tok').value.trim();localStorage.setItem('foyerTok',T);start()}
-async function api(p,o={}){const r=await fetch(p,{...o,headers:{...H(),...(o.headers||{})}});if(r.status==401){localStorage.removeItem('foyerTok');T='';start();throw 0}return r}
+async function api(p,o={}){const r=await fetch(p,{...o,headers:{...H(),...(o.headers||{})}});if(r.status==401){localStorage.removeItem('foyerTok');T='';start();const e=$('loginmsg');if(e)e.textContent='That token was not accepted. Check it matches FOYER_TOKEN on the server (no spaces).';throw 0}return r}
 function tab(n){$('s1').classList.toggle('hide',n!=1);$('s2').classList.toggle('hide',n!=2);$('t1').classList.toggle('on',n==1);$('t2').classList.toggle('on',n==2)}
 async function loadNotes(){const j=await (await api('/api/notes')).json();$('notes').innerHTML='';
  j.notes.forEach(n=>{const d=document.createElement('div');d.className='note';
