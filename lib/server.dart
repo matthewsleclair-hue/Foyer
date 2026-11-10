@@ -140,6 +140,12 @@ class DropFeed {
   String _appsSentFor = '';
   DateTime? _appsSentAt;
 
+  /// Call after the list of shown apps changes, so the phone page updates right away.
+  void resendApps() {
+    _appsSentFor = '';
+    if (_sig.isNotEmpty) _sendApps(_url, _token, _sig);
+  }
+
   Future<void> _sendApps(String url, String token, String sig) async {
     final p = appsProvider;
     if (p == null) return;
@@ -151,7 +157,6 @@ class DropFeed {
     _appsSentAt = DateTime.now();
     try {
       final apps = await p();
-      if (apps.isEmpty) throw const HttpException('no apps');
       await DropApi._send(url, '/api/tv/apps', token: token, post: {'apps': apps}, waitSeconds: 30);
     } catch (_) {
       _appsSentFor = ''; // try again next time
@@ -434,9 +439,9 @@ class _ServerScreenState extends State<ServerScreen> {
     final s = SettingsScope.of(context);
     final linked = s.serverUrl.isNotEmpty && s.serverToken.isNotEmpty;
     return SettingsPage(
-      title: 'Photo and note drop',
+      title: 'Foyer Drop',
       subtitle:
-          'Send notes, drawings and photos to this TV from any phone, using your own Foyer Drop server.',
+          'Send notes, drawings and photos to this TV from any phone, and open apps from it.',
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(8),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -450,6 +455,13 @@ class _ServerScreenState extends State<ServerScreen> {
               label: s.serverUrl.isEmpty ? 'Set server address' : 'Server: ${s.serverUrl}',
               onSelect: _askAddress),
           if (linked) ...[
+            const SizedBox(height: 20),
+            PillButton(
+                label: s.dropHidden.isEmpty
+                    ? 'Apps on the phone page: all'
+                    : 'Apps on the phone page: ${s.dropHidden.length} hidden',
+                onSelect: () => Navigator.of(context)
+                    .push(MaterialPageRoute<void>(builder: (_) => const DropAppsScreen()))),
             const SizedBox(height: 20),
             PillButton(label: 'Test connection', onSelect: _test),
           ],
@@ -601,5 +613,121 @@ class _LinkScreenState extends State<LinkScreen> {
           const SizedBox(width: 18),
           Text(t, style: const TextStyle(fontSize: 32)),
         ]),
+      );
+}
+
+/// Choose which apps the phone page may open. Everything is shown unless you hide it.
+class DropAppsScreen extends StatefulWidget {
+  const DropAppsScreen({super.key});
+  @override
+  State<DropAppsScreen> createState() => _DropAppsScreenState();
+}
+
+class _DropAppsScreenState extends State<DropAppsScreen> {
+  List<InstalledApp>? _apps;
+  bool _changed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchInstalledApps().then((a) {
+      if (mounted) setState(() => _apps = a);
+    });
+  }
+
+  @override
+  void dispose() {
+    if (_changed) kDrop.resendApps();
+    super.dispose();
+  }
+
+  void _set(Settings s, List<String> hidden) {
+    _changed = true;
+    s.change(() => s.dropHidden = hidden);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SettingsScope.of(context);
+    final apps = _apps;
+    final hidden = s.dropHidden.toSet();
+    return SettingsPage(
+      title: 'Apps on the phone page',
+      subtitle: 'Pick the apps that show under "Open on TV". Press an app to show or hide it.',
+      child: apps == null
+          ? const Text('Loading…', style: TextStyle(fontSize: 28, color: Colors.white70))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Wrap(spacing: 16, runSpacing: 16, children: [
+                  PillButton(label: 'Show all', onSelect: () => _set(s, [])),
+                  PillButton(
+                      label: 'Hide all',
+                      onSelect: () => _set(s, [for (final a in apps) a.package])),
+                ]),
+                const SizedBox(height: 26),
+                Wrap(spacing: 16, runSpacing: 16, children: [
+                  for (var i = 0; i < apps.length; i++)
+                    _AppToggle(
+                      key: ValueKey(apps[i].package),
+                      app: apps[i],
+                      shown: !hidden.contains(apps[i].package),
+                      autofocus: i == 0,
+                      onSelect: () {
+                        final h = {...hidden};
+                        if (!h.remove(apps[i].package)) h.add(apps[i].package);
+                        _set(s, h.toList());
+                      },
+                    ),
+                ]),
+              ]),
+            ),
+    );
+  }
+}
+
+class _AppToggle extends StatelessWidget {
+  const _AppToggle(
+      {super.key,
+      required this.app,
+      required this.shown,
+      required this.onSelect,
+      this.autofocus = false});
+  final InstalledApp app;
+  final bool shown;
+  final bool autofocus;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) => FocusButton(
+        autofocus: autofocus,
+        scrollIntoView: true,
+        scale: 1.0,
+        onSelect: onSelect,
+        builder: (_, f) => AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: 400,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            color: f ? Colors.white : Colors.white.withAlpha(shown ? 40 : 14),
+            border: Border.all(color: Colors.white.withAlpha(f ? 255 : (shown ? 150 : 50))),
+          ),
+          child: Row(children: [
+            Opacity(
+                opacity: shown ? 1 : 0.35,
+                child: Image.memory(app.icon, width: 44, height: 44, gaplessPlayback: true)),
+            const SizedBox(width: 14),
+            Expanded(
+                child: Text(app.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 24,
+                        color: f ? Colors.black : (shown ? Colors.white : Colors.white54)))),
+            Icon(shown ? Icons.check_circle_rounded : Icons.visibility_off_rounded,
+                size: 28, color: f ? Colors.black : (shown ? Colors.white : Colors.white38)),
+          ]),
+        ),
       );
 }

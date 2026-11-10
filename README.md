@@ -71,4 +71,4 @@ Small update: last number +1 (1.0.1 -> 1.0.2). Medium: middle number +1 (1.0.1 -
 
 Settings → Home screen → **Sports scores** (also a step in first-run setup) lets you follow NHL, MLB, NBA, NFL teams and Formula 1.
 Scores come from ESPN's public data, which is unofficial and can change, so the pill simply hides if it stops working.
-**Photo and note drop** links the TV with a short code to the optional Docker server in [`server/`](server/README.md).
+**Foyer Drop** links the TV with a short code to the optional Docker server in [`server/`](server/README.md).

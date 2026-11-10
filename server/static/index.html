@@ -156,7 +156,7 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
 
   <!-- TVs and account -->
   <section id="p-tvs" class="hide">
-    <h2>Link a TV</h2><p class="sub">On the TV: Foyer Settings → Home screen → Photo and note drop → Link this TV. Then type the code it shows.</p>
+    <h2>Link a TV</h2><p class="sub">On the TV: Foyer Settings → Home screen → Foyer Drop → Link this TV. Then type the code it shows.</p>
     <div class="card">
       <input id="code" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="•••••">
       <button class="btn" onclick="claim()">Link TV</button>
@@ -309,7 +309,7 @@ function paintApps(){
   if(!tv){st.textContent='Link a TV first (TVs tab).';box.innerHTML='<div class="empty" style="grid-column:1/-1">No TV linked yet.</div>';return}
   const dot=document.createElement('span');dot.className='dot'+(tv.ready?' on':'');
   st.append(dot,tv.ready?tv.label+' is ready.':'Foyer is not on screen on '+tv.label+'. Press Home on the remote first.');
-  if(!tv.apps.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">The TV has not sent its apps yet. Open Foyer on the TV and wait a few seconds.</div>';return}
+  if(!tv.apps.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">No apps to show yet. Open Foyer on the TV and wait a few seconds. Apps can be hidden on the TV under Settings → Foyer Drop.</div>';return}
   tv.apps.forEach(a=>{
     const b=document.createElement('button');b.className='app';
     let ic;if(a.icon){ic=document.createElement('img');ic.alt='';ic.src='data:image/png;base64,'+a.icon}else{ic=document.createElement('i');ic.textContent=(a.label||'?')[0].toUpperCase()}

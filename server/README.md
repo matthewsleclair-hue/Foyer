@@ -14,7 +14,7 @@ Open `http://<your-server-ip>:8080` (or your own domain) and create the first ac
 
 ## Link a TV (no long tokens)
 
-1. On the TV: Settings → Home screen → **Photo and note drop** → **Link this TV**. Enter the server address once.
+1. On the TV: Settings → Home screen → **Foyer Drop** → **Link this TV**. Enter the server address once.
 2. The TV shows a 5-character code.
 3. On the web page: sign in → **TVs** → type the code. The TV links itself within a few seconds.
 

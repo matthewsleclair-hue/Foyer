@@ -445,7 +445,7 @@ final List<_Group> _groups = [
         'Sports scores',
         s.sportsTeams.isEmpty ? 'Off' : '${s.sportsTeams.length} followed',
         () => _editStep(c, 5)),
-    _HubItem(Icons.cloud_sync_rounded, 'Photo and note drop',
+    _HubItem(Icons.cloud_sync_rounded, 'Foyer Drop',
         s.serverUrl.isEmpty || s.serverToken.isEmpty ? 'Not linked' : 'Linked to ${s.serverUrl}',
         () => _push(c, const ServerScreen())),
   ]),

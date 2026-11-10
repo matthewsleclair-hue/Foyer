@@ -88,6 +88,9 @@ class Settings extends ChangeNotifier {
   String updateUrl = 'matthewsleclair-hue/Foyer';
   String updateToken = '';
   List<FollowedTeam> sportsTeams = [];
+
+  /// Apps kept off the phone page's "Open on TV" list.
+  List<String> dropHidden = [];
   String serverUrl = '';
   String serverToken = '';
 
@@ -121,6 +124,7 @@ class Settings extends ChangeNotifier {
         'updateUrl': updateUrl,
         'sportsTeams': [for (final t in sportsTeams) t.toJson()],
         'serverUrl': serverUrl,
+        'dropHidden': dropHidden,
         if (secrets) ...{
           'serverToken': serverToken,
           'plexToken': plexToken,
@@ -170,6 +174,8 @@ class Settings extends ChangeNotifier {
       sportsTeams = [for (final x in st) if (FollowedTeam.fromJson(x) != null) FollowedTeam.fromJson(x)!];
     }
     serverUrl = _s(j['serverUrl'], serverUrl);
+    final dh = j['dropHidden'];
+    if (dh is List) dropHidden = dh.whereType<String>().toList();
     if (secrets) {
       serverToken = _s(j['serverToken'], serverToken);
       plexToken = _s(j['plexToken'], plexToken);
@@ -1457,10 +1463,15 @@ class _HomeScreenState extends State<HomeScreen>
     _updateTimer = Timer.periodic(const Duration(minutes: 30), (_) => _checkUpdate(force: true));
     _sportsTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadSports());
     kDrop.onCommand = _onDropCommand;
-    kDrop.appsProvider = () async => [
-          for (final a in await fetchInstalledApps())
+    kDrop.appsProvider = () async {
+      if (!mounted) return const [];
+      final hidden = SettingsScope.read(context).dropHidden.toSet();
+      return [
+        for (final a in await fetchInstalledApps())
+          if (!hidden.contains(a.package))
             {'package': a.package, 'label': a.label, 'icon': base64Encode(a.icon)}
-        ];
+      ];
+    };
     _dropTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted || !_fg) return;
       final s = SettingsScope.read(context);
