@@ -37,6 +37,23 @@ final Set<LogicalKeyboardKey> _selectKeys = {
 };
 
 int? _build;
+/// True on Amazon Fire TV devices, which need the Home button workaround and Amazon clean-up.
+/// Other Android TV boxes (Google TV) let Foyer be the real home screen.
+bool kIsFireTv = true;
+String kDeviceModel = '';
+
+/// Returns whether Home already lands on Foyer by itself (the stock launcher is off).
+Future<bool> loadDevice() async {
+  try {
+    final m = await kChannel.invokeMapMethod<String, dynamic>('deviceInfo');
+    kIsFireTv = m?['fireTv'] as bool? ?? true;
+    kDeviceModel = '${m?['model'] ?? ''}';
+    return m?['defaultHome'] as bool? ?? false;
+  } catch (_) {
+    return false;
+  }
+}
+
 String? _buildName;
 Future<void> _loadVersion() async {
   if (_build != null) return;
@@ -335,7 +352,7 @@ class _RootState extends State<Root> {
         if (mounted) setState(() => _mode = _Mode.home);
       }
     });
-    SettingsScope.read(context).load().then((_) {
+    Future.wait([SettingsScope.read(context).load(), loadDevice()]).then((_) {
       if (mounted) setState(() => _ready = true);
     });
   }
@@ -822,6 +839,7 @@ class _SetupScreenState extends State<SetupScreen> {
         _hkCanEnable = m['canEnable'] as bool? ?? false;
       });
     } catch (_) {}
+    if (!kIsFireTv) _refreshIsHome();
   }
 
 
@@ -945,7 +963,7 @@ class _SetupScreenState extends State<SetupScreen> {
     'Liquid glass blurs the wallpaper behind each panel. It looks best, but can stutter on an older Fire Stick.',
     'Pick up to $kMaxPinned apps for your home screen. They appear in the order you select them.',
     'Optional. Show Continue Watching from your Plex server on the home screen.',
-    'Make the Home button on your remote open Foyer instead of Amazon\'s screen.',
+    'Make the Home button on your remote open Foyer instead of the TV\'s own home screen.',
     'Optional. Pick the teams you follow and their live scores show on your home screen.',
   ];
 
@@ -1228,7 +1246,67 @@ class _SetupScreenState extends State<SetupScreen> {
     ]);
   }
 
+  bool _isHome = false;
+
+  Future<void> _refreshIsHome() async {
+    final h = await loadDevice();
+    if (mounted) setState(() => _isHome = h);
+  }
+
+  /// Google TV and other Android TV boxes: the stock home screen can simply be switched off.
+  Widget _googleHomeStep() {
+    const body = TextStyle(fontSize: 26, color: Colors.white70);
+    const mono = TextStyle(fontSize: 21, fontFamily: 'monospace');
+    Widget cmd(String t) => Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: Colors.black38, borderRadius: BorderRadius.circular(18)),
+          child: Text(t, style: mono),
+        );
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(_isHome ? 'Foyer is your home screen.' : 'Make Foyer the home screen',
+            style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 10),
+        SizedBox(
+            width: 1300,
+            child: Text(
+                _isHome
+                    ? 'The Home button opens Foyer directly. Nothing else to do.'
+                    : 'On this TV the built-in home screen can be switched off, so the Home button opens Foyer directly. Run this once on a computer on the same Wi-Fi (it is in the Foyer repo), then choose Check again:',
+                style: body)),
+        const SizedBox(height: 18),
+        if (!_isHome) ...[
+          cmd('bash tools/googletv.sh <this TV\'s IP address>'),
+          const SizedBox(height: 16),
+          const SizedBox(
+              width: 1300,
+              child: Text(
+                  'First turn on Developer options on the TV (Settings > System > About, press "Android TV OS build" 7 times) and switch on USB or wireless debugging.',
+                  style: body)),
+          const SizedBox(height: 18),
+        ],
+        Wrap(spacing: 16, runSpacing: 16, children: [
+          PillButton(label: 'Check again', primary: !_isHome, autofocus: true, onSelect: _refreshIsHome),
+          if (!_isHome)
+            PillButton(
+                label: _hkEnabled ? 'Home button service: on' : 'Or use the Home button service',
+                onSelect: () => _setHomeKey(!_hkEnabled)),
+        ]),
+        if (!_isHome && !_hkEnabled && !_hkCanEnable) ...[
+          const SizedBox(height: 16),
+          const SizedBox(
+              width: 1300,
+              child: Text(
+                  'The Home button service is a fallback that catches the Home key instead. The script above also gives Foyer the permission it needs.',
+                  style: TextStyle(fontSize: 22, color: Colors.white54))),
+        ],
+      ]),
+    );
+  }
+
   Widget _homeKeyStep() {
+    if (!kIsFireTv) return _googleHomeStep();
     const body = TextStyle(fontSize: 26, color: Colors.white70);
     const mono = TextStyle(fontSize: 22, fontFamily: 'monospace');
     Widget cmd(String t) => Container(

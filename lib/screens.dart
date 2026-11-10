@@ -397,10 +397,14 @@ class _HubItem {
 }
 
 class _Group {
-  _Group(this.icon, this.title, this.subtitle, this.items);
+  _Group(this.icon, this._title, this._subtitle, this.items);
+
+  // "Fire TV tools" only makes sense on a Fire TV.
+  String get title => (!kIsFireTv && _title == 'Fire TV tools') ? 'TV tools' : _title;
+  String get subtitle => (!kIsFireTv && _title == 'Fire TV tools') ? 'Home button' : _subtitle;
   final IconData icon;
-  final String title;
-  final String subtitle;
+  final String _title;
+  final String _subtitle;
   final List<_HubItem> Function(BuildContext c, Settings s) items;
 }
 
@@ -472,16 +476,23 @@ final List<_Group> _groups = [
     _HubItem(Icons.power_settings_new_rounded, 'Start on boot',
         s.autoStart ? 'On: opens Foyer when the stick starts' : 'Off',
         () => s.change(() => s.autoStart = !s.autoStart)),
-    _HubItem(Icons.restart_alt_rounded, 'Restart Fire TV',
-        'Reboots the stick (needs ADB debugging on)', () => restartStick(c)),
+    if (kIsFireTv)
+      _HubItem(Icons.restart_alt_rounded, 'Restart Fire TV',
+          'Reboots the stick (needs ADB debugging on)', () => restartStick(c)),
   ]),
+  // The title stays "Fire TV tools" on a Fire TV; on other boxes the page shows only what applies.
   _Group(Icons.build_rounded, 'Fire TV tools', 'Home button, tune-up and cleanup', (c, s) => [
-    _HubItem(Icons.keyboard_return_rounded, 'Home button',
-        s.pinned.isEmpty ? 'Keep Foyer in front of Amazon\'s home' : 'Keep Foyer in front of Amazon\'s home', () => _editStep(c, 4)),
-    _HubItem(Icons.home_work_rounded, 'Amazon home screen',
-        'Open the stock Fire TV home for a moment', () => openAmazonHome(c)),
-    _HubItem(Icons.build_rounded, 'Tune-up',
-        'Debug report and how to remove Amazon ads', () => _push(c, const TuneUpScreen())),
+    _HubItem(
+        Icons.keyboard_return_rounded,
+        'Home button',
+        kIsFireTv ? 'Keep Foyer in front of Amazon\'s home' : 'Make Foyer this TV\'s home screen',
+        () => _editStep(c, 4)),
+    if (kIsFireTv)
+      _HubItem(Icons.home_work_rounded, 'Amazon home screen',
+          'Open the stock Fire TV home for a moment', () => openAmazonHome(c)),
+    if (kIsFireTv)
+      _HubItem(Icons.build_rounded, 'Tune-up',
+          'Debug report and how to remove Amazon ads', () => _push(c, const TuneUpScreen())),
   ]),
   _Group(Icons.system_update_rounded, 'Backup and updates', 'Updates, backup and restore', (c, s) => [
     _HubItem(

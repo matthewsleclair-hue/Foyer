@@ -153,6 +153,14 @@ class MainActivity : FlutterActivity() {
                     runOnUiThread { result.success(t) }
                 }.start()
                 "appVersion" -> result.success(mapOf("name" to versionName(), "code" to versionCode()))
+                "deviceInfo" -> result.success(
+                    mapOf(
+                        "fireTv" to isFireTv(),
+                        "model" to (Build.MODEL ?: ""),
+                        "maker" to (Build.MANUFACTURER ?: ""),
+                        "defaultHome" to isDefaultHome()
+                    )
+                )
                 "updatePath" -> result.success(File(appDir(), "update.apk").absolutePath)
                 "installApk" -> result.success(installApk(call.argument<String>("path") ?: ""))
                 "appInfo" -> result.success(appInfo(call.argument<String>("package")))
@@ -356,6 +364,17 @@ class MainActivity : FlutterActivity() {
     }
 
     // ── version, app options, updates ──
+
+    /** Amazon's Fire TV devices need the Home button workaround; other Android TV boxes do not. */
+    private fun isFireTv(): Boolean =
+        packageManager.hasSystemFeature("amazon.hardware.fire_tv") ||
+            (Build.MANUFACTURER ?: "").equals("Amazon", ignoreCase = true)
+
+    /** True when pressing Home lands on Foyer without any help (the stock launcher is off). */
+    private fun isDefaultHome(): Boolean = try {
+        val i = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        packageManager.resolveActivity(i, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName == packageName
+    } catch (e: Exception) { false }
 
     private fun versionName(): String = try {
         packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
