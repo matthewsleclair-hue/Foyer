@@ -466,7 +466,10 @@ final List<_Group> _groups = [
         () => _push(c, const ServerScreen())),
   ]),
   _Group(Icons.palette_rounded, 'Appearance', 'Glass style, wallpaper, performance', (c, s) => [
-    _HubItem(Icons.blur_on_rounded, 'Glass style', s.liquid ? 'Liquid glass' : 'Simple glass',
+    _HubItem(
+        Icons.blur_on_rounded,
+        'Glass style',
+        s.liquid ? (s.perfMode ? 'Liquid glass (blur is off in Performance mode)' : 'Liquid glass') : 'Simple glass',
         () => _editStep(c, 1)),
     _HubItem(
         Icons.wallpaper_rounded,

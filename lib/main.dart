@@ -409,42 +409,96 @@ class Glass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cfg = SettingsScope.of(context);
-    final blur = (liquid ?? cfg.liquid) && !cfg.perfMode;
+    final wantLiquid = liquid ?? cfg.liquid;
     final r = BorderRadius.circular(radius);
-    final panel = Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        borderRadius: r,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: blur
-              ? [
-                  Colors.white.withAlpha(86),
-                  Colors.white.withAlpha(22),
-                  Colors.white.withAlpha(10),
-                  Colors.white.withAlpha(44),
-                ]
-              : [Colors.white.withAlpha(52), Colors.white.withAlpha(16)],
-          stops: blur ? const [0, 0.35, 0.7, 1] : null,
+
+    if (!wantLiquid) {
+      // Simple glass: a flat, matte, slightly dark panel. No blur, no shine.
+      return Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          borderRadius: r,
+          color: const Color(0x8C12141C),
+          border: Border.all(color: Colors.white.withAlpha(46), width: 1),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withAlpha(60), blurRadius: 14, offset: const Offset(0, 6))
+          ],
         ),
-        border: Border.all(color: Colors.white.withAlpha(blur ? 110 : 72), width: 1.2),
+        child: child,
+      );
+    }
+
+    // Liquid glass: frosted blur, a diagonal sheen, a glow along the top and a bright rim.
+    // Performance mode keeps the look but skips the blur, which is the expensive part.
+    final panel = CustomPaint(
+      foregroundPainter: _RimPainter(radius),
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          borderRadius: r,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withAlpha(96),
+              Colors.white.withAlpha(30),
+              Colors.white.withAlpha(12),
+              Colors.white.withAlpha(52),
+            ],
+            stops: const [0, 0.32, 0.68, 1],
+          ),
+        ),
+        foregroundDecoration: BoxDecoration(
+          borderRadius: r,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.white.withAlpha(46), Colors.white.withAlpha(0)],
+            stops: const [0, 0.42],
+          ),
+        ),
+        child: child,
       ),
-      child: child,
     );
     return DecoratedBox(
       decoration: BoxDecoration(borderRadius: r, boxShadow: [
         BoxShadow(
-            color: Colors.black.withAlpha(90), blurRadius: 28, offset: const Offset(0, 12))
+            color: Colors.black.withAlpha(96), blurRadius: 30, offset: const Offset(0, 14))
       ]),
-      child: blur
-          ? ClipRRect(
+      child: cfg.perfMode
+          ? panel
+          : ClipRRect(
               borderRadius: r,
               child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22), child: panel))
-          : panel,
+                  filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26), child: panel)),
     );
   }
+}
+
+/// The bright edge of liquid glass: strong at the top-left, fading, then catching light again
+/// at the bottom-right.
+class _RimPainter extends CustomPainter {
+  const _RimPainter(this.radius);
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rr = RRect.fromRectAndRadius(rect.deflate(0.9), Radius.circular(radius));
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xE6FFFFFF), Color(0x33FFFFFF), Color(0x1AFFFFFF), Color(0x99FFFFFF)],
+        stops: [0, 0.35, 0.7, 1],
+      ).createShader(rect);
+    canvas.drawRRect(rr, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RimPainter old) => old.radius != radius;
 }
 
 /// Wallpaper: dark base with two soft glows that take the given tint.
@@ -1137,10 +1191,10 @@ class _SetupScreenState extends State<SetupScreen> {
       ]);
 
   Widget _glassStep() => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _glassCard(false, 'Simple glass', 'Smooth everywhere. A soft gradient panel, no blur.'),
+        _glassCard(false, 'Simple glass', 'Smooth everywhere. A flat, matte panel with no blur or shine.'),
         const SizedBox(width: 48),
         _glassCard(true, 'Liquid glass',
-            'Frosted blur with a bright rim. Prettiest, heavier on the GPU.'),
+            'Frosted blur with a bright rim and a sheen. Prettiest, heavier on the GPU.'),
       ]);
 
   Widget _glassCard(bool liquid, String title, String body) {
