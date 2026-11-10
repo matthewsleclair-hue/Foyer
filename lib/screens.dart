@@ -917,6 +917,7 @@ class _ScreensaverViewState extends State<ScreensaverView> with SingleTickerProv
     final cfg = SettingsScope.read(context);
     if (!cfg.perfMode) _zoom.repeat(reverse: true);
     if (cfg.ssSource != 'colors') _loadShots(cfg.ssSource);
+    if (cfg.ssSource == 'drop') kDrop.photosStamp.addListener(_reloadDrop);
     _t = Timer.periodic(const Duration(seconds: 20), (_) {
       _ticks++;
       setState(() {
@@ -949,8 +950,14 @@ class _ScreensaverViewState extends State<ScreensaverView> with SingleTickerProv
     } catch (_) {}
   }
 
+  /// New photos were sent while the screensaver is up: show them without waiting.
+  void _reloadDrop() {
+    if (mounted) _loadShots('drop');
+  }
+
   @override
   void dispose() {
+    kDrop.photosStamp.removeListener(_reloadDrop);
     _t?.cancel();
     _zoom.dispose();
     super.dispose();

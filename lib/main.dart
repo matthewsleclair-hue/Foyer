@@ -1456,12 +1456,18 @@ class _HomeScreenState extends State<HomeScreen>
     _weatherTimer = Timer.periodic(const Duration(minutes: 20), (_) => _loadWeather(force: true));
     _updateTimer = Timer.periodic(const Duration(minutes: 30), (_) => _checkUpdate(force: true));
     _sportsTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadSports());
+    _dropTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_fg) return;
+      final s = SettingsScope.read(context);
+      kDrop.refresh(s.serverUrl, s.serverToken);
+    });
     kUpdate.addListener(_onUpdateFound);
     HardwareKeyboard.instance.addHandler(_onAnyKey);
     _idleTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkIdle());
   }
 
   Timer? _sportsTimer;
+  Timer? _dropTimer;
 
   void _loadSports() {
     if (!mounted || !_fg) return;
@@ -1530,6 +1536,7 @@ class _HomeScreenState extends State<HomeScreen>
     _plexTimer?.cancel();
     _weatherTimer?.cancel();
     _sportsTimer?.cancel();
+    _dropTimer?.cancel();
     _idleTimer?.cancel();
     _updateTimer?.cancel();
     _toastTimer?.cancel();

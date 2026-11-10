@@ -371,6 +371,26 @@ def delete_note(note_id: str, w: Who = Depends(who)):
 
 # ───────────────────────── photos and drawings ─────────────────────────
 
+@app.get("/api/feed")
+def feed(w: Who = Depends(who)):
+    """Everything the TV's home screen needs in one quick call (it asks every few seconds)."""
+    now = time.time()
+    with closing(db()) as c:
+        notes = c.execute(
+            "SELECT id,text,sender FROM notes WHERE user_id=? AND (expires IS NULL OR expires>?) "
+            "ORDER BY created DESC LIMIT 50",
+            (w.user_id, now),
+        ).fetchall()
+        d = _media(c, w.user_id, "drawing", 1)
+        photos = c.execute(
+            "SELECT COUNT(*) n, MAX(created) m FROM media WHERE user_id=? AND kind='photo'", (w.user_id,)
+        ).fetchone()
+    return {
+        "notes": [{"id": r["id"], "text": r["text"], "from": r["sender"]} for r in notes],
+        "drawing": {"id": d[0]["id"], "from": d[0]["sender"]} if d else None,
+        "photos": f"{photos['n']}:{photos['m'] or 0}",
+    }
+
 def _media(c, user_id: int, kind: str, limit: int):
     return c.execute(
         "SELECT id,sender,created FROM media WHERE user_id=? AND kind=? ORDER BY created DESC LIMIT ?",

@@ -127,6 +127,9 @@ class DropDrawing {
 class DropFeed {
   final ValueNotifier<List<DropNote>> notes = ValueNotifier(const []);
   final ValueNotifier<DropDrawing?> drawing = ValueNotifier(null);
+
+  /// Changes whenever photos are added or removed, so the screensaver can reload.
+  final ValueNotifier<String> photosStamp = ValueNotifier('');
   DateTime? _last;
   String _sig = '';
   bool _busy = false;
@@ -140,13 +143,36 @@ class DropFeed {
     }
     final sig = '$url|$token';
     final age = _last == null ? 9999 : DateTime.now().difference(_last!).inSeconds;
-    if (_busy || !(force || sig != _sig || age >= 45)) return;
+    if (_busy || !(force || sig != _sig || age >= 4)) return;
     _busy = true;
     _sig = sig;
     _last = DateTime.now();
     try {
-      notes.value = await DropApi.notes(url, token);
-      final d = await DropApi.drawing(url, token);
+      List<DropNote> n;
+      DropDrawing? d;
+      try {
+        final j = await DropApi._get(url, token, '/api/feed');
+        n = [
+          for (final x in (j['notes'] as List? ?? const []))
+            if (x is Map && '${x['text'] ?? ''}'.isNotEmpty)
+              DropNote('${x['id']}', '${x['text']}', '${x['from'] ?? ''}')
+        ];
+        final dj = j['drawing'];
+        d = dj is Map && '${dj['id'] ?? ''}'.isNotEmpty
+            ? DropDrawing('${dj['id']}', '${dj['from'] ?? ''}',
+                '${DropApi.clean(url)}/drawings/${dj['id']}.png', token)
+            : null;
+        final ph = '${j['photos'] ?? ''}';
+        if (ph != photosStamp.value) photosStamp.value = ph;
+      } on HttpException catch (e) {
+        if (e.message != 'Server answered 404') rethrow;
+        // an older server without the quick feed
+        n = await DropApi.notes(url, token);
+        d = await DropApi.drawing(url, token);
+      }
+      final same = n.length == notes.value.length &&
+          [for (var i = 0; i < n.length; i++) n[i].id == notes.value[i].id].every((x) => x);
+      if (!same) notes.value = n;
       if (d?.id != drawing.value?.id) drawing.value = d;
     } on HttpException catch (e) {
       if (e.message == 'unlinked') {
