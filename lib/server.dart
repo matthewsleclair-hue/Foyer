@@ -72,8 +72,8 @@ class DropApi {
   }
 
   /// Asks the server for a short code to show on screen. Returns (code, secret).
-  static Future<List<String>> linkStart(String url, String tvName) async {
-    final j = await _send(url, '/api/link/start', post: {'name': tvName});
+  static Future<List<String>> linkStart(String url, String tvName, String device) async {
+    final j = await _send(url, '/api/link/start', post: {'name': tvName, 'device': device});
     final code = j is Map ? '${j['code'] ?? ''}' : '';
     final secret = j is Map ? '${j['secret'] ?? ''}' : '';
     if (code.isEmpty || secret.isEmpty) throw const HttpException('That does not look like a Foyer Drop server.');
@@ -140,27 +140,52 @@ class DropFeed {
   String _appsSentFor = '';
   DateTime? _appsSentAt;
 
-  /// Call after the list of shown apps changes, so the phone page updates right away.
-  void resendApps() {
-    _appsSentFor = '';
-    if (_sig.isNotEmpty) _sendApps(_url, _token, _sig);
+  bool _appsBusy = false;
+  bool _appsAgain = false;
+
+  /// Sends the list of shown apps to the server now. One at a time, and always ends with the
+  /// newest list, so an older send can never overwrite a newer one.
+  /// Returns how many apps the phone page now shows, or a plain-English problem.
+  Future<String> sendAppsNow() async {
+    final p = appsProvider;
+    if (p == null || _sig.isEmpty) return 'This TV is not linked yet.';
+    if (_appsBusy) {
+      _appsAgain = true;
+      return '';
+    }
+    _appsBusy = true;
+    var out = '';
+    do {
+      _appsAgain = false;
+      final sig = _sig;
+      try {
+        final apps = await p();
+        final j = await DropApi._send(_url, '/api/tv/apps',
+            token: _token, post: {'apps': apps}, waitSeconds: 30);
+        final n = j is Map && j['count'] is num ? (j['count'] as num).toInt() : apps.length;
+        _appsSentFor = sig;
+        _appsSentAt = DateTime.now();
+        out = n == 1 ? 'The phone page now shows 1 app.' : 'The phone page now shows $n apps.';
+      } on HttpException catch (e) {
+        _appsSentFor = ''; // try again on the next check
+        out = e.message == 'unlinked'
+            ? 'This TV is no longer linked. Link it again.'
+            : 'Could not update the phone page: ${e.message}';
+      } catch (_) {
+        _appsSentFor = '';
+        out = 'Could not reach the server to update the phone page.';
+      }
+    } while (_appsAgain);
+    _appsBusy = false;
+    return out;
   }
 
   Future<void> _sendApps(String url, String token, String sig) async {
-    final p = appsProvider;
-    if (p == null) return;
     final fresh = _appsSentFor == sig &&
         _appsSentAt != null &&
         DateTime.now().difference(_appsSentAt!).inHours < 6;
-    if (fresh) return;
-    _appsSentFor = sig;
-    _appsSentAt = DateTime.now();
-    try {
-      final apps = await p();
-      await DropApi._send(url, '/api/tv/apps', token: token, post: {'apps': apps}, waitSeconds: 30);
-    } catch (_) {
-      _appsSentFor = ''; // try again next time
-    }
+    if (fresh || _appsBusy) return;
+    await sendAppsNow();
   }
   DateTime? _last;
   String _sig = '';
@@ -525,7 +550,7 @@ class _LinkScreenState extends State<LinkScreen> {
     });
     try {
       final name = s.name.trim().isEmpty ? 'Fire TV' : "${s.name.trim()}'s TV";
-      final r = await DropApi.linkStart(s.serverUrl, name);
+      final r = await DropApi.linkStart(s.serverUrl, name, s.clientId);
       if (!mounted) return;
       setState(() {
         _code = r[0];
@@ -625,7 +650,8 @@ class DropAppsScreen extends StatefulWidget {
 
 class _DropAppsScreenState extends State<DropAppsScreen> {
   List<InstalledApp>? _apps;
-  bool _changed = false;
+  Timer? _later;
+  String _msg = '';
 
   @override
   void initState() {
@@ -637,13 +663,22 @@ class _DropAppsScreenState extends State<DropAppsScreen> {
 
   @override
   void dispose() {
-    if (_changed) kDrop.resendApps();
+    if (_later?.isActive ?? false) {
+      _later!.cancel();
+      kDrop.sendAppsNow();
+    }
     super.dispose();
   }
 
   void _set(Settings s, List<String> hidden) {
-    _changed = true;
     s.change(() => s.dropHidden = hidden);
+    // tell the phone page shortly after the last press
+    _later?.cancel();
+    _later = Timer(const Duration(milliseconds: 900), () async {
+      final r = await kDrop.sendAppsNow();
+      if (mounted && r.isNotEmpty) setState(() => _msg = r);
+    });
+    if (_msg != 'Updating the phone page…') setState(() => _msg = 'Updating the phone page…');
   }
 
   @override
@@ -665,7 +700,10 @@ class _DropAppsScreenState extends State<DropAppsScreen> {
                       label: 'Hide all',
                       onSelect: () => _set(s, [for (final a in apps) a.package])),
                 ]),
-                const SizedBox(height: 26),
+                const SizedBox(height: 16),
+                Text(_msg.isEmpty ? '${apps.length - hidden.length} of ${apps.length} apps shown.' : _msg,
+                    style: const TextStyle(fontSize: 24, color: Colors.white70)),
+                const SizedBox(height: 20),
                 Wrap(spacing: 16, runSpacing: 16, children: [
                   for (var i = 0; i < apps.length; i++)
                     _AppToggle(

@@ -1464,10 +1464,13 @@ class _HomeScreenState extends State<HomeScreen>
     _sportsTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadSports());
     kDrop.onCommand = _onDropCommand;
     kDrop.appsProvider = () async {
-      if (!mounted) return const [];
+      if (!mounted) throw StateError('home screen is gone');
       final hidden = SettingsScope.read(context).dropHidden.toSet();
+      final all = await fetchInstalledApps();
+      // an empty list here means the lookup failed, not that the TV has no apps
+      if (all.isEmpty) throw StateError('could not list apps');
       return [
-        for (final a in await fetchInstalledApps())
+        for (final a in all)
           if (!hidden.contains(a.package))
             {'package': a.package, 'label': a.label, 'icon': base64Encode(a.icon)}
       ];

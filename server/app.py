@@ -65,6 +65,13 @@ with closing(db()) as _c, _c:
     )
 
 
+with closing(db()) as _c, _c:
+    try:
+        _c.execute("ALTER TABLE tokens ADD COLUMN device TEXT")  # added later; fine if it exists
+    except sqlite3.OperationalError:
+        pass
+
+
 def _hash_token(t: str) -> str:
     return hashlib.sha256(t.encode()).hexdigest()
 
@@ -73,12 +80,19 @@ def _hash_pw(pw: str, salt: bytes) -> str:
     return hashlib.scrypt(pw.encode(), salt=salt, n=2**14, r=8, p=1, dklen=32).hex()
 
 
-def _new_token(c, user_id: int, kind: str, label: str) -> str:
+def _new_token(c, user_id: int, kind: str, label: str, device: str = "") -> str:
     raw = secrets.token_urlsafe(32)
     now = time.time()
+    if kind == "tv" and device:
+        # the same TV linked again replaces its old entry instead of piling up copies
+        for r in c.execute(
+            "SELECT id FROM tokens WHERE user_id=? AND kind='tv' AND device=?", (user_id, device)
+        ).fetchall():
+            c.execute("DELETE FROM tv_apps WHERE tv_id=?", (r["id"],))
+        c.execute("DELETE FROM tokens WHERE user_id=? AND kind='tv' AND device=?", (user_id, device))
     c.execute(
-        "INSERT INTO tokens(hash,id,user_id,kind,label,created,last) VALUES(?,?,?,?,?,?,?)",
-        (_hash_token(raw), uuid.uuid4().hex[:10], user_id, kind, label[:40], now, now),
+        "INSERT INTO tokens(hash,id,user_id,kind,label,created,last,device) VALUES(?,?,?,?,?,?,?,?)",
+        (_hash_token(raw), uuid.uuid4().hex[:10], user_id, kind, label[:40], now, now, device[:64]),
     )
     return raw
 
@@ -295,6 +309,7 @@ def link_start(body: dict, request: Request):
             "secret": secret,
             "created": time.time(),
             "name": str(body.get("name", "")).strip()[:40] or "Fire TV",
+            "device": re.sub(r"[^A-Za-z0-9_-]", "", str(body.get("device", "")))[:64],
             "token": None,
             "account": "",
         }
@@ -329,7 +344,7 @@ def link_claim(body: dict, w: Who = Depends(web)):
             _limited(key, 10, 600)
             raise HTTPException(404, "That code is not on any TV right now. Check it and try again.")
         with closing(db()) as c, c:
-            v["token"] = _new_token(c, w.user_id, "tv", v["name"])
+            v["token"] = _new_token(c, w.user_id, "tv", v["name"], v.get("device", ""))
         v["account"] = w.name
     return {"ok": True, "name": v["name"]}
 

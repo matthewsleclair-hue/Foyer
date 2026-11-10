@@ -299,7 +299,7 @@ async function sendPics(){
 
 // ── open on TV ──
 let TVS=[],tvId=store.get('foyerTv');
-function curTv(){return TVS.find(t=>t.id===tvId)||TVS[0]}
+function curTv(){return TVS.find(t=>t.id===tvId)||TVS.find(t=>t.ready)||TVS[0]}
 function paintApps(){
   const tv=curTv(),pick=$('tvPick'),box=$('apps');pick.innerHTML='';box.innerHTML='';
   pick.classList.toggle('hide',TVS.length<2);
