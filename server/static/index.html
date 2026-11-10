@@ -1,18 +1,19 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#14122b">
 <title>Foyer Drop</title>
-<link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.json?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" href="/favicon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Foyer">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{--bg:#14122b;--bg2:#1d1a3d;--card:#262250;--line:#3a356e;--ink:#f6f3ff;--mute:#a9a3d6;--amber:#ffb454;--amber-ink:#2a1700;--bad:#ff8f8f;--r:16px}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html{-webkit-text-size-adjust:100%}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 body{min-height:100vh;background:radial-gradient(900px 500px at 80% -10%,#3b2a6b 0,transparent 60%),radial-gradient(700px 500px at -10% 110%,#5a3a2a 0,transparent 55%),var(--bg);background-attachment:fixed}
 main{max-width:620px;margin:0 auto;padding:calc(22px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
@@ -460,4 +461,9 @@ async function start(tab){
   $('whoami').textContent=ME;$('from').value=$('dFrom').value=store.get('foyerFrom');
   const p=tab||store.get('foyerTab');go(loaders[p]?p:'notes')}
 start();
+
+// iPhone ignores the viewport lock for pinching, so stop double-tap and pinch zoom directly.
+let lastTap=0;
+document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastTap<350&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))e.preventDefault();lastTap=n},{passive:false});
+['gesturestart','gesturechange','gestureend'].forEach(g=>document.addEventListener(g,e=>e.preventDefault()));
 </script></body></html>
