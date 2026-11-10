@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'extras.dart';
 import 'plex.dart';
 import 'screens.dart';
 import 'update.dart';
@@ -1591,6 +1592,16 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
+  void _openFireplace() {
+    Navigator.of(context).push(PageRouteBuilder<void>(
+      opaque: true,
+      transitionDuration: const Duration(milliseconds: 700),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (_, __, ___) => const FireplaceScreen(),
+      transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+    ));
+  }
+
   void _openAllApps() {
     Navigator.of(context).push(PageRouteBuilder<void>(
       opaque: true,
@@ -1678,7 +1689,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _content(List<AppInfo> apps, Settings settings) {
     final count = apps.length + 1; // + the All apps tile
-    const avail = 1920.0 - 2 * 100 - 80;
+    // room on the left for the two round buttons
+    const avail = 1920.0 - 200 - 100 - 80;
     final tileW = ((avail - 28.0 * (count - 1)) / count).clamp(120.0, 240.0).toDouble();
     return Stack(children: [
       Positioned(
@@ -1759,8 +1771,19 @@ class _HomeScreenState extends State<HomeScreen>
           bottom: 300,
           child: FadeTransition(opacity: _fadeLate, child: _hero(apps))),
       Positioned(
-        left: 0,
-        right: 0,
+        left: 70,
+        bottom: 44,
+        child: FadeTransition(
+          opacity: _fadeEarly,
+          child: HomeSideButtons(
+            onFireplace: _openFireplace,
+            onGoodnight: () => startGoodnight(context),
+          ),
+        ),
+      ),
+      Positioned(
+        left: 200,
+        right: 100,
         bottom: 56,
         child: Center(
           child: FadeTransition(

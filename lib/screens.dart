@@ -202,13 +202,69 @@ class SettingsPage extends StatelessWidget {
 
 /// Asks for a line of text in a small dialog, so the on-screen keyboard never
 /// traps the remote on a normal screen. Returns null if cancelled.
+const MethodChannel kPhoneChannel = MethodChannel('leclair/phone');
+
 Future<String?> askText(BuildContext context, String title, String initial,
     {String hint = '', int maxLength = 40}) {
-  final c = TextEditingController(text: initial);
   return showDialog<String>(
     context: context,
     barrierColor: Colors.black54,
-    builder: (ctx) => Dialog(
+    builder: (ctx) => _AskTextDialog(title: title, initial: initial, hint: hint, maxLength: maxLength),
+  );
+}
+
+class _AskTextDialog extends StatefulWidget {
+  const _AskTextDialog(
+      {required this.title, required this.initial, required this.hint, required this.maxLength});
+  final String title;
+  final String initial;
+  final String hint;
+  final int maxLength;
+  @override
+  State<_AskTextDialog> createState() => _AskTextDialogState();
+}
+
+class _AskTextDialogState extends State<_AskTextDialog> {
+  late final TextEditingController _c = TextEditingController(text: widget.initial);
+  String? _url;
+  bool _got = false;
+
+  @override
+  void initState() {
+    super.initState();
+    kPhoneChannel.setMethodCallHandler((call) async {
+      if (call.method == 'text' && mounted) {
+        var t = (call.arguments as String? ?? '').trim();
+        if (t.length > widget.maxLength) t = t.substring(0, widget.maxLength);
+        setState(() {
+          _c.text = t;
+          _c.selection = TextSelection.collapsed(offset: t.length);
+          _got = true;
+        });
+      }
+      return null;
+    });
+    () async {
+      try {
+        final u = await kPhoneChannel
+            .invokeMethod<String>('start', {'title': widget.title, 'hint': widget.hint});
+        if (mounted) setState(() => _url = u);
+      } catch (_) {}
+    }();
+  }
+
+  @override
+  void dispose() {
+    kPhoneChannel.setMethodCallHandler(null);
+    kPhoneChannel.invokeMethod<bool>('stop').catchError((_) => null);
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ctx = context;
+    return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
       child: Center(
@@ -216,20 +272,39 @@ Future<String?> askText(BuildContext context, String title, String initial,
           radius: 40,
           padding: const EdgeInsets.all(40),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(title, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700)),
+            Text(widget.title, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700)),
             const SizedBox(height: 24),
             SizedBox(
               width: 820,
               child: TextField(
-                controller: c,
+                controller: _c,
                 autofocus: true,
-                maxLength: maxLength,
+                maxLength: widget.maxLength,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
                 style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w600),
-                decoration: _fieldDeco().copyWith(hintText: hint),
+                decoration: _fieldDeco().copyWith(hintText: widget.hint),
               ),
             ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: 820,
+              child: Text(
+                _got
+                    ? 'Got it from your phone. Choose Done.'
+                    : (_url == null
+                        ? 'Typing is easier on your phone, when the stick is on Wi-Fi.'
+                        : 'Or type on your phone (same Wi-Fi). Open this address:'),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 24, color: _got ? const Color(0xFF8CE99A) : Colors.white70),
+              ),
+            ),
+            if (_url != null && !_got) ...[
+              const SizedBox(height: 8),
+              Text(_url!,
+                  style: const TextStyle(
+                      fontSize: 34, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+            ],
             const SizedBox(height: 24),
             Row(mainAxisSize: MainAxisSize.min, children: [
               PillButton(label: 'Cancel', onSelect: () => Navigator.of(ctx).pop()),
@@ -237,13 +312,14 @@ Future<String?> askText(BuildContext context, String title, String initial,
               PillButton(
                   label: 'Done',
                   primary: true,
-                  onSelect: () => Navigator.of(ctx).pop(c.text.trim())),
+                  autofocus: _got,
+                  onSelect: () => Navigator.of(ctx).pop(_c.text.trim())),
             ]),
           ]),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Friendly text for on-device ADB failures.

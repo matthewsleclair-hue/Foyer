@@ -29,10 +29,19 @@ class MainActivity : FlutterActivity() {
     private val service by lazy { ComponentName(this, HomeKeyService::class.java) }
     private var channel: MethodChannel? = null
     private var navChannel: MethodChannel? = null
+    private var phoneChannel: MethodChannel? = null
+    private val phoneInput = PhoneInput { text ->
+        runOnUiThread { phoneChannel?.invokeMethod("text", text) }
+    }
     private var pendingStorage: MethodChannel.Result? = null
 
     private val backupName = "Foyer-backup.json"
     private val imageExt = setOf("jpg", "jpeg", "png", "webp")
+
+    override fun onDestroy() {
+        phoneInput.stop()
+        super.onDestroy()
+    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -44,6 +53,17 @@ class MainActivity : FlutterActivity() {
         val ch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/launcher")
         channel = ch
         navChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/nav")
+        phoneChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/phone").also { pc ->
+            pc.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> result.success(
+                        phoneInput.start(call.argument<String>("title") ?: "", call.argument<String>("hint") ?: "")
+                    )
+                    "stop" -> { phoneInput.stop(); result.success(true) }
+                    else -> result.notImplemented()
+                }
+            }
+        }
         ch.setMethodCallHandler { call, result ->
             when (call.method) {
                 "getApps" -> {
@@ -117,6 +137,7 @@ class MainActivity : FlutterActivity() {
                 "appInfo" -> result.success(appInfo(call.argument<String>("package")))
                 "uninstall" -> result.success(uninstall(call.argument<String>("package")))
                 "killApp" -> result.success(killApp(call.argument<String>("package")))
+                "closeAllApps" -> result.success(closeAllApps())
                 "diagnostics" -> {
                     val pkgs = call.argument<List<String>>("packages") ?: emptyList()
                     Thread {
@@ -344,6 +365,23 @@ class MainActivity : FlutterActivity() {
             )
             true
         } catch (e: Exception) { false }
+    }
+
+    /** Asks Android to close every other launchable app (used by Goodnight). Returns how many were asked. */
+    private fun closeAllApps(): Int {
+        var n = 0
+        try {
+            val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val seen = HashSet<String>()
+            for (cat in listOf(Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER)) {
+                for (ri in packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(cat), 0)) {
+                    val pkg = ri.activityInfo.packageName
+                    if (pkg == packageName || pkg.startsWith("com.amazon.tv.") || !seen.add(pkg)) continue
+                    try { am.killBackgroundProcesses(pkg); n++ } catch (e: Exception) { }
+                }
+            }
+        } catch (e: Exception) { }
+        return n
     }
 
     private fun killApp(pkg: String?): Boolean {
