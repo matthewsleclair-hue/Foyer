@@ -66,3 +66,9 @@ See [GUIDE.md](GUIDE.md) for the step-by-step install and clean-up guide.
 ## Version numbers
 Small update: last number +1 (1.0.1 -> 1.0.2). Medium: middle number +1 (1.0.1 -> 1.1.1). Large: first number +1 (1.0.1 -> 2.0.1).
 `bash tools/bump.sh small|medium|large` does it; `bash tools/publish.sh` then builds and releases.
+
+## Live scores and Foyer Drop
+
+Settings → Home screen → **Sports scores** (also a step in first-run setup) lets you follow NHL, MLB, NBA, NFL teams and Formula 1.
+Scores come from ESPN's public data, which is unofficial and can change, so the pill simply hides if it stops working.
+**Photo and note drop** connects to the optional Docker server in [`server/`](server/README.md).

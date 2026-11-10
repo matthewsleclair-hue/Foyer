@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'extras.dart';
 import 'plex.dart';
 import 'screens.dart';
+import 'server.dart';
+import 'sports.dart';
 import 'update.dart';
 import 'weather.dart';
 
@@ -80,11 +82,24 @@ class Settings extends ChangeNotifier {
   String wallMode = 'glow'; // glow | preset | photo
   String wallValue = '';
   int ssMinutes = 5; // 0 = off
-  String ssSource = 'colors'; // colors | mine | online
+  String ssSource = 'colors'; // colors | mine | online | drop
   bool autoStart = true;
   bool perfMode = false;
   String updateUrl = 'matthewsleclair-hue/Foyer';
   String updateToken = '';
+  List<FollowedTeam> sportsTeams = [];
+  String serverUrl = '';
+  String serverToken = '';
+
+  bool follows(FollowedTeam t) => sportsTeams.any((x) => x.league == t.league && x.id == t.id);
+  int countIn(String league) => sportsTeams.where((t) => t.league == league).length;
+  void toggleTeam(FollowedTeam t) {
+    if (follows(t)) {
+      sportsTeams = sportsTeams.where((x) => !(x.league == t.league && x.id == t.id)).toList();
+    } else {
+      sportsTeams = [...sportsTeams, t];
+    }
+  }
 
   Map<String, dynamic> toJson({bool secrets = true}) => {
         'v': 5,
@@ -104,7 +119,10 @@ class Settings extends ChangeNotifier {
         'autoStart': autoStart,
         'perfMode': perfMode,
         'updateUrl': updateUrl,
+        'sportsTeams': [for (final t in sportsTeams) t.toJson()],
+        'serverUrl': serverUrl,
         if (secrets) ...{
+          'serverToken': serverToken,
           'plexToken': plexToken,
           'plexUrl': plexUrl,
           'plexName': plexName,
@@ -139,7 +157,7 @@ class Settings extends ChangeNotifier {
     final ss = j['ssMinutes'];
     if (ss is num) ssMinutes = ss.toInt();
     final src = j['ssSource'];
-    if (src is String && (src == 'mine' || src == 'online' || src == 'colors')) {
+    if (src is String && (src == 'mine' || src == 'online' || src == 'colors' || src == 'drop')) {
       ssSource = src;
     } else if (j['ssPhotos'] == true) {
       ssSource = 'mine';
@@ -147,7 +165,13 @@ class Settings extends ChangeNotifier {
     autoStart = _b(j['autoStart'], autoStart);
     perfMode = _b(j['perfMode'], perfMode);
     updateUrl = _s(j['updateUrl'], updateUrl);
+    final st = j['sportsTeams'];
+    if (st is List) {
+      sportsTeams = [for (final x in st) if (FollowedTeam.fromJson(x) != null) FollowedTeam.fromJson(x)!];
+    }
+    serverUrl = _s(j['serverUrl'], serverUrl);
     if (secrets) {
+      serverToken = _s(j['serverToken'], serverToken);
       plexToken = _s(j['plexToken'], plexToken);
       plexUrl = _s(j['plexUrl'], plexUrl);
       plexName = _s(j['plexName'], plexName);
@@ -726,7 +750,7 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
-  static const int kSteps = 5;
+  static const int kSteps = 6;
   int _step = 0;
   late final TextEditingController _name;
   late bool _liquid;
@@ -908,6 +932,7 @@ class _SetupScreenState extends State<SetupScreen> {
     'Pin your apps',
     'Plex row',
     'Home button',
+    'Sports scores',
   ];
   static const _subs = [
     'This shows in the welcome message on your home screen.',
@@ -915,6 +940,7 @@ class _SetupScreenState extends State<SetupScreen> {
     'Pick up to $kMaxPinned apps for your home screen. They appear in the order you select them.',
     'Optional. Show Continue Watching from your Plex server on the home screen.',
     'Make the Home button on your remote open Foyer instead of Amazon\'s screen.',
+    'Optional. Pick the teams you follow and their live scores show on your home screen.',
   ];
 
   @override
@@ -986,9 +1012,44 @@ class _SetupScreenState extends State<SetupScreen> {
         return _appsStep();
       case 3:
         return _plexStep();
-      default:
+      case 4:
         return _homeKeyStep();
+      default:
+        return _sportsStep();
     }
+  }
+
+  Widget _sportsStep() {
+    final s = SettingsScope.of(context);
+    final names = s.sportsTeams.map((t) => t.league == 'f1' ? 'Formula 1' : t.name).toList();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Wrap(spacing: 20, runSpacing: 20, children: [
+          for (final l in kLeagues)
+            _Choice(
+                label: l.key == 'f1'
+                    ? (s.follows(FollowedTeam.f1) ? 'Formula 1: on' : 'Formula 1')
+                    : (s.countIn(l.key) > 0 ? '${l.label} · ${s.countIn(l.key)}' : l.label),
+                selected: l.key == 'f1' ? s.follows(FollowedTeam.f1) : s.countIn(l.key) > 0,
+                onSelect: () async {
+                  if (l.key == 'f1') {
+                    s.change(() => s.toggleTeam(FollowedTeam.f1));
+                  } else {
+                    await Navigator.of(context)
+                        .push(MaterialPageRoute<void>(builder: (_) => SportsTeamsScreen(league: l)));
+                    if (mounted) setState(() {});
+                  }
+                }),
+        ]),
+        const SizedBox(height: 28),
+        SizedBox(
+            width: 1300,
+            child: Text(
+                names.isEmpty ? 'No teams yet. You can skip this and add them later in Settings.' : 'Following: ${names.join(', ')}',
+                style: const TextStyle(fontSize: 26, color: Colors.white70))),
+      ]),
+    );
   }
 
   Widget _label(String t) =>
@@ -1394,9 +1455,19 @@ class _HomeScreenState extends State<HomeScreen>
     _plexTimer = Timer.periodic(const Duration(minutes: 15), (_) => _loadPlex(force: true));
     _weatherTimer = Timer.periodic(const Duration(minutes: 20), (_) => _loadWeather(force: true));
     _updateTimer = Timer.periodic(const Duration(minutes: 30), (_) => _checkUpdate(force: true));
+    _sportsTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadSports());
     kUpdate.addListener(_onUpdateFound);
     HardwareKeyboard.instance.addHandler(_onAnyKey);
     _idleTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkIdle());
+  }
+
+  Timer? _sportsTimer;
+
+  void _loadSports() {
+    if (!mounted || !_fg) return;
+    final s = SettingsScope.read(context);
+    kSports.refresh(s.sportsTeams, s.clock24);
+    kDrop.refresh(s.serverUrl, s.serverToken);
   }
 
   bool _onAnyKey(KeyEvent e) {
@@ -1449,6 +1520,7 @@ class _HomeScreenState extends State<HomeScreen>
     _load();
     _loadPlex();
     _loadWeather();
+    _loadSports();
     _checkUpdate();
   }
 
@@ -1457,6 +1529,7 @@ class _HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.removeObserver(this);
     _plexTimer?.cancel();
     _weatherTimer?.cancel();
+    _sportsTimer?.cancel();
     _idleTimer?.cancel();
     _updateTimer?.cancel();
     _toastTimer?.cancel();
@@ -1473,6 +1546,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (_fg) _lastKey = DateTime.now();
     if (s == AppLifecycleState.resumed) {
       _loadWeather(force: true);
+      _loadSports();
       if (_leaving) setState(() => _leaving = false);
       _load();
       _loadPlex(force: true);
@@ -1754,6 +1828,12 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 const SizedBox(width: 16),
+                ValueListenableBuilder<List<GameLine>>(
+                    valueListenable: kSports.games,
+                    builder: (_, g, __) => g.isEmpty
+                        ? const SizedBox.shrink()
+                        : Padding(
+                            padding: const EdgeInsets.only(right: 16), child: ScorePill(games: g))),
                 if (_weather != null) ...[
                   _WeatherPill(w: _weather!),
                   const SizedBox(width: 16),
@@ -1766,6 +1846,13 @@ class _HomeScreenState extends State<HomeScreen>
             right: 96,
             top: 190,
             child: FadeTransition(opacity: _fadeLate, child: _plexRow(_plex!))),
+      Positioned(
+          right: 96,
+          bottom: 300,
+          child: FadeTransition(
+              opacity: _fadeLate,
+              child: ValueListenableBuilder<List<DropNote>>(
+                  valueListenable: kDrop.notes, builder: (_, n, __) => NotesCard(notes: n)))),
       Positioned(
           left: 96,
           bottom: 300,

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Foyer Drop</title>
+<style>
+:root{--bg:#101746;--card:#1b2670;--ink:#fff;--mute:#b9c3ff;--amber:#ffb454}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+main{max-width:640px;margin:0 auto;padding:22px 18px 60px}
+h1{font-size:26px;margin:0 0 4px}.sub{color:var(--mute);margin:0 0 20px}
+.tabs{display:flex;gap:8px;margin-bottom:18px}
+.tabs button{flex:1;padding:12px;border-radius:12px;border:0;background:var(--card);color:var(--ink);font-size:17px}
+.tabs button.on{background:var(--amber);color:#201000;font-weight:700}
+input,textarea{width:100%;font-size:18px;padding:14px;border-radius:12px;border:0;margin-bottom:10px}
+.btn{width:100%;padding:14px;border-radius:12px;border:0;background:var(--amber);color:#201000;font-size:18px;font-weight:700}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.note{background:var(--card);border-radius:14px;padding:14px;margin:10px 0;display:flex;justify-content:space-between;gap:10px}
+.note small{color:var(--mute)}.x{background:none;border:0;color:var(--mute);font-size:22px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.grid div{position:relative;aspect-ratio:1;background:#0b0f33;border-radius:10px;overflow:hidden}
+.grid img{width:100%;height:100%;object-fit:cover}.grid button{position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:28px;height:28px;background:#000a;color:#fff}
+.msg{margin:12px 0;color:var(--mute)}.hide{display:none}
+</style></head><body><main>
+<h1>Foyer Drop</h1><p class="sub">Send a note or a photo to the TV.</p>
+<div id="login" class="hide">
+  <p class="msg">Enter the token from your server's setup. It is remembered on this phone.</p>
+  <input id="tok" type="password" placeholder="Token" autocomplete="off">
+  <button class="btn" onclick="saveTok()">Continue</button>
+</div>
+<div id="app" class="hide">
+  <div class="tabs"><button id="t1" class="on" onclick="tab(1)">Notes</button><button id="t2" onclick="tab(2)">Photos</button></div>
+  <section id="s1">
+    <textarea id="txt" rows="3" maxlength="300" placeholder="Dinner is at 6!"></textarea>
+    <div class="row"><input id="from" placeholder="From (optional)" maxlength="30">
+    <select id="hrs" style="font-size:18px;border-radius:12px;border:0;padding:12px;margin-bottom:10px">
+      <option value="3">Shows 3 hours</option><option value="24" selected>Shows 1 day</option><option value="72">Shows 3 days</option><option value="0">Until I delete it</option></select></div>
+    <button class="btn" onclick="sendNote()">Send note</button>
+    <p class="msg" id="m1"></p><div id="notes"></div>
+  </section>
+  <section id="s2" class="hide">
+    <input id="pics" type="file" accept="image/*" multiple>
+    <button class="btn" onclick="sendPics()">Send photos to the TV</button>
+    <p class="msg" id="m2"></p><div class="grid" id="grid"></div>
+  </section>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let T=localStorage.getItem('foyerTok')||'';
+const H=()=>({'Authorization':'Bearer '+T});
+function saveTok(){T=$('tok').value.trim();localStorage.setItem('foyerTok',T);start()}
+async function api(p,o={}){const r=await fetch(p,{...o,headers:{...H(),...(o.headers||{})}});if(r.status==401){localStorage.removeItem('foyerTok');T='';start();throw 0}return r}
+function tab(n){$('s1').classList.toggle('hide',n!=1);$('s2').classList.toggle('hide',n!=2);$('t1').classList.toggle('on',n==1);$('t2').classList.toggle('on',n==2)}
+async function loadNotes(){const j=await (await api('/api/notes')).json();$('notes').innerHTML='';
+ j.notes.forEach(n=>{const d=document.createElement('div');d.className='note';
+  const a=document.createElement('div');a.textContent=n.text;const s=document.createElement('small');s.textContent=(n.from?n.from+' · ':'')+new Date(n.created*1000).toLocaleString();a.appendChild(document.createElement('br'));a.appendChild(s);
+  const b=document.createElement('button');b.className='x';b.textContent='×';b.onclick=async()=>{await api('/api/notes/'+n.id,{method:'DELETE'});loadNotes()};
+  d.append(a,b);$('notes').appendChild(d)})}
+async function sendNote(){const text=$('txt').value.trim();if(!text)return;
+ await api('/api/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,from:$('from').value,hours:+$('hrs').value})});
+ $('txt').value='';$('m1').textContent='Sent. It shows up on the TV within a minute.';loadNotes()}
+async function loadPics(){const j=await (await api('/api/photos')).json();$('grid').innerHTML='';
+ for(const id of j.photos){const d=document.createElement('div');const i=document.createElement('img');i.loading='lazy';i.src='/photos/'+id+'.jpg?token='+encodeURIComponent(T);
+  const b=document.createElement('button');b.textContent='×';b.onclick=async()=>{await api('/api/photos/'+id,{method:'DELETE'});loadPics()};d.append(i,b);$('grid').appendChild(d)}}
+async function sendPics(){const f=$('pics').files;if(!f.length)return;$('m2').textContent='Sending…';
+ for(const file of f){const fd=new FormData();fd.append('files',file);const r=await api('/api/photos',{method:'POST',body:fd});if(!r.ok){$('m2').textContent='Could not send '+file.name;return}}
+ $('pics').value='';$('m2').textContent='Sent. They join the TV screensaver within a few minutes.';loadPics()}
+async function start(){if(!T){$('login').classList.remove('hide');$('app').classList.add('hide');return}
+ $('login').classList.add('hide');$('app').classList.remove('hide');try{await loadNotes();await loadPics()}catch(e){}}
+start();
+</script></main></body></html>

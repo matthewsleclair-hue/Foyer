@@ -5,6 +5,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
+import 'server.dart';
+import 'sports.dart';
 import 'online.dart';
 import 'update.dart';
 import 'weather.dart';
@@ -402,7 +404,7 @@ class _Group {
   final List<_HubItem> Function(BuildContext c, Settings s) items;
 }
 
-/// Opens one step of the first-run setup on its own (0 name/clock, 1 glass, 2 apps, 3 Plex, 4 Home button).
+/// Opens one step of the first-run setup on its own (0 name/clock, 1 glass, 2 apps, 3 Plex, 4 Home button, 5 sports).
 void _editStep(BuildContext c, int step) => _push(
     c, SetupScreen(firstRun: false, only: step, onDone: () => Navigator.of(c).pop()));
 
@@ -438,6 +440,14 @@ final List<_Group> _groups = [
         () => _push(c, const WeatherScreen())),
     _HubItem(Icons.video_library_rounded, 'Plex',
         s.plexToken.isEmpty ? 'Not linked' : 'Linked to ${s.plexName}', () => _editStep(c, 3)),
+    _HubItem(
+        Icons.sports_score_rounded,
+        'Sports scores',
+        s.sportsTeams.isEmpty ? 'Off' : '${s.sportsTeams.length} followed',
+        () => _editStep(c, 5)),
+    _HubItem(Icons.cloud_sync_rounded, 'Photo and note drop',
+        s.serverUrl.isEmpty ? 'Not connected' : 'Connected to ${s.serverUrl}',
+        () => _push(c, const ServerScreen())),
   ]),
   _Group(Icons.palette_rounded, 'Appearance', 'Glass style, wallpaper, performance', (c, s) => [
     _HubItem(Icons.blur_on_rounded, 'Glass style', s.liquid ? 'Liquid glass' : 'Simple glass',
@@ -870,10 +880,11 @@ const _months = [
 ];
 
 class _Shot {
-  _Shot(this.src, this.net, [this.caption = '']);
+  _Shot(this.src, this.net, [this.caption = '', this.token = '']);
   final String src;
   final bool net;
   final String caption;
+  final String token;
 }
 
 class ScreensaverView extends StatefulWidget {
@@ -920,7 +931,12 @@ class _ScreensaverViewState extends State<ScreensaverView> with SingleTickerProv
   Future<void> _loadShots(String source) async {
     try {
       List<_Shot> shots;
-      if (source == 'online') {
+      if (source == 'drop') {
+        final cfg = SettingsScope.read(context);
+        final urls = (await DropApi.photoUrls(cfg.serverUrl, cfg.serverToken)).toList()
+          ..shuffle(Random());
+        shots = [for (final u in urls.take(30)) _Shot(u, true, '', cfg.serverToken)];
+      } else if (source == 'online') {
         final r = await fetchBingShots();
         shots = [for (final o in r) _Shot(o.url, true, o.caption)];
       } else {
@@ -944,6 +960,7 @@ class _ScreensaverViewState extends State<ScreensaverView> with SingleTickerProv
     Widget err(BuildContext _, Object __, StackTrace? ___) => const ColoredBox(color: Colors.black);
     return shot.net
         ? Image.network(shot.src,
+            headers: shot.token.isEmpty ? null : {'Authorization': 'Bearer ${shot.token}'},
             fit: BoxFit.cover, cacheWidth: 1920, gaplessPlayback: true, errorBuilder: err)
         : Image.file(File(shot.src),
             fit: BoxFit.cover, cacheWidth: 1920, gaplessPlayback: true, errorBuilder: err);
@@ -1103,11 +1120,22 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
                 label: 'My photos',
                 selected: s.ssSource == 'mine',
                 onSelect: () => s.change(() => s.ssSource = 'mine')),
+            if (s.serverUrl.isNotEmpty && s.serverToken.isNotEmpty)
+              Opt(
+                  label: 'Photo drop',
+                  selected: s.ssSource == 'drop',
+                  onSelect: () => s.change(() => s.ssSource = 'drop')),
             Opt(
                 label: 'Online photos',
                 selected: s.ssSource == 'online',
                 onSelect: () => s.change(() => s.ssSource = 'online')),
           ]),
+          if (s.ssSource == 'drop')
+            const Padding(
+              padding: EdgeInsets.only(top: 14),
+              child: Text('Uses photos sent to your Foyer Drop server. Falls back to colors if it is offline.',
+                  style: TextStyle(fontSize: 22, color: Colors.white60)),
+            ),
           if (s.ssSource == 'online')
             const Padding(
               padding: EdgeInsets.only(top: 14),
