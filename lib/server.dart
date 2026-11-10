@@ -31,7 +31,8 @@ class DropApi {
     return _send(url, path, token: token);
   }
 
-  static Future<dynamic> _send(String url, String path, {String token = '', Object? post}) async {
+  static Future<dynamic> _send(String url, String path,
+      {String token = '', Object? post, int waitSeconds = 10}) async {
     final base = _clean(url);
     if (base.isEmpty) throw const HttpException('not set up');
     final c = HttpClient()..connectionTimeout = const Duration(seconds: 6);
@@ -43,7 +44,7 @@ class DropApi {
         req.headers.contentType = ContentType.json;
         req.add(utf8.encode(jsonEncode(post)));
       }
-      final res = await req.close().timeout(const Duration(seconds: 10));
+      final res = await req.close().timeout(Duration(seconds: waitSeconds));
       final body = await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 15));
       if (res.statusCode == 401) throw const HttpException('unlinked');
       if (res.statusCode == 429) throw const HttpException('Too many tries. Wait a few minutes.');
@@ -134,7 +135,48 @@ class DropFeed {
   String _sig = '';
   bool _busy = false;
 
+  // Instant updates: one request stays open and the server answers it the moment something changes.
+  bool _listening = false;
+  bool _push = false; // true once the server has shown it supports this
+  bool _noPush = false; // an older server: stick to regular checks
+  int _v = 0;
+  String _url = '', _token = '';
+  DateTime _asked = DateTime.now();
+
+  Future<void> _listen() async {
+    if (_listening || _noPush) return;
+    _listening = true;
+    final sig = _sig;
+    while (sig == _sig && _sig.isNotEmpty) {
+      // stop when the home screen has not asked for a while (app in the background)
+      if (DateTime.now().difference(_asked).inSeconds > 40) break;
+      try {
+        final j = await DropApi._send(_url, '/api/wait?v=$_v', token: _token, waitSeconds: 40);
+        final v = j is Map && j['v'] is num ? (j['v'] as num).toInt() : 0;
+        _push = true;
+        if (v != _v) {
+          final first = _v == 0;
+          _v = v;
+          if (!first && sig == _sig) await refresh(_url, _token, force: true);
+        }
+      } on HttpException catch (e) {
+        if (e.message == 'Server answered 404') {
+          _noPush = true;
+          break;
+        }
+        _push = false;
+        await Future<void>.delayed(const Duration(seconds: 5));
+      } catch (_) {
+        _push = false;
+        await Future<void>.delayed(const Duration(seconds: 5));
+      }
+    }
+    _listening = false;
+    _push = false;
+  }
+
   Future<void> refresh(String url, String token, {bool force = false}) async {
+    _asked = DateTime.now();
     if (url.trim().isEmpty || token.isEmpty) {
       _sig = '';
       if (notes.value.isNotEmpty) notes.value = const [];
@@ -143,9 +185,18 @@ class DropFeed {
     }
     final sig = '$url|$token';
     final age = _last == null ? 9999 : DateTime.now().difference(_last!).inSeconds;
-    if (_busy || !(force || sig != _sig || age >= 4)) return;
+    if (sig != _sig) {
+      _sig = sig;
+      _url = url;
+      _token = token;
+      _v = 0;
+      _noPush = false;
+      force = true;
+    }
+    if (!_listening) _listen();
+    // with instant updates working, the regular check is only a safety net
+    if (_busy || !(force || age >= (_push ? 30 : 4))) return;
     _busy = true;
-    _sig = sig;
     _last = DateTime.now();
     try {
       List<DropNote> n;

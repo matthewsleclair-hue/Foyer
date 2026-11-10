@@ -3,6 +3,7 @@
 One small container. People sign in with an account; a TV is linked with a short code
 (like Plex). Everything lives in /data (a SQLite file plus the pictures).
 """
+import asyncio
 import base64
 import hashlib
 import io
@@ -328,6 +329,52 @@ def link_claim(body: dict, w: Who = Depends(web)):
     return {"ok": True, "name": v["name"]}
 
 
+# ───────────────────────── telling the TV right away ─────────────────────────
+# The TV keeps one request open on /api/wait. The moment something is sent we answer it,
+# so notes, drawings and photos show up instantly instead of on the next check.
+
+_BOOT = int(time.time() * 1000)
+_versions: dict = {}
+_waiters: dict = {}
+_loop = None
+
+
+@app.on_event("startup")
+async def _remember_loop():
+    global _loop
+    _loop = asyncio.get_running_loop()
+
+
+def _wake(user_id: int):
+    for ev in list(_waiters.get(user_id, ())):
+        ev.set()
+
+
+def bump(user_id: int):
+    """Call after anything the TV shows has changed (safe from worker threads)."""
+    _versions[user_id] = _versions.get(user_id, _BOOT) + 1
+    if _loop is not None:
+        _loop.call_soon_threadsafe(_wake, user_id)
+
+
+@app.get("/api/wait")
+async def wait(v: int = 0, w: Who = Depends(who)):
+    cur = _versions.get(w.user_id, _BOOT)
+    if v == cur:
+        ev = asyncio.Event()
+        _waiters.setdefault(w.user_id, set()).add(ev)
+        try:
+            await asyncio.wait_for(ev.wait(), timeout=25)
+        except asyncio.TimeoutError:
+            pass
+        finally:
+            _waiters.get(w.user_id, set()).discard(ev)
+            if not _waiters.get(w.user_id):
+                _waiters.pop(w.user_id, None)
+        cur = _versions.get(w.user_id, _BOOT)
+    return {"v": cur}
+
+
 # ───────────────────────── notes ─────────────────────────
 
 @app.get("/api/notes")
@@ -359,6 +406,7 @@ def add_note(body: dict, w: Who = Depends(who)):
             (nid, w.user_id, text, str(body.get("from", "")).strip()[:30], now,
              None if hours <= 0 else now + hours * 3600),
         )
+    bump(w.user_id)
     return {"id": nid}
 
 
@@ -366,6 +414,7 @@ def add_note(body: dict, w: Who = Depends(who)):
 def delete_note(note_id: str, w: Who = Depends(who)):
     with closing(db()) as c, c:
         c.execute("DELETE FROM notes WHERE id=? AND user_id=?", (note_id, w.user_id))
+    bump(w.user_id)
     return {"ok": True}
 
 
@@ -418,6 +467,7 @@ def _remove(w: Who, media_id: str, kind: str, folder: Path, ext: str):
         )
     if cur.rowcount and media_id.isalnum():
         (folder / f"{media_id}.{ext}").unlink(missing_ok=True)
+    bump(w.user_id)
     return {"ok": True}
 
 
@@ -448,6 +498,7 @@ async def add_photos(files: list[UploadFile] = File(...), w: Who = Depends(who))
                 (pid, w.user_id, "photo", "", time.time()),
             )
         saved.append(pid)
+    bump(w.user_id)
     return {"saved": saved}
 
 
@@ -502,6 +553,7 @@ def add_drawing(body: dict, w: Who = Depends(who)):
         for r in old:
             c.execute("DELETE FROM media WHERE id=?", (r["id"],))
             (DRAWINGS / f"{r['id']}.png").unlink(missing_ok=True)
+    bump(w.user_id)
     return {"id": did}
 
 
