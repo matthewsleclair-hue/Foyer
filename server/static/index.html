@@ -3,15 +3,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#14122b">
 <title>Foyer Drop</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Foyer">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{--bg:#14122b;--bg2:#1d1a3d;--card:#262250;--line:#3a356e;--ink:#f6f3ff;--mute:#a9a3d6;--amber:#ffb454;--amber-ink:#2a1700;--bad:#ff8f8f;--r:16px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 body{min-height:100vh;background:radial-gradient(900px 500px at 80% -10%,#3b2a6b 0,transparent 60%),radial-gradient(700px 500px at -10% 110%,#5a3a2a 0,transparent 55%),var(--bg);background-attachment:fixed}
-main{max-width:620px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-inset-bottom))}
+main{max-width:620px;margin:0 auto;padding:calc(22px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .brand{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;letter-spacing:.2px}
-.brand i{width:30px;height:30px;border-radius:9px;background:linear-gradient(140deg,var(--amber),#ff7a59);display:block;box-shadow:0 4px 14px #ffb45455}
+.brand img{display:block;border-radius:9px}
 .who{color:var(--mute);font-size:14px}
 h2{font-size:26px;margin:0 0 4px}.sub{color:var(--mute);margin:0 0 18px}
 .card{background:#ffffff0d;border:1px solid #ffffff1a;border-radius:var(--r);padding:16px;margin-bottom:14px;backdrop-filter:blur(10px)}
@@ -67,7 +74,7 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
 </style></head><body><main>
 
 <header>
-  <div class="brand"><i></i>Foyer Drop</div>
+  <div class="brand"><img src="/favicon.png" alt="" width="32" height="32">Foyer Drop</div>
   <div class="who" id="whoami"></div>
 </header>
 
