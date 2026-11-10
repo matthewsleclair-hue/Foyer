@@ -62,13 +62,20 @@ canvas{display:block;width:100%;aspect-ratio:16/10;touch-action:none;cursor:cros
 .app i{background:var(--card);font-style:normal;font-weight:700;font-size:24px;line-height:52px}
 .app span{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#777;margin-right:8px}.dot.on{background:#5fe08a}
+/* remote */
+.dpad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;width:min(270px,78vw);aspect-ratio:1;margin:4px auto 16px}
+.k{font:inherit;font-size:13px;color:var(--ink);background:#ffffff14;border:1px solid #ffffff1f;border-radius:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 4px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.k svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.k.on{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
+.up{grid-area:1/2}.left{grid-area:2/1}.okb{grid-area:2/2;border-radius:50%;font-size:20px;font-weight:700;background:#ffffff26}.right{grid-area:2/3}.down{grid-area:3/2}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
 /* code box */
 #code{font-size:30px;font-weight:700;letter-spacing:10px;text-align:center;text-transform:uppercase}
 .invite{font-size:22px;font-weight:700;letter-spacing:3px}
 /* bottom tabs */
 nav{position:fixed;left:0;right:0;bottom:0;background:#14122bee;backdrop-filter:blur(14px);border-top:1px solid #ffffff1a;padding:8px 10px calc(8px + env(safe-area-inset-bottom))}
-nav div{max-width:620px;margin:0 auto;display:flex;gap:6px}
-nav button{flex:1;min-width:0;font:inherit;font-size:12px;color:var(--mute);background:none;border:0;border-radius:12px;padding:8px 2px;cursor:pointer}
+nav div{max-width:620px;margin:0 auto;display:flex;gap:2px}
+nav button{flex:1;min-width:0;font:inherit;font-size:11px;color:var(--mute);background:none;border:0;border-radius:12px;padding:8px 2px;cursor:pointer}
 nav svg{display:block;margin:0 auto 3px;width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
 </style></head><body><main>
@@ -85,7 +92,11 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
   <div class="card">
     <label for="aName">Name</label>
     <input id="aName" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="for example matthew">
-    <label for="aPass">Password</label>
+    <div id="resetWrap" class="hide">
+      <label for="aReset">Reset code</label>
+      <input id="aReset" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH-JKLM">
+    </div>
+    <label for="aPass" id="passLabel">Password</label>
     <input id="aPass" type="password" autocomplete="current-password" placeholder="At least 8 characters">
     <div id="inviteWrap" class="hide">
       <label for="aInvite">Invite code (from the person who runs this server)</label>
@@ -95,6 +106,7 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
     <p class="msg" id="authMsg"></p>
   </div>
   <button class="link" id="authSwap" onclick="swapAuth()">New here? Create an account</button>
+  <button class="link" id="authForgot" onclick="forgot()" style="display:block">Forgot password?</button>
 </section>
 
 <div id="app" class="hide">
@@ -154,6 +166,38 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
     <div class="card"><label>Apps on this TV</label><div class="apps" id="apps"></div></div>
   </section>
 
+  <!-- remote -->
+  <section id="p-remote" class="hide">
+    <h2>Remote</h2>
+    <div class="tools hide" id="tvPick2"></div>
+    <p class="msg" id="rState" style="margin:0 2px 14px"></p>
+    <div class="card">
+      <div class="dpad">
+        <button class="k up" data-k="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+        <button class="k left" data-k="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button class="k okb" data-k="ok">OK</button>
+        <button class="k right" data-k="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="k down" data-k="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+      </div>
+      <div class="keys">
+        <button class="k" data-k="back"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M4 12h11a5 5 0 010 10h-2"/></svg>Back</button>
+        <button class="k" data-k="home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Home</button>
+        <button class="k" data-k="menu"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg>Menu</button>
+      </div>
+      <div class="keys">
+        <button class="k" data-k="rewind"><svg viewBox="0 0 24 24"><path d="M11 7l-7 5 7 5zM20 7l-7 5 7 5z"/></svg>Rewind</button>
+        <button class="k" data-k="play"><svg viewBox="0 0 24 24"><path d="M6 5l9 7-9 7zM18 5v14"/></svg>Play/Pause</button>
+        <button class="k" data-k="forward"><svg viewBox="0 0 24 24"><path d="M13 7l7 5-7 5zM4 7l7 5-7 5z"/></svg>Forward</button>
+      </div>
+    </div>
+    <div class="card">
+      <label for="rText">Type on the TV (select a search box on the TV first)</label>
+      <div class="row"><input id="rText" maxlength="300" autocomplete="off" placeholder="Search for…" style="margin:0"><button class="btn" style="flex:none;width:auto;padding:0 20px" onclick="sendText()">Send</button></div>
+      <p class="msg" id="mRemote"></p>
+    </div>
+    <p class="msg" style="font-size:13px">Works fully inside Foyer. In other apps, Back, Home and the play buttons always work; arrows, OK and typing work in many apps but not all (Netflix and YouTube draw their own screens).</p>
+  </section>
+
   <!-- TVs and account -->
   <section id="p-tvs" class="hide">
     <h2>Link a TV</h2><p class="sub">On the TV: Foyer Settings → Home screen → Foyer Drop → Link this TV. Then type the code it shows.</p>
@@ -168,6 +212,18 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
       <div class="row" style="align-items:center"><div class="invite" id="invite"></div><button class="btn ghost" style="flex:none;width:auto;padding:10px 14px" onclick="newInvite()">New code</button></div>
       <p class="msg">They choose "Create an account" on this page and enter it. Each account has its own TVs, notes and photos.</p>
     </div>
+    <div class="card hide" id="acctCard">
+      <label>Accounts. Someone forgot their password? Make them a reset code.</label>
+      <div id="accts"></div>
+      <p class="msg" id="mAccts"></p>
+    </div>
+    <div class="card">
+      <label>Change my password</label>
+      <input id="pOld" type="password" autocomplete="current-password" placeholder="Current password">
+      <input id="pNew" type="password" autocomplete="new-password" placeholder="New password (at least 8 characters)">
+      <button class="btn ghost" onclick="changePass()">Change password</button>
+      <p class="msg" id="mPass"></p>
+    </div>
     <button class="btn ghost" onclick="signOut()">Sign out</button>
   </section>
 </div>
@@ -178,6 +234,7 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
   <button data-p="draw"><svg viewBox="0 0 24 24"><path d="M4 20l4-1L19 8l-3-3L5 16z"/><path d="M14 7l3 3"/></svg>Draw</button>
   <button data-p="photos"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 4 3 3-2 4 3"/></svg>Photos</button>
   <button data-p="apps"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>Apps</button>
+  <button data-p="remote"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="3"/><circle cx="12" cy="8" r="2"/><path d="M12 13.5v.01M12 17v.01"/></svg>Remote</button>
   <button data-p="tvs"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg>TVs</button>
 </div></nav>
 
@@ -199,33 +256,39 @@ const getJSON=async(p,o)=>(await api(p,o)).json();
 async function blobUrl(path){return URL.createObjectURL(await (await api(path)).blob())}
 
 // ── sign in ──
+let resetting=false;
 function paintAuth(){
-  const make=creating||firstRun;
-  $('authTitle').textContent=firstRun?'Set up Foyer Drop':(make?'Create an account':'Welcome back');
-  $('authSub').textContent=firstRun?'Create the first account. It becomes the owner of this server.':(make?'You need an invite code from whoever runs this server.':'Sign in to send things to your TV.');
-  $('authBtn').textContent=make?'Create account':'Sign in';
-  $('inviteWrap').classList.toggle('hide',!creating||firstRun);
+  const make=(creating||firstRun)&&!resetting;
+  $('authTitle').textContent=resetting?'Choose a new password':(firstRun?'Set up Foyer Drop':(make?'Create an account':'Welcome back'));
+  $('authSub').textContent=resetting?'Ask the person who runs this server for a reset code, then enter it here.':(firstRun?'Create the first account. It becomes the owner of this server.':(make?'You need an invite code from whoever runs this server.':'Sign in to send things to your TV.'));
+  $('authBtn').textContent=resetting?'Save new password':(make?'Create account':'Sign in');
+  $('inviteWrap').classList.toggle('hide',!(creating&&!firstRun&&!resetting));
+  $('resetWrap').classList.toggle('hide',!resetting);
+  $('passLabel').textContent=resetting?'New password':'Password';
   $('authSwap').classList.toggle('hide',firstRun);
-  $('authSwap').textContent=creating?'Already have an account? Sign in':'New here? Create an account';
-  $('aPass').autocomplete=make?'new-password':'current-password'}
-function swapAuth(){creating=!creating;say('authMsg','');paintAuth()}
+  $('authSwap').textContent=(creating||resetting)?'Back to sign in':'New here? Create an account';
+  $('authForgot').classList.toggle('hide',firstRun||creating||resetting);
+  $('aPass').autocomplete=(make||resetting)?'new-password':'current-password'}
+function swapAuth(){if(resetting||creating){resetting=false;creating=false}else creating=true;say('authMsg','');paintAuth()}
+function forgot(){resetting=true;creating=false;say('authMsg','');paintAuth()}
 async function showAuth(msg){
   $('app').classList.add('hide');$('nav').classList.add('hide');$('auth').classList.remove('hide');$('whoami').textContent='';
   try{firstRun=(await getJSON('/api/state')).first}catch(e){}
   paintAuth();say('authMsg',msg||'',!!msg)}
 async function doAuth(){
-  const make=creating||firstRun,b=$('authBtn');b.disabled=true;say('authMsg','');
+  const make=(creating||firstRun)&&!resetting,b=$('authBtn');b.disabled=true;say('authMsg','');
   try{
-    const j=await getJSON(make?'/api/signup':'/api/login',{method:'POST',json:{name:$('aName').value,password:$('aPass').value,invite:$('aInvite').value}});
-    T=j.token;ME=j.name;store.set('foyerSession',T);store.set('foyerName',ME);$('aPass').value='';
+    const body=resetting?{name:$('aName').value,code:$('aReset').value,password:$('aPass').value}:{name:$('aName').value,password:$('aPass').value,invite:$('aInvite').value};
+    const j=await getJSON(resetting?'/api/reset':(make?'/api/signup':'/api/login'),{method:'POST',json:body});
+    T=j.token;ME=j.name;store.set('foyerSession',T);store.set('foyerName',ME);$('aPass').value='';$('aReset').value='';resetting=false;
     start(make?'tvs':'notes')
   }catch(e){say('authMsg',e.message,true)}
   b.disabled=false}
-async function signOut(){try{await api('/api/logout',{method:'POST'})}catch(e){}T='';store.set('foyerSession','');creating=false;showAuth()}
-['aName','aPass','aInvite'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')doAuth()}));
+async function signOut(){try{await api('/api/logout',{method:'POST'})}catch(e){}T='';store.set('foyerSession','');creating=false;resetting=false;showAuth()}
+['aName','aPass','aInvite','aReset'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')doAuth()}));
 
 // ── tabs ──
-const loaders={notes:loadNotes,draw:loadDrawings,photos:loadPics,apps:loadApps,tvs:loadTvs};
+const loaders={notes:loadNotes,draw:loadDrawings,photos:loadPics,apps:loadApps,remote:loadRemote,tvs:loadTvs};
 function go(p){
   for(const k in loaders)$('p-'+k).classList.toggle('hide',k!==p);
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
@@ -328,6 +391,35 @@ async function sendUrl(){
 $('url').addEventListener('keydown',e=>{if(e.key==='Enter')sendUrl()});
 setInterval(()=>{if(T&&!$('p-apps').classList.contains('hide')&&!$('app').classList.contains('hide'))loadApps().catch(()=>{})},8000);
 
+// ── remote ──
+function paintRemote(){
+  const tv=curTv(),pick=$('tvPick2');pick.innerHTML='';pick.classList.toggle('hide',TVS.length<2);
+  TVS.forEach(t=>{const b=document.createElement('button');b.className='chip'+(tv&&t.id===tv.id?' on':'');b.textContent=t.label;
+    b.onclick=()=>{tvId=t.id;store.set('foyerTv',tvId);paintRemote()};pick.appendChild(b)});
+  const st=$('rState');st.innerHTML='';
+  if(!tv){st.textContent='Link a TV first (TVs tab).';return}
+  const dot=document.createElement('span');dot.className='dot'+(tv.remote?' on':'');
+  st.append(dot,tv.remote?tv.label+' is listening.':tv.label+' is not listening. Open Foyer on the TV (and update it if the remote is new).')}
+async function loadRemote(){TVS=(await getJSON('/api/tvs/apps')).tvs;paintRemote()}
+async function sendKey(body){
+  const tv=curTv();if(!tv){say('mRemote','Link a TV first.',true);return}
+  try{const j=await getJSON('/api/tvs/'+tv.id+'/key',{method:'POST',json:body});
+    if(!j.listening)say('mRemote','The TV is not listening right now. Open Foyer on it.',true);else if($('mRemote').classList.contains('bad'))say('mRemote','');return j.listening
+  }catch(e){say('mRemote',e.message,true)}}
+let rep=null;
+function stopRep(){clearTimeout(rep);clearInterval(rep);rep=null;document.querySelectorAll('.k.on').forEach(k=>k.classList.remove('on'))}
+document.querySelectorAll('.k').forEach(b=>{
+  const k=b.dataset.k,repeats=['up','down','left','right'].includes(k);
+  b.addEventListener('pointerdown',e=>{e.preventDefault();stopRep();b.classList.add('on');try{navigator.vibrate&&navigator.vibrate(8)}catch(x){}
+    sendKey({key:k});if(repeats)rep=setTimeout(()=>{rep=setInterval(()=>sendKey({key:k}),170)},420)});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stopRep));
+  b.addEventListener('contextmenu',e=>e.preventDefault())});
+async function sendText(){
+  const t=$('rText').value;if(!t){say('mRemote','Type something first.',true);return}
+  if(await sendKey({text:t}))say('mRemote','Sent. If nothing appears, that app does not accept typing this way.')}
+$('rText').addEventListener('keydown',e=>{if(e.key==='Enter')sendText()});
+setInterval(()=>{if(T&&!$('p-remote').classList.contains('hide')&&!$('app').classList.contains('hide'))loadRemote().catch(()=>{})},8000);
+
 // ── TVs ──
 async function loadTvs(){
   const j=await getJSON('/api/me'),box=$('tvs');box.innerHTML='';
@@ -338,7 +430,22 @@ async function loadTvs(){
     const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Unlink this TV');
     x.onclick=async()=>{if(!confirm('Unlink '+(t.label||'this TV')+'?'))return;await api('/api/tvs/'+t.id,{method:'DELETE'});loadTvs()};
     row.append(a,x);box.appendChild(row)});
-  $('inviteCard').classList.toggle('hide',!j.owner);if(j.owner)$('invite').textContent=j.invite}
+  $('inviteCard').classList.toggle('hide',!j.owner);$('acctCard').classList.toggle('hide',!j.owner);
+  if(j.owner){$('invite').textContent=j.invite;loadAccts().catch(()=>{})}}
+async function loadAccts(){
+  const j=await getJSON('/api/accounts'),box=$('accts');box.innerHTML='';
+  j.accounts.forEach(a=>{
+    const row=document.createElement('div');row.className='item';row.style.alignItems='center';
+    const n=esc(a.name+(a.owner?' (owner)':''));
+    const b=document.createElement('button');b.className='chip';b.textContent='Reset code';
+    b.onclick=async()=>{if(!confirm('Make a password reset code for '+a.name+'?'))return;
+      try{const r=await getJSON('/api/accounts/'+encodeURIComponent(a.name)+'/reset',{method:'POST'});
+        say('mAccts','Code for '+r.name+': '+r.code+'  ·  They tap "Forgot password?" on the sign-in page. Works for 24 hours.')
+      }catch(e){say('mAccts',e.message,true)}};
+    row.append(n,b);box.appendChild(row)})}
+async function changePass(){
+  try{await api('/api/password',{method:'POST',json:{old:$('pOld').value,new:$('pNew').value}});$('pOld').value=$('pNew').value='';say('mPass','Password changed.')
+  }catch(e){say('mPass',e.message,true)}}
 async function claim(){
   const code=$('code').value.trim();if(code.length<5){say('mTvs','Type the 5-character code from the TV.',true);return}
   try{const j=await getJSON('/api/link/claim',{method:'POST',json:{code}});$('code').value='';say('mTvs','Linked '+j.name+'. The TV will say so in a few seconds.');loadTvs()

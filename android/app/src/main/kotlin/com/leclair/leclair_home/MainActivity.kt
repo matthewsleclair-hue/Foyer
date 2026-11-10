@@ -40,7 +40,21 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         phoneInput.stop()
+        if (DropRemote.activity === this) {
+            DropRemote.activity = null
+            DropRemote.activityResumed = false
+        }
         super.onDestroy()
+    }
+
+    override fun onPause() {
+        DropRemote.activityResumed = false
+        super.onPause()
+    }
+
+    /** Home pressed on the phone page's remote while Foyer is already on screen. */
+    fun goHomeFromRemote() {
+        navChannel?.invokeMethod("goHome", null)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -79,6 +93,12 @@ class MainActivity : FlutterActivity() {
                 }.start()
                 "launch" -> result.success(launch(call.argument<String>("package")))
                 "openUrl" -> result.success(openUrl(call.argument<String>("url")))
+                "dropConfig" -> {
+                    DropRemote.configure(
+                        this, call.argument<String>("url") ?: "", call.argument<String>("token") ?: ""
+                    )
+                    result.success(true)
+                }
                 "loadSettings" -> result.success(
                     mapOf(
                         "json" to (prefs.getString("json", "") ?: ""),
@@ -479,6 +499,9 @@ class MainActivity : FlutterActivity() {
 
     override fun onResume() {
         super.onResume()
+        DropRemote.activity = this
+        DropRemote.activityResumed = true
+        DropRemote.ensure(this)
         ensureHomeKey()
     }
 

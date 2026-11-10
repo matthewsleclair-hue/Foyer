@@ -60,6 +60,7 @@ with closing(db()) as _c, _c:
         CREATE TABLE IF NOT EXISTS media(
           id TEXT PRIMARY KEY, user_id INTEGER, kind TEXT, sender TEXT, created REAL);
         CREATE TABLE IF NOT EXISTS tv_apps(tv_id TEXT PRIMARY KEY, apps TEXT, updated REAL);
+        CREATE TABLE IF NOT EXISTS resets(user_id INTEGER PRIMARY KEY, hash TEXT, expires REAL);
         CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
         """
     )
@@ -235,6 +236,82 @@ def login(body: dict, request: Request):
             raise HTTPException(401, "Wrong name or password.")
         token = _new_token(c, u["id"], "web", "web")
     return {"token": token, "name": u["name"], "owner": bool(u["owner"])}
+
+
+def make_reset(c, user_id: int) -> str:
+    """A one-time code that lets someone choose a new password. Good for a day."""
+    code = "-".join("".join(secrets.choice(CODE_LETTERS) for _ in range(4)) for _ in range(3))
+    c.execute(
+        "INSERT OR REPLACE INTO resets(user_id,hash,expires) VALUES(?,?,?)",
+        (user_id, _hash_token(code), time.time() + 24 * 3600),
+    )
+    return code
+
+
+def _set_password(c, user_id: int, pw: str):
+    if len(pw) < 8:
+        raise HTTPException(400, "Use a password of at least 8 characters.")
+    salt = secrets.token_bytes(16)
+    c.execute("UPDATE users SET pw=?, salt=? WHERE id=?", (_hash_pw(pw, salt), salt.hex(), user_id))
+
+
+@app.get("/api/accounts")
+def accounts(w: Who = Depends(web)):
+    if not w.owner:
+        raise HTTPException(403, "Only the owner can do that")
+    with closing(db()) as c:
+        rows = c.execute("SELECT name,owner,created FROM users ORDER BY created").fetchall()
+    return {"accounts": [dict(r) for r in rows]}
+
+
+@app.post("/api/accounts/{name}/reset")
+def account_reset(name: str, w: Who = Depends(web)):
+    """The owner makes a reset code and passes it on (text, in person...)."""
+    if not w.owner:
+        raise HTTPException(403, "Only the owner can do that")
+    with closing(db()) as c, c:
+        u = c.execute("SELECT id,name FROM users WHERE name=?", (name.strip().lower(),)).fetchone()
+        if not u:
+            raise HTTPException(404, "No account with that name")
+        return {"name": u["name"], "code": make_reset(c, u["id"])}
+
+
+@app.post("/api/reset")
+def reset_password(body: dict, request: Request):
+    """Signed out: use a reset code to choose a new password."""
+    name = str(body.get("name", "")).strip().lower()
+    key = f"reset:{_ip(request)}:{name}"
+    if _limited(key, 8, 600, add=False):
+        raise HTTPException(429, "Too many tries. Wait a few minutes.")
+    code = re.sub(r"[^A-Z0-9]", "", str(body.get("code", "")).upper())
+    code = "-".join(code[i:i + 4] for i in range(0, len(code), 4))
+    with closing(db()) as c, c:
+        row = c.execute(
+            "SELECT u.id,u.name,u.owner,r.hash,r.expires FROM users u JOIN resets r ON r.user_id=u.id "
+            "WHERE u.name=?",
+            (name,),
+        ).fetchone()
+        ok = bool(row) and row["expires"] > time.time() and secrets.compare_digest(row["hash"], _hash_token(code))
+        if not ok:
+            _limited(key, 8, 600)
+            raise HTTPException(403, "That reset code is not right, or it ran out. Ask the owner for a new one.")
+        _set_password(c, row["id"], str(body.get("password", "")))
+        c.execute("DELETE FROM resets WHERE user_id=?", (row["id"],))
+        c.execute("DELETE FROM tokens WHERE user_id=? AND kind='web'", (row["id"],))  # sign out everywhere
+        token = _new_token(c, row["id"], "web", "web")
+    return {"token": token, "name": row["name"], "owner": bool(row["owner"])}
+
+
+@app.post("/api/password")
+def change_password(body: dict, w: Who = Depends(web)):
+    with closing(db()) as c, c:
+        u = c.execute("SELECT * FROM users WHERE id=?", (w.user_id,)).fetchone()
+        if not secrets.compare_digest(_hash_pw(str(body.get("old", "")), bytes.fromhex(u["salt"])), u["pw"]):
+            raise HTTPException(403, "Your current password is not right.")
+        _set_password(c, w.user_id, str(body.get("new", "")))
+        # other phones signed in to this account have to sign in again
+        c.execute("DELETE FROM tokens WHERE user_id=? AND kind='web' AND hash!=?", (w.user_id, w.token_hash))
+    return {"ok": True}
 
 
 @app.post("/api/logout")
@@ -414,6 +491,75 @@ def _take_commands(tv_id: str):
         return [c for c in _commands.pop(tv_id, []) if c["created"] > cutoff]
 
 
+# The remote: key presses and typed text. These go to a listener that also runs while another
+# app is on screen, so they have their own queue, separate from "open this app".
+_keys: dict = {}  # tv id -> waiting presses
+_key_events: dict = {}  # tv id -> asyncio.Event for the TV that is listening
+_remote_seen: dict = {}
+KEY_SECONDS = 5
+KEYS = {"up", "down", "left", "right", "ok", "back", "home", "menu", "play", "rewind", "forward"}
+
+
+def _wake_keys(tv_id: str):
+    ev = _key_events.get(tv_id)
+    if ev:
+        ev.set()
+
+
+def _take_keys(tv_id: str):
+    cutoff = time.time() - KEY_SECONDS
+    with _cmd_lock:
+        return [{"type": k["type"], "value": k["value"]} for k in _keys.pop(tv_id, []) if k["created"] > cutoff]
+
+
+@app.get("/api/tv/keys")
+async def tv_keys(w: Who = Depends(who)):
+    """The TV waits here; we answer the moment a remote button is pressed on the phone."""
+    if w.kind != "tv":
+        raise HTTPException(403, "Only a TV listens here")
+    tv = w.token_id
+    _remote_seen[tv] = time.time()
+    out = _take_keys(tv)
+    if not out:
+        ev = asyncio.Event()
+        _key_events[tv] = ev
+        try:
+            await asyncio.wait_for(ev.wait(), timeout=25)
+        except asyncio.TimeoutError:
+            pass
+        finally:
+            if _key_events.get(tv) is ev:
+                _key_events.pop(tv, None)
+        out = _take_keys(tv)
+        _remote_seen[tv] = time.time()
+    return {"keys": out}
+
+
+@app.post("/api/tvs/{tv_id}/key")
+def tv_key(tv_id: str, body: dict, w: Who = Depends(web)):
+    with closing(db()) as c:
+        ok = c.execute(
+            "SELECT 1 FROM tokens WHERE id=? AND user_id=? AND kind='tv'", (tv_id, w.user_id)
+        ).fetchone()
+    if not ok:
+        raise HTTPException(404, "That TV is not linked any more")
+    key = str(body.get("key", ""))
+    text = body.get("text")
+    if key in KEYS:
+        k = {"type": "key", "value": key}
+    elif isinstance(text, str):
+        k = {"type": "text", "value": text[:300]}
+    else:
+        raise HTTPException(400, "Unknown button")
+    k["created"] = time.time()
+    with _cmd_lock:
+        q = [x for x in _keys.get(tv_id, []) if x["created"] > k["created"] - KEY_SECONDS]
+        _keys[tv_id] = (q + [k])[-30:]
+    if _loop is not None:
+        _loop.call_soon_threadsafe(_wake_keys, tv_id)
+    return {"ok": True, "listening": time.time() - _remote_seen.get(tv_id, 0) < 40}
+
+
 @app.post("/api/tv/apps")
 def tv_apps(body: dict, w: Who = Depends(who)):
     """The TV tells us which apps it has, so the phone page can show them."""
@@ -453,6 +599,7 @@ def tvs_apps(w: Who = Depends(web)):
                 "id": r["id"],
                 "label": r["label"] or "Fire TV",
                 "ready": now - _tv_seen.get(r["id"], 0) < 40,
+                "remote": now - _remote_seen.get(r["id"], 0) < 40,
                 "apps": json.loads(r["apps"]) if r["apps"] else [],
             }
             for r in rows

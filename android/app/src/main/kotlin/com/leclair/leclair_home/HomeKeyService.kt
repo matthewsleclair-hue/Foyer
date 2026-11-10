@@ -41,8 +41,13 @@ class HomeKeyService : AccessibilityService() {
         info.flags = info.flags or AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
         serviceInfo = info
         running = true
+        DropRemote.service = this
+        DropRemote.ensure(this)
         Log.d(TAG, "service connected")
     }
+
+    /** Home pressed on the phone page's remote. */
+    fun goHomeFromRemote() = fightForFront()
 
     private fun openFoyer() {
         try {
@@ -104,11 +109,13 @@ class HomeKeyService : AccessibilityService() {
 
     override fun onDestroy() {
         running = false
+        if (DropRemote.service === this) DropRemote.service = null
         super.onDestroy()
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
         running = false
+        if (DropRemote.service === this) DropRemote.service = null
         return super.onUnbind(intent)
     }
 

@@ -231,9 +231,21 @@ class DropFeed {
     _push = false;
   }
 
+  bool _toldNative = false;
+
+  /// The phone page's remote is handled natively (it has to work inside other apps too),
+  /// so the native side needs to know which server this TV is linked to.
+  void _tellNative(String url, String token) {
+    _toldNative = true;
+    kChannel
+        .invokeMethod<bool>('dropConfig', {'url': url, 'token': token})
+        .catchError((Object _) => false);
+  }
+
   Future<void> refresh(String url, String token, {bool force = false}) async {
     _asked = DateTime.now();
     if (url.trim().isEmpty || token.isEmpty) {
+      if (_sig.isNotEmpty || !_toldNative) _tellNative('', '');
       _sig = '';
       if (notes.value.isNotEmpty) notes.value = const [];
       if (drawing.value != null) drawing.value = null;
@@ -248,6 +260,7 @@ class DropFeed {
       _v = 0;
       _noPush = false;
       force = true;
+      _tellNative(DropApi.clean(url), token);
     }
     if (!_listening) _listen();
     // with instant updates working, the regular check is only a safety net

@@ -25,6 +25,22 @@ Unlink a TV any time from the same page.
 The **Apps** tab on the web page lists the apps on your TV. Tap one and the TV opens it, or paste a link (a YouTube video, for example).
 Foyer has to be on screen on the TV; a request that is not picked up within 20 seconds is dropped.
 
+## Remote
+
+The **Remote** tab has arrows, OK, Back, Home, Menu and play buttons, plus a box that types on the TV.
+It works fully inside Foyer. In other apps it needs Foyer's Home button service turned on: Back, Home and the
+play buttons always work there, while arrows, OK and typing work in many apps but not in ones that draw
+their own screens (Netflix, YouTube).
+
+## Forgotten passwords
+
+The owner opens **TVs → Accounts → Reset code** and passes the code on. The person taps "Forgot password?"
+on the sign-in page. If the owner is locked out, run this on the server:
+
+```bash
+docker compose exec foyer-drop python reset.py <account name>
+```
+
 ## Family and friends
 
 The owner sees an **invite code** on the TVs page. Others pick "Create an account" and enter it.
