@@ -61,6 +61,9 @@ with closing(db()) as _c, _c:
           id TEXT PRIMARY KEY, user_id INTEGER, kind TEXT, sender TEXT, created REAL);
         CREATE TABLE IF NOT EXISTS tv_apps(tv_id TEXT PRIMARY KEY, apps TEXT, updated REAL);
         CREATE TABLE IF NOT EXISTS resets(user_id INTEGER PRIMARY KEY, hash TEXT, expires REAL);
+        CREATE TABLE IF NOT EXISTS members(owner_id INTEGER, member_id INTEGER, created REAL,
+          PRIMARY KEY(owner_id, member_id));
+        CREATE TABLE IF NOT EXISTS joins(hash TEXT PRIMARY KEY, owner_id INTEGER, expires REAL);
         CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
         """
     )
@@ -135,16 +138,29 @@ def _limited(key: str, limit: int, seconds: int, add: bool = True) -> bool:
 # ───────────────────────── who is asking ─────────────────────────
 
 class Who:
+    """Who is asking, and whose household they are acting in.
+
+    user_id is the household whose TVs, notes and photos this request touches. For most people
+    that is their own account. A member of someone else's household can act there instead
+    (the web page sends X-Foyer-Home); self_id is always the person actually signed in.
+    """
+
     def __init__(self, row):
+        self.self_id = row["user_id"]
         self.user_id = row["user_id"]
         self.kind = row["kind"]
         self.token_hash = row["hash"]
         self.token_id = row["id"]
         self.name = row["name"]
-        self.owner = bool(row["owner"])
+        self.owner = bool(row["owner"])  # runs this server
+        self.home_name = row["name"]
+
+    @property
+    def home_owner(self) -> bool:
+        return self.self_id == self.user_id
 
 
-def who(authorization: str = Header(default="")) -> Who:
+def who(authorization: str = Header(default=""), x_foyer_home: str = Header(default="")) -> Who:
     raw = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
     if not raw:
         raise HTTPException(401, "Sign in first")
@@ -159,13 +175,43 @@ def who(authorization: str = Header(default="")) -> Who:
             raise HTTPException(401, "Sign in again")
         if time.time() - (row["last"] or 0) > 60:
             c.execute("UPDATE tokens SET last=? WHERE hash=?", (time.time(), h))
-    return Who(row)
+        w = Who(row)
+        home = x_foyer_home.strip()
+        if home and row["kind"] == "web" and home != str(w.self_id):
+            m = c.execute(
+                "SELECT u.id,u.name FROM members m JOIN users u ON u.id=m.owner_id "
+                "WHERE m.member_id=? AND m.owner_id=?",
+                (w.self_id, int(home) if home.isdigit() else -1),
+            ).fetchone()
+            if not m:
+                raise HTTPException(403, "You are not in that household any more.")
+            w.user_id = m["id"]
+            w.home_name = m["name"]
+    return w
 
 
 def web(w: Who = Depends(who)) -> Who:
     if w.kind != "web":
         raise HTTPException(403, "Do this from the web page")
     return w
+
+
+def home_owner(w: Who = Depends(web)) -> Who:
+    """For things only the household's owner may do (linking TVs, adding people)."""
+    if not w.home_owner:
+        raise HTTPException(403, f"Only {w.home_name} can do that in this household.")
+    return w
+
+
+def _join_owner(c, code: str):
+    """The household a join code belongs to, or None."""
+    code = re.sub(r"[^A-Z0-9]", "", code.upper())
+    if not code:
+        return None
+    row = c.execute(
+        "SELECT owner_id FROM joins WHERE hash=? AND expires>?", (_hash_token(code), time.time())
+    ).fetchone()
+    return row["owner_id"] if row else None
 
 
 # ───────────────────────── accounts ─────────────────────────
@@ -203,10 +249,15 @@ def signup(body: dict, request: Request):
         raise HTTPException(400, "Use a password of at least 8 characters.")
     with closing(db()) as c, c:
         first = c.execute("SELECT COUNT(*) n FROM users").fetchone()["n"] == 0
+        join_home = None
         if not first:
-            given = str(body.get("invite", "")).strip().upper()
-            if not given or not secrets.compare_digest(given, _invite(c)):
-                raise HTTPException(403, "That invite code is not right. Ask the owner for the current one.")
+            # either the server's invite code, or a household code from someone already here
+            given = re.sub(r"[^A-Z0-9]", "", str(body.get("invite", "")).upper())
+            server_code = re.sub(r"[^A-Z0-9]", "", _invite(c))
+            if not given or not secrets.compare_digest(given, server_code):
+                join_home = _join_owner(c, given)
+                if join_home is None:
+                    raise HTTPException(403, "That code is not right, or it ran out. Ask for a new one.")
         if c.execute("SELECT 1 FROM users WHERE name=?", (name,)).fetchone():
             raise HTTPException(409, "That name is taken.")
         salt = secrets.token_bytes(16)
@@ -216,8 +267,13 @@ def signup(body: dict, request: Request):
         )
         if first:
             _adopt_old_files(c, cur.lastrowid)
+        if join_home is not None:
+            c.execute(
+                "INSERT OR IGNORE INTO members(owner_id,member_id,created) VALUES(?,?,?)",
+                (join_home, cur.lastrowid, time.time()),
+            )
         token = _new_token(c, cur.lastrowid, "web", "web")
-    return {"token": token, "name": name, "owner": first}
+    return {"token": token, "name": name, "owner": first, "id": cur.lastrowid, "home": join_home}
 
 
 @app.post("/api/login")
@@ -235,7 +291,7 @@ def login(body: dict, request: Request):
             _limited(key, 8, 600)
             raise HTTPException(401, "Wrong name or password.")
         token = _new_token(c, u["id"], "web", "web")
-    return {"token": token, "name": u["name"], "owner": bool(u["owner"])}
+    return {"token": token, "name": u["name"], "owner": bool(u["owner"]), "id": u["id"]}
 
 
 def make_reset(c, user_id: int) -> str:
@@ -299,18 +355,18 @@ def reset_password(body: dict, request: Request):
         c.execute("DELETE FROM resets WHERE user_id=?", (row["id"],))
         c.execute("DELETE FROM tokens WHERE user_id=? AND kind='web'", (row["id"],))  # sign out everywhere
         token = _new_token(c, row["id"], "web", "web")
-    return {"token": token, "name": row["name"], "owner": bool(row["owner"])}
+    return {"token": token, "name": row["name"], "owner": bool(row["owner"]), "id": row["id"]}
 
 
 @app.post("/api/password")
 def change_password(body: dict, w: Who = Depends(web)):
     with closing(db()) as c, c:
-        u = c.execute("SELECT * FROM users WHERE id=?", (w.user_id,)).fetchone()
+        u = c.execute("SELECT * FROM users WHERE id=?", (w.self_id,)).fetchone()
         if not secrets.compare_digest(_hash_pw(str(body.get("old", "")), bytes.fromhex(u["salt"])), u["pw"]):
             raise HTTPException(403, "Your current password is not right.")
-        _set_password(c, w.user_id, str(body.get("new", "")))
+        _set_password(c, w.self_id, str(body.get("new", "")))
         # other phones signed in to this account have to sign in again
-        c.execute("DELETE FROM tokens WHERE user_id=? AND kind='web' AND hash!=?", (w.user_id, w.token_hash))
+        c.execute("DELETE FROM tokens WHERE user_id=? AND kind='web' AND hash!=?", (w.self_id, w.token_hash))
     return {"ok": True}
 
 
@@ -333,10 +389,92 @@ def me(w: Who = Depends(web)):
             "SELECT id,label,created,last FROM tokens WHERE user_id=? AND kind='tv' ORDER BY created DESC",
             (w.user_id,),
         ).fetchall()
-        out = {"name": w.name, "owner": w.owner, "tvs": [dict(r) for r in tvs]}
+        out = {
+            "id": w.self_id,
+            "name": w.name,
+            "owner": w.owner,
+            "tvs": [dict(r) for r in tvs],
+            "home": {"id": w.user_id, "name": w.home_name, "mine": w.home_owner},
+        }
         if w.owner:
             out["invite"] = _invite(c)
     return out
+
+
+# ───────────────────────── households: several people, one TV ─────────────────────────
+
+JOIN_HOURS = 24
+
+
+@app.get("/api/homes")
+def homes(w: Who = Depends(web)):
+    """My own household, the ones I have joined, and the people in mine."""
+    with closing(db()) as c:
+        joined = c.execute(
+            "SELECT u.id,u.name FROM members m JOIN users u ON u.id=m.owner_id WHERE m.member_id=? ORDER BY u.name",
+            (w.self_id,),
+        ).fetchall()
+        people = c.execute(
+            "SELECT u.id,u.name FROM members m JOIN users u ON u.id=m.member_id WHERE m.owner_id=? ORDER BY u.name",
+            (w.self_id,),
+        ).fetchall()
+        my_tvs = c.execute(
+            "SELECT COUNT(*) n FROM tokens WHERE user_id=? AND kind='tv'", (w.self_id,)
+        ).fetchone()["n"]
+    return {
+        "homes": [{"id": w.self_id, "name": w.name, "mine": True, "tvs": my_tvs}]
+        + [{"id": r["id"], "name": r["name"], "mine": False} for r in joined],
+        "people": [dict(r) for r in people],
+    }
+
+
+@app.post("/api/home/invite")
+def home_invite(w: Who = Depends(web)):
+    """A code that lets someone join MY household (new account or existing one)."""
+    code = "".join(secrets.choice(CODE_LETTERS) for _ in range(6))
+    with closing(db()) as c, c:
+        c.execute("DELETE FROM joins WHERE owner_id=? OR expires<?", (w.self_id, time.time()))
+        c.execute(
+            "INSERT INTO joins(hash,owner_id,expires) VALUES(?,?,?)",
+            (_hash_token(code), w.self_id, time.time() + JOIN_HOURS * 3600),
+        )
+    return {"code": f"{code[:3]}-{code[3:]}", "hours": JOIN_HOURS}
+
+
+@app.post("/api/home/join")
+def home_join(body: dict, w: Who = Depends(web)):
+    key = f"join:{w.self_id}"
+    if _limited(key, 10, 600, add=False):
+        raise HTTPException(429, "Too many wrong codes. Wait a few minutes.")
+    with closing(db()) as c, c:
+        owner_id = _join_owner(c, str(body.get("code", "")))
+        if owner_id is None:
+            _limited(key, 10, 600)
+            raise HTTPException(404, "That code is not right, or it ran out. Ask for a new one.")
+        if owner_id == w.self_id:
+            raise HTTPException(400, "That is your own household's code. Give it to someone else.")
+        c.execute(
+            "INSERT OR IGNORE INTO members(owner_id,member_id,created) VALUES(?,?,?)",
+            (owner_id, w.self_id, time.time()),
+        )
+        name = c.execute("SELECT name FROM users WHERE id=?", (owner_id,)).fetchone()["name"]
+    return {"id": owner_id, "name": name}
+
+
+@app.delete("/api/home/people/{member_id}")
+def home_remove(member_id: int, w: Who = Depends(web)):
+    """Remove someone from my household."""
+    with closing(db()) as c, c:
+        c.execute("DELETE FROM members WHERE owner_id=? AND member_id=?", (w.self_id, member_id))
+    return {"ok": True}
+
+
+@app.delete("/api/homes/{owner_id}")
+def home_leave(owner_id: int, w: Who = Depends(web)):
+    """Leave a household I joined."""
+    with closing(db()) as c, c:
+        c.execute("DELETE FROM members WHERE owner_id=? AND member_id=?", (owner_id, w.self_id))
+    return {"ok": True}
 
 
 @app.post("/api/invite/new")
@@ -348,7 +486,7 @@ def invite_new(w: Who = Depends(web)):
 
 
 @app.delete("/api/tvs/{tv_id}")
-def unlink_tv(tv_id: str, w: Who = Depends(web)):
+def unlink_tv(tv_id: str, w: Who = Depends(home_owner)):
     with closing(db()) as c, c:
         cur = c.execute("DELETE FROM tokens WHERE id=? AND user_id=? AND kind='tv'", (tv_id, w.user_id))
         if cur.rowcount:
@@ -408,7 +546,7 @@ def link_poll(secret: str = ""):
 
 
 @app.post("/api/link/claim")
-def link_claim(body: dict, w: Who = Depends(web)):
+def link_claim(body: dict, w: Who = Depends(home_owner)):
     """Signed in on the web page: type the code the TV shows."""
     key = f"claim:{w.user_id}"
     if _limited(key, 10, 600, add=False):
@@ -662,7 +800,7 @@ def add_note(body: dict, w: Who = Depends(who)):
     with closing(db()) as c, c:
         c.execute(
             "INSERT INTO notes(id,user_id,text,sender,created,expires) VALUES(?,?,?,?,?,?)",
-            (nid, w.user_id, text, str(body.get("from", "")).strip()[:30], now,
+            (nid, w.user_id, text, (str(body.get("from", "")).strip() or w.name)[:30], now,
              None if hours <= 0 else now + hours * 3600),
         )
     bump(w.user_id)
@@ -807,7 +945,7 @@ def add_drawing(body: dict, w: Who = Depends(who)):
     with closing(db()) as c, c:
         c.execute(
             "INSERT INTO media(id,user_id,kind,sender,created) VALUES(?,?,?,?,?)",
-            (did, w.user_id, "drawing", str(body.get("from", "")).strip()[:30], time.time()),
+            (did, w.user_id, "drawing", (str(body.get("from", "")).strip() or w.name)[:30], time.time()),
         )
         old = c.execute(
             "SELECT id FROM media WHERE user_id=? AND kind='drawing' ORDER BY created DESC LIMIT -1 OFFSET 20",

@@ -41,6 +41,16 @@ on the sign-in page. If the owner is locked out, run this on the server:
 docker compose exec foyer-drop python reset.py <account name>
 ```
 
+## Several people, one TV (households)
+
+A TV belongs to one account, and that person can let others use it:
+
+1. The TV's owner opens **TVs → People who can use my TVs → Add a person** and gets a code (good for 24 hours).
+2. Someone new chooses "Create an account" and enters that code. Someone who already has an account enters it under **TVs → Join someone's household**.
+3. They can now send notes, drawings and photos, open apps and use the remote on that TV, signed in as themselves. Notes show their name.
+
+Only the owner can link or unlink TVs and add or remove people. A person in more than one household picks which TVs to send to with the buttons at the top of the page.
+
 ## Family and friends
 
 The owner sees an **invite code** on the TVs page. Others pick "Create an account" and enter it.

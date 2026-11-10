@@ -100,7 +100,7 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
     <label for="aPass" id="passLabel">Password</label>
     <input id="aPass" type="password" autocomplete="current-password" placeholder="At least 8 characters">
     <div id="inviteWrap" class="hide">
-      <label for="aInvite">Invite code (from the person who runs this server)</label>
+      <label for="aInvite">Invite code, or a household code from someone already here</label>
       <input id="aInvite" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH">
     </div>
     <button class="btn" id="authBtn" onclick="doAuth()">Sign in</button>
@@ -110,14 +110,16 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
   <button class="link" id="authForgot" onclick="forgot()" style="display:block">Forgot password?</button>
 </section>
 
+<div id="homeBar" class="tools hide" style="margin:-6px 0 16px"></div>
+
 <div id="app" class="hide">
   <!-- notes -->
   <section id="p-notes">
-    <h2>Send a note</h2><p class="sub">It appears on the TV's home screen within a minute.</p>
+    <h2>Send a note</h2><p class="sub">It appears on the TV's home screen right away.</p>
     <div class="card">
       <textarea id="txt" maxlength="300" placeholder="Dinner is at 6!"></textarea>
       <div class="row">
-        <input id="from" maxlength="30" placeholder="From (optional)">
+        <input id="from" maxlength="30" placeholder="From (your name if empty)">
         <select id="hrs"><option value="3">Show for 3 hours</option><option value="24" selected>Show for 1 day</option><option value="72">Show for 3 days</option><option value="0">Until I remove it</option></select>
       </div>
       <button class="btn" onclick="sendNote()">Send to TV</button>
@@ -137,7 +139,7 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
         <button class="chip" id="eraser">Eraser</button><span class="sp"></span>
         <button class="chip" onclick="undo()">Undo</button><button class="chip" onclick="clearPad()">Clear</button>
       </div>
-      <input id="dFrom" maxlength="30" placeholder="From (optional)">
+      <input id="dFrom" maxlength="30" placeholder="From (your name if empty)">
       <button class="btn" onclick="sendDrawing()">Send to TV</button>
       <p class="msg" id="mDraw"></p>
     </div>
@@ -201,13 +203,31 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
 
   <!-- TVs and account -->
   <section id="p-tvs" class="hide">
-    <h2>Link a TV</h2><p class="sub">On the TV: Foyer Settings → Home screen → Foyer Drop → Link this TV. Then type the code it shows.</p>
-    <div class="card">
-      <input id="code" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="•••••">
-      <button class="btn" onclick="claim()">Link TV</button>
-      <p class="msg" id="mTvs"></p>
+    <div id="ownerOnly">
+      <h2>Link a TV</h2><p class="sub">On the TV: Foyer Settings → Home screen → Foyer Drop → Link this TV. Then type the code it shows.</p>
+      <div class="card">
+        <input id="code" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="•••••">
+        <button class="btn" onclick="claim()">Link TV</button>
+        <p class="msg" id="mTvs"></p>
+      </div>
     </div>
-    <div class="card"><label>Linked TVs</label><div id="tvs"></div></div>
+    <div id="guestOnly" class="hide">
+      <h2 id="guestTitle">Household</h2>
+      <p class="sub" id="guestSub"></p>
+    </div>
+    <div class="card"><label id="tvsLabel">Linked TVs</label><div id="tvs"></div></div>
+    <div class="card" id="peopleCard">
+      <label>People who can use my TVs</label>
+      <div id="people"></div>
+      <button class="btn ghost" style="margin-top:12px" onclick="addPerson()">Add a person</button>
+      <p class="msg" id="mPeople"></p>
+    </div>
+    <div class="card">
+      <label for="joinCode">Join someone's household (enter the code they give you)</label>
+      <div class="row"><input id="joinCode" maxlength="8" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ABC-DEF" style="margin:0"><button class="btn" style="flex:none;width:auto;padding:0 20px" onclick="joinHome()">Join</button></div>
+      <p class="msg" id="mJoin"></p>
+      <div id="joined"></div>
+    </div>
     <div class="card hide" id="inviteCard">
       <label>Invite code for family and friends</label>
       <div class="row" style="align-items:center"><div class="invite" id="invite"></div><button class="btn ghost" style="flex:none;width:auto;padding:10px 14px" onclick="newInvite()">New code</button></div>
@@ -243,15 +263,21 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
 const $=id=>document.getElementById(id);
 const store={get(k){try{return localStorage.getItem(k)||''}catch(e){return ''}},set(k,v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
 let T=store.get('foyerSession'),ME=store.get('foyerName'),creating=false,firstRun=false;
+let MYID='',HOME=store.get('foyerHome'),HOMES=[];
+function setHome(id){HOME=id?String(id):'';store.set('foyerHome',HOME)}
+function homeName(){const h=HOMES.find(x=>String(x.id)===String(HOME||MYID));return h?h.name:ME}
 
 function say(id,text,bad){const e=$(id);e.textContent=text||'';e.classList.toggle('bad',!!bad)}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d}
 async function api(path,opt={}){
   const h={...(opt.headers||{})};if(T)h.Authorization='Bearer '+T;
+  if(HOME&&!opt.noHome&&String(HOME)!==String(MYID))h['X-Foyer-Home']=String(HOME);
   if(opt.json!==undefined){h['Content-Type']='application/json';opt.body=JSON.stringify(opt.json)}
   let r;try{r=await fetch(path,{...opt,headers:h})}catch(e){throw new Error('Could not reach the server. Check your connection.')}
   if(r.status===401&&T&&!path.startsWith('/api/login')){T='';store.set('foyerSession','');showAuth('Please sign in again.');throw new Error('Please sign in again.')}
-  if(!r.ok){let d='Something went wrong ('+r.status+').';try{d=(await r.json()).detail||d}catch(e){}throw new Error(d)}
+  if(!r.ok){let d='Something went wrong ('+r.status+').';try{d=(await r.json()).detail||d}catch(e){}
+    if(r.status===403&&/not in that household/.test(d)&&HOME){setHome('');start()}
+    throw new Error(d)}
   return r}
 const getJSON=async(p,o)=>(await api(p,o)).json();
 async function blobUrl(path){return URL.createObjectURL(await (await api(path)).blob())}
@@ -273,7 +299,7 @@ function paintAuth(){
 function swapAuth(){if(resetting||creating){resetting=false;creating=false}else creating=true;say('authMsg','');paintAuth()}
 function forgot(){resetting=true;creating=false;say('authMsg','');paintAuth()}
 async function showAuth(msg){
-  $('app').classList.add('hide');$('nav').classList.add('hide');$('auth').classList.remove('hide');$('whoami').textContent='';
+  $('app').classList.add('hide');$('nav').classList.add('hide');$('homeBar').classList.add('hide');$('auth').classList.remove('hide');$('whoami').textContent='';
   try{firstRun=(await getJSON('/api/state')).first}catch(e){}
   paintAuth();say('authMsg',msg||'',!!msg)}
 async function doAuth(){
@@ -282,10 +308,11 @@ async function doAuth(){
     const body=resetting?{name:$('aName').value,code:$('aReset').value,password:$('aPass').value}:{name:$('aName').value,password:$('aPass').value,invite:$('aInvite').value};
     const j=await getJSON(resetting?'/api/reset':(make?'/api/signup':'/api/login'),{method:'POST',json:body});
     T=j.token;ME=j.name;store.set('foyerSession',T);store.set('foyerName',ME);$('aPass').value='';$('aReset').value='';resetting=false;
+    setHome(j.home||'');
     start(make?'tvs':'notes')
   }catch(e){say('authMsg',e.message,true)}
   b.disabled=false}
-async function signOut(){try{await api('/api/logout',{method:'POST'})}catch(e){}T='';store.set('foyerSession','');creating=false;resetting=false;showAuth()}
+async function signOut(){try{await api('/api/logout',{method:'POST'})}catch(e){}T='';store.set('foyerSession','');setHome('');HOMES=[];creating=false;resetting=false;showAuth()}
 ['aName','aPass','aInvite','aReset'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')doAuth()}));
 
 // ── tabs ──
@@ -310,7 +337,7 @@ async function loadNotes(){
 async function sendNote(){
   const text=$('txt').value.trim();if(!text){say('mNotes','Write something first.',true);return}
   try{await api('/api/notes',{method:'POST',json:{text,from:$('from').value,hours:+$('hrs').value}});
-    store.set('foyerFrom',$('from').value);$('txt').value='';say('mNotes','Sent. It shows on the TV within a minute.');loadNotes()
+    store.set('foyerFrom',$('from').value);$('txt').value='';say('mNotes','Sent. It shows on the TV right away.');loadNotes()
   }catch(e){say('mNotes',e.message,true)}}
 
 // ── drawing pad ──
@@ -339,7 +366,7 @@ async function sendDrawing(){
   if(!strokes.some(s=>!s.erase)){say('mDraw','Draw something first.',true);return}
   say('mDraw','Sending…');
   try{await api('/api/drawings',{method:'POST',json:{image:cv.toDataURL('image/png'),from:$('dFrom').value}});
-    store.set('foyerFrom',$('dFrom').value);clearPad();say('mDraw','Sent. It shows on the TV within a minute.');loadDrawings()
+    store.set('foyerFrom',$('dFrom').value);clearPad();say('mDraw','Sent. It shows on the TV right away.');loadDrawings()
   }catch(e){say('mDraw',e.message,true)}}
 async function tiles(box,ids,path,del,reload,emptyText){
   box.innerHTML='';if(!ids.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">'+emptyText+'</div>';return}
@@ -423,16 +450,59 @@ setInterval(()=>{if(T&&!$('p-remote').classList.contains('hide')&&!$('app').clas
 
 // ── TVs ──
 async function loadTvs(){
-  const j=await getJSON('/api/me'),box=$('tvs');box.innerHTML='';
+  const j=await getJSON('/api/me'),box=$('tvs');box.innerHTML='';const mine=!j.home||j.home.mine;
+  $('ownerOnly').classList.toggle('hide',!mine);$('guestOnly').classList.toggle('hide',mine);$('peopleCard').classList.toggle('hide',!mine);
+  $('tvsLabel').textContent=mine?'Linked TVs':j.home.name+"'s TVs";
+  if(!mine){$('guestTitle').textContent=j.home.name+"'s household";
+    $('guestSub').textContent='You can send notes, drawings and photos, open apps and use the remote here. Only '+j.home.name+' can link or remove TVs.'}
+  loadPeople().catch(()=>{});
   if(!j.tvs.length)box.innerHTML='<div class="empty">No TVs linked yet.</div>';
   j.tvs.forEach(t=>{
     const row=document.createElement('div');row.className='item';
     const a=esc(t.label||'Fire TV'),s=document.createElement('small');s.textContent='Last seen '+when(t.last);a.appendChild(s);
     const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Unlink this TV');
     x.onclick=async()=>{if(!confirm('Unlink '+(t.label||'this TV')+'?'))return;await api('/api/tvs/'+t.id,{method:'DELETE'});loadTvs()};
-    row.append(a,x);box.appendChild(row)});
+    row.append(a);if(mine)row.append(x);box.appendChild(row)});
   $('inviteCard').classList.toggle('hide',!j.owner);$('acctCard').classList.toggle('hide',!j.owner);
   if(j.owner){$('invite').textContent=j.invite;loadAccts().catch(()=>{})}}
+// ── households ──
+function paintHomeBar(){
+  const bar=$('homeBar');bar.innerHTML='';bar.classList.toggle('hide',HOMES.length<2||$('app').classList.contains('hide'));
+  HOMES.forEach(h=>{const on=String(h.id)===String(HOME||MYID);
+    const b=document.createElement('button');b.className='chip'+(on?' on':'');b.textContent=h.mine?'My TVs':h.name+"'s TVs";
+    b.onclick=()=>{setHome(h.mine?'':h.id);TVS=[];paintHomeBar();go(store.get('foyerTab')||'notes')};bar.appendChild(b)})}
+async function loadHomes(){
+  const j=await getJSON('/api/homes',{noHome:true});HOMES=j.homes;const me=HOMES.find(h=>h.mine);MYID=me?String(me.id):'';
+  if(HOME&&!HOMES.some(h=>String(h.id)===String(HOME)))setHome('');
+  // someone who only joined a household (no TV of their own) starts there
+  if(!HOME&&me&&!me.tvs){const other=HOMES.find(h=>!h.mine);if(other)setHome(other.id)}
+  paintHomeBar();return j}
+async function loadPeople(){
+  const j=await loadHomes(),box=$('people');box.innerHTML='';
+  if(!j.people.length)box.innerHTML='<div class="empty">Just you so far.</div>';
+  j.people.forEach(p=>{
+    const row=document.createElement('div');row.className='item';row.style.alignItems='center';
+    const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Remove '+p.name);
+    x.onclick=async()=>{if(!confirm('Remove '+p.name+' from your household?'))return;await api('/api/home/people/'+p.id,{method:'DELETE',noHome:true});loadPeople()};
+    row.append(esc(p.name),x);box.appendChild(row)});
+  const jb=$('joined');jb.innerHTML='';
+  HOMES.filter(h=>!h.mine).forEach(h=>{
+    const row=document.createElement('div');row.className='item';row.style.alignItems='center';
+    const b=document.createElement('button');b.className='chip';b.textContent='Leave';
+    b.onclick=async()=>{if(!confirm('Leave '+h.name+"'s household?"))return;await api('/api/homes/'+h.id,{method:'DELETE',noHome:true});
+      if(String(HOME)===String(h.id))setHome('');await loadHomes();loadTvs()};
+    row.append(esc('In '+h.name+"'s household"),b);jb.appendChild(row)})}
+async function addPerson(){
+  try{const j=await getJSON('/api/home/invite',{method:'POST',noHome:true});
+    say('mPeople','Code: '+j.code+'  ·  New people: "Create an account" and enter it as the code. People with an account: TVs tab, "Join someone\'s household". Works for '+j.hours+' hours.')
+  }catch(e){say('mPeople',e.message,true)}}
+async function joinHome(){
+  const code=$('joinCode').value.trim();if(code.length<6){say('mJoin','Type the 6-character code.',true);return}
+  try{const j=await getJSON('/api/home/join',{method:'POST',json:{code},noHome:true});$('joinCode').value='';
+    say('mJoin','You joined '+j.name+"'s household.");setHome(j.id);await loadHomes();loadTvs()
+  }catch(e){say('mJoin',e.message,true)}}
+$('joinCode').addEventListener('keydown',e=>{if(e.key==='Enter')joinHome()});
+
 async function loadAccts(){
   const j=await getJSON('/api/accounts'),box=$('accts');box.innerHTML='';
   j.accounts.forEach(a=>{
@@ -459,6 +529,7 @@ async function start(tab){
   if(!T)return showAuth();
   $('auth').classList.add('hide');$('app').classList.remove('hide');$('nav').classList.remove('hide');
   $('whoami').textContent=ME;$('from').value=$('dFrom').value=store.get('foyerFrom');
+  try{await loadHomes()}catch(e){if(!T)return}
   const p=tab||store.get('foyerTab');go(loaders[p]?p:'notes')}
 start();
 
