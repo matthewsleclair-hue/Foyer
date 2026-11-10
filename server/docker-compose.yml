@@ -6,9 +6,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Set this to a long random string (for example: openssl rand -hex 24).
+      # Read from the .env file next to this one (see README).
       # You type the same token into your phone's page and into Foyer's settings.
-      FOYER_TOKEN: "change-me-to-a-long-random-string"
+      FOYER_TOKEN: "${FOYER_TOKEN:?Create a .env file with FOYER_TOKEN=...}"
       # NOTE_HOURS: "24"        # how long notes show by default
       # MAX_PHOTO_PX: "1920"    # photos are shrunk to this size for the stick
     volumes:
