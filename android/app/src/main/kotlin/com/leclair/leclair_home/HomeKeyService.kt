@@ -22,6 +22,8 @@ class HomeKeyService : AccessibilityService() {
         @Volatile var running = false
         const val TAG = "FoyerHome"
         const val AMAZON_HOME = "com.amazon.tv.launcher"
+        /** Google TV's own home screen (Streamer, Chromecast with Google TV...). */
+        const val GOOGLE_HOME = "com.google.android.apps.tv.launcherx"
     }
 
     private var lastUp = 0L
@@ -74,13 +76,16 @@ class HomeKeyService : AccessibilityService() {
                 handler.removeCallbacks(retry)
                 // double-press = escape hatch to the stock Fire TV home
                 allowAmazonUntil = now + 6000
-                try {
-                    startActivity(
-                        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-                            .setPackage(AMAZON_HOME)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                    )
-                } catch (e: Exception) { }
+                for (stock in listOf(AMAZON_HOME, GOOGLE_HOME)) {
+                    try {
+                        startActivity(
+                            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                                .setPackage(stock)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                        )
+                        break
+                    } catch (e: Exception) { }
+                }
             } else {
                 fightForFront()
             }
@@ -95,11 +100,11 @@ class HomeKeyService : AccessibilityService() {
             AccessibilityEvent.TYPE_WINDOWS_CHANGED -> try { rootInActiveWindow?.packageName?.toString() } catch (e: Exception) { null }
             else -> null
         }
-        if (pkg != AMAZON_HOME) return
+        if (pkg != AMAZON_HOME && pkg != GOOGLE_HOME) return
         val cls = event.className?.toString() ?: ""
-        Log.d(TAG, "Amazon window: type=${event.eventType} $cls")
+        Log.d(TAG, "stock home window: $pkg type=${event.eventType} $cls")
         // Settings, search etc. from Amazon are fine; only the home screen is redirected.
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && !cls.contains("Home")) return
+        if (pkg == AMAZON_HOME && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && !cls.contains("Home")) return
         val now = System.currentTimeMillis()
         if (now < allowAmazonUntil || now - lastRedirect < 600) return
         lastRedirect = now

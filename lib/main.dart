@@ -1253,54 +1253,104 @@ class _SetupScreenState extends State<SetupScreen> {
     if (mounted) setState(() => _isHome = h);
   }
 
+  String _gMsg = '';
+  bool _gBusy = false;
+
+  static const _stockHome = [
+    'com.google.android.apps.tv.launcherx',
+    'com.google.android.tungsten.setupwraith',
+  ];
+
+  Future<void> _openTvSettings(String page) async {
+    try {
+      await kChannel.invokeMethod<bool>('openSettings', {'page': page});
+    } catch (_) {}
+  }
+
+  /// One press: Foyer uses the TV's own debugging link to switch the stock home screen off.
+  Future<void> _takeOver({bool undo = false}) async {
+    if (_gBusy) return;
+    setState(() {
+      _gBusy = true;
+      _gMsg = 'Working… If the TV asks to allow debugging, choose Always allow.';
+    });
+    final err = await adbQuick([
+      if (!undo) 'pm grant com.leclair.leclair_home android.permission.WRITE_SECURE_SETTINGS',
+      for (final p in _stockHome) undo ? 'pm enable $p' : 'pm disable-user --user 0 $p',
+    ]);
+    final home = await loadDevice();
+    if (!mounted) return;
+    setState(() {
+      _gBusy = false;
+      _isHome = home;
+      if (err != null) {
+        _gMsg = err;
+      } else if (undo) {
+        _gMsg = 'The TV\'s own home screen is back on.';
+      } else {
+        _gMsg = home
+            ? 'Done. The Home button now opens Foyer.'
+            : 'Almost there. Press Home on the remote; if the TV asks which home app to use, pick Foyer and Always.';
+      }
+    });
+    _refreshHomeKey();
+  }
+
   /// Google TV and other Android TV boxes: the stock home screen can simply be switched off.
   Widget _googleHomeStep() {
     const body = TextStyle(fontSize: 26, color: Colors.white70);
-    const mono = TextStyle(fontSize: 21, fontFamily: 'monospace');
-    Widget cmd(String t) => Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(color: Colors.black38, borderRadius: BorderRadius.circular(18)),
-          child: Text(t, style: mono),
+    Widget line(String n, String t) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: SizedBox(width: 1300, child: Text('$n   $t', style: body)),
         );
     return SingleChildScrollView(
       padding: const EdgeInsets.all(8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(_isHome ? 'Foyer is your home screen.' : 'Make Foyer the home screen',
             style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 10),
-        SizedBox(
-            width: 1300,
-            child: Text(
-                _isHome
-                    ? 'The Home button opens Foyer directly. Nothing else to do.'
-                    : 'On this TV the built-in home screen can be switched off, so the Home button opens Foyer directly. Run this once on a computer on the same Wi-Fi (it is in the Foyer repo), then choose Check again:',
-                style: body)),
-        const SizedBox(height: 18),
-        if (!_isHome) ...[
-          cmd('bash tools/googletv.sh <this TV\'s IP address>'),
-          const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        if (_isHome) ...[
+          const SizedBox(
+              width: 1300,
+              child: Text('The Home button opens Foyer directly. Nothing else to do.', style: body)),
+          const SizedBox(height: 20),
+          Wrap(spacing: 16, runSpacing: 16, children: [
+            PillButton(label: 'Check again', autofocus: true, onSelect: _refreshIsHome),
+            PillButton(label: 'Bring back the TV\'s own home screen', onSelect: () => _takeOver(undo: true)),
+          ]),
+        ] else ...[
+          line('1', 'Open About and press "Android TV OS build" 7 times, until it says you are a developer.'),
+          line('2', 'Open Developer options and turn on USB debugging.'),
+          line('3', 'Come back here and press Make Foyer the home screen. Choose Always allow if the TV asks.'),
+          const SizedBox(height: 12),
+          Wrap(spacing: 16, runSpacing: 16, children: [
+            PillButton(label: '1  Open About', autofocus: true, onSelect: () => _openTvSettings('about')),
+            PillButton(label: '2  Open Developer options', onSelect: () => _openTvSettings('developer')),
+            PillButton(label: '3  Make Foyer the home screen', primary: true, onSelect: _takeOver),
+          ]),
+          const SizedBox(height: 26),
           const SizedBox(
               width: 1300,
               child: Text(
-                  'First turn on Developer options on the TV (Settings > System > About, press "Android TV OS build" 7 times) and switch on USB or wireless debugging.',
-                  style: body)),
-          const SizedBox(height: 18),
-        ],
-        Wrap(spacing: 16, runSpacing: 16, children: [
-          PillButton(label: 'Check again', primary: !_isHome, autofocus: true, onSelect: _refreshIsHome),
-          if (!_isHome)
-            PillButton(
-                label: _hkEnabled ? 'Home button service: on' : 'Or use the Home button service',
-                onSelect: () => _setHomeKey(!_hkEnabled)),
-        ]),
-        if (!_isHome && !_hkEnabled && !_hkCanEnable) ...[
-          const SizedBox(height: 16),
-          const SizedBox(
-              width: 1300,
-              child: Text(
-                  'The Home button service is a fallback that catches the Home key instead. The script above also gives Foyer the permission it needs.',
+                  'Would rather not turn on debugging? The Home button service catches the Home key instead. It works, with a brief flash of the TV\'s own home screen now and then.',
                   style: TextStyle(fontSize: 22, color: Colors.white54))),
+          const SizedBox(height: 12),
+          Wrap(spacing: 16, runSpacing: 16, children: [
+            if (_hkEnabled)
+              PillButton(label: 'Home button service: on (turn off)', onSelect: () => _setHomeKey(false))
+            else if (_hkCanEnable)
+              PillButton(label: 'Turn on the Home button service', onSelect: () => _setHomeKey(true))
+            else
+              PillButton(
+                  label: 'Open Accessibility, then turn on "Foyer Home button"',
+                  onSelect: () => _openTvSettings('accessibility')),
+            PillButton(label: 'Check again', onSelect: () {
+              _refreshHomeKey();
+            }),
+          ]),
         ],
+        const SizedBox(height: 20),
+        SizedBox(width: 1300, child: Text(_gMsg, style: body)),
       ]),
     );
   }

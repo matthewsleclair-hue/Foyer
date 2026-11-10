@@ -327,6 +327,18 @@ class _AskTextDialogState extends State<_AskTextDialog> {
 /// Friendly text for on-device ADB failures.
 String adbFriendly(Object? error) {
   final e = '$error';
+  if (!kIsFireTv) {
+    if (e.contains('refused') || e.contains('ECONNREFUSED')) {
+      return 'Debugging is not switched on yet. Turn on USB debugging (or Wireless debugging) in Developer options, then try again.';
+    }
+    if (e.contains('imed out') || e.contains('Timeout')) {
+      return 'No answer. If an "Allow debugging" box appeared on the TV, choose Always allow, then try again.';
+    }
+    if (e.contains('EOF') || e.contains('reset')) {
+      return 'The TV closed the connection. Look for an "Allow debugging" box, choose Always allow, then try again.';
+    }
+    return 'Debugging problem: $e';
+  }
   if (e.contains('refused') || e.contains('ECONNREFUSED')) {
     return 'Could not reach on-device ADB. Turn on ADB debugging in Settings > My Fire TV > Developer options. Some newer Fire OS updates block this for apps; if it still fails, run the command from a computer instead.';
   }

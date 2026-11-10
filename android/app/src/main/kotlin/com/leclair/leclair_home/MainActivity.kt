@@ -147,6 +147,7 @@ class MainActivity : FlutterActivity() {
                     }.start()
                 }
                 "openFireSettings" -> result.success(openFireSettings())
+                "openSettings" -> result.success(openSettings(call.argument<String>("page") ?: ""))
                 "openAmazonHome" -> result.success(openAmazonHome())
                 "readTokenFile" -> Thread {
                     val t = readTokenFile()
@@ -322,6 +323,25 @@ class MainActivity : FlutterActivity() {
     }
 
     /** Opens the stock Fire TV settings app. Tries a few ways because Fire OS builds differ. */
+    /** Opens one page of the TV's own settings (used by setup on Google TV / Android TV boxes). */
+    private fun openSettings(page: String): Boolean {
+        // give the person time in Settings without the Home button service pulling them back
+        HomeKeyService.allowAmazonUntil = System.currentTimeMillis() + 120000
+        val action = when (page) {
+            "developer" -> Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS
+            "about" -> Settings.ACTION_DEVICE_INFO_SETTINGS
+            "accessibility" -> Settings.ACTION_ACCESSIBILITY_SETTINGS
+            else -> Settings.ACTION_SETTINGS
+        }
+        for (a in listOf(action, Settings.ACTION_SETTINGS)) {
+            try {
+                startActivity(Intent(a).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return true
+            } catch (e: Exception) { }
+        }
+        return false
+    }
+
     private fun openFireSettings(): String {
         // pause Foyer's Home redirect so Amazon's settings are not pulled back to Foyer
         HomeKeyService.allowAmazonUntil = System.currentTimeMillis() + 15000

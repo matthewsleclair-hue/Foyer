@@ -56,6 +56,10 @@ Open **Settings > Backup and updates > Updates** and choose **Download and insta
 
 On a Google TV Streamer, Chromecast with Google TV or similar box, Foyer can be the real home screen. No Home button workaround is needed.
 
+**Without a computer:** open Foyer, go to **Settings > TV tools > Home button** and follow the three buttons on screen (About, Developer options, Make Foyer the home screen). If that does not work on your box, use the computer steps below.
+
+**With a computer:**
+
 1. On the TV: **Settings > System > About**, press **Android TV OS build** 7 times. Then **Settings > System > Developer options** and turn on **USB debugging** (or Wireless debugging).
 2. Find the TV's IP address under **Settings > Network & Internet**.
 3. On your computer, install Foyer and switch the stock home screen off:
