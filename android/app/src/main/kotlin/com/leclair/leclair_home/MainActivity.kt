@@ -78,6 +78,7 @@ class MainActivity : FlutterActivity() {
                     runOnUiThread { result.success(apps) }
                 }.start()
                 "launch" -> result.success(launch(call.argument<String>("package")))
+                "openUrl" -> result.success(openUrl(call.argument<String>("url")))
                 "loadSettings" -> result.success(
                     mapOf(
                         "json" to (prefs.getString("json", "") ?: ""),
@@ -545,6 +546,27 @@ class MainActivity : FlutterActivity() {
                 "color" to dominant(bmp)
             )
         } catch (e: Exception) { null }
+    }
+
+    /** Opens a web link sent from the phone. YouTube links go to the YouTube app when it is installed. */
+    private fun openUrl(url: String?): Boolean {
+        val uri = try { android.net.Uri.parse(url ?: return false) } catch (e: Exception) { return false }
+        if (uri.scheme != "http" && uri.scheme != "https") return false
+        val host = (uri.host ?: "").lowercase()
+        val tries = ArrayList<Intent>()
+        if (host.endsWith("youtube.com") || host.endsWith("youtu.be")) {
+            for (p in listOf("com.amazon.firetv.youtube", "com.google.android.youtube.tv")) {
+                tries.add(Intent(Intent.ACTION_VIEW, uri).setPackage(p))
+            }
+        }
+        tries.add(Intent(Intent.ACTION_VIEW, uri))
+        for (i in tries) {
+            try {
+                startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return true
+            } catch (e: Exception) { }
+        }
+        return false
     }
 
     private fun launch(pkg: String?): Boolean {

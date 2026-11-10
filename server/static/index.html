@@ -47,13 +47,21 @@ canvas{display:block;width:100%;aspect-ratio:16/10;touch-action:none;cursor:cros
 .chip{font:inherit;font-size:15px;border:1px solid var(--line);background:#0000003d;color:var(--ink);border-radius:20px;padding:7px 13px;cursor:pointer}
 .chip.on{background:var(--ink);color:#14122b;border-color:var(--ink)}
 .sp{flex:1}
+/* apps */
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.app{font:inherit;color:var(--ink);background:#ffffff0f;border:1px solid #ffffff1a;border-radius:14px;padding:14px 6px 10px;cursor:pointer;min-width:0}
+.app:active{transform:scale(.96);background:#ffffff26}
+.app img,.app i{display:block;width:52px;height:52px;margin:0 auto 8px;border-radius:12px;object-fit:contain}
+.app i{background:var(--card);font-style:normal;font-weight:700;font-size:24px;line-height:52px}
+.app span{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#777;margin-right:8px}.dot.on{background:#5fe08a}
 /* code box */
 #code{font-size:30px;font-weight:700;letter-spacing:10px;text-align:center;text-transform:uppercase}
 .invite{font-size:22px;font-weight:700;letter-spacing:3px}
 /* bottom tabs */
 nav{position:fixed;left:0;right:0;bottom:0;background:#14122bee;backdrop-filter:blur(14px);border-top:1px solid #ffffff1a;padding:8px 10px calc(8px + env(safe-area-inset-bottom))}
 nav div{max-width:620px;margin:0 auto;display:flex;gap:6px}
-nav button{flex:1;font:inherit;font-size:13px;color:var(--mute);background:none;border:0;border-radius:12px;padding:8px 2px;cursor:pointer}
+nav button{flex:1;min-width:0;font:inherit;font-size:12px;color:var(--mute);background:none;border:0;border-radius:12px;padding:8px 2px;cursor:pointer}
 nav svg{display:block;margin:0 auto 3px;width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
 </style></head><body><main>
@@ -126,6 +134,19 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
     <div class="card"><label>Photos on the TV</label><div class="grid" id="grid"></div></div>
   </section>
 
+  <!-- open on TV -->
+  <section id="p-apps" class="hide">
+    <h2>Open on TV</h2><p class="sub">Tap an app and the TV opens it. Foyer has to be on screen.</p>
+    <div class="tools hide" id="tvPick"></div>
+    <p class="msg" id="tvState" style="margin:0 2px 14px"></p>
+    <div class="card">
+      <label for="url">Send a link (a YouTube video, for example)</label>
+      <div class="row"><input id="url" type="url" inputmode="url" autocapitalize="none" spellcheck="false" placeholder="https://…" style="margin:0"><button class="btn" style="flex:none;width:auto;padding:0 20px" onclick="sendUrl()">Open</button></div>
+      <p class="msg" id="mApps"></p>
+    </div>
+    <div class="card"><label>Apps on this TV</label><div class="apps" id="apps"></div></div>
+  </section>
+
   <!-- TVs and account -->
   <section id="p-tvs" class="hide">
     <h2>Link a TV</h2><p class="sub">On the TV: Foyer Settings → Home screen → Photo and note drop → Link this TV. Then type the code it shows.</p>
@@ -149,6 +170,7 @@ nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
   <button data-p="notes" class="on"><svg viewBox="0 0 24 24"><path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5M8 9h8M8 13h4"/></svg>Notes</button>
   <button data-p="draw"><svg viewBox="0 0 24 24"><path d="M4 20l4-1L19 8l-3-3L5 16z"/><path d="M14 7l3 3"/></svg>Draw</button>
   <button data-p="photos"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 4 3 3-2 4 3"/></svg>Photos</button>
+  <button data-p="apps"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>Apps</button>
   <button data-p="tvs"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg>TVs</button>
 </div></nav>
 
@@ -196,7 +218,7 @@ async function signOut(){try{await api('/api/logout',{method:'POST'})}catch(e){}
 ['aName','aPass','aInvite'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')doAuth()}));
 
 // ── tabs ──
-const loaders={notes:loadNotes,draw:loadDrawings,photos:loadPics,tvs:loadTvs};
+const loaders={notes:loadNotes,draw:loadDrawings,photos:loadPics,apps:loadApps,tvs:loadTvs};
 function go(p){
   for(const k in loaders)$('p-'+k).classList.toggle('hide',k!==p);
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
@@ -267,6 +289,37 @@ async function sendPics(){
     const fd=new FormData();fd.append('files',f);
     try{await api('/api/photos',{method:'POST',body:fd});n++}catch(e){say('mPhotos',f.name+': '+e.message,true);$('pics').value='';loadPics();return}}
   $('pics').value='';say('mPhotos',n===1?'Sent 1 photo.':'Sent '+n+' photos.');loadPics()}
+
+// ── open on TV ──
+let TVS=[],tvId=store.get('foyerTv');
+function curTv(){return TVS.find(t=>t.id===tvId)||TVS[0]}
+function paintApps(){
+  const tv=curTv(),pick=$('tvPick'),box=$('apps');pick.innerHTML='';box.innerHTML='';
+  pick.classList.toggle('hide',TVS.length<2);
+  TVS.forEach(t=>{const b=document.createElement('button');b.className='chip'+(tv&&t.id===tv.id?' on':'');b.textContent=t.label;
+    b.onclick=()=>{tvId=t.id;store.set('foyerTv',tvId);paintApps()};pick.appendChild(b)});
+  const st=$('tvState');st.innerHTML='';
+  if(!tv){st.textContent='Link a TV first (TVs tab).';box.innerHTML='<div class="empty" style="grid-column:1/-1">No TV linked yet.</div>';return}
+  const dot=document.createElement('span');dot.className='dot'+(tv.ready?' on':'');
+  st.append(dot,tv.ready?tv.label+' is ready.':'Foyer is not on screen on '+tv.label+'. Press Home on the remote first.');
+  if(!tv.apps.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">The TV has not sent its apps yet. Open Foyer on the TV and wait a few seconds.</div>';return}
+  tv.apps.forEach(a=>{
+    const b=document.createElement('button');b.className='app';
+    let ic;if(a.icon){ic=document.createElement('img');ic.alt='';ic.src='data:image/png;base64,'+a.icon}else{ic=document.createElement('i');ic.textContent=(a.label||'?')[0].toUpperCase()}
+    const s=document.createElement('span');s.textContent=a.label;b.append(ic,s);
+    b.onclick=()=>sendTv({package:a.package},'Opening '+a.label+'…');box.appendChild(b)})}
+async function loadApps(){TVS=(await getJSON('/api/tvs/apps')).tvs;paintApps()}
+async function sendTv(body,okText){
+  const tv=curTv();if(!tv){say('mApps','Link a TV first.',true);return}
+  try{const j=await getJSON('/api/tvs/'+tv.id+'/send',{method:'POST',json:body});
+    say('mApps',j.ready?okText:'Sent, but Foyer is not on screen. Press Home on the remote within 20 seconds.',!j.ready);return true
+  }catch(e){say('mApps',e.message,true)}}
+async function sendUrl(){
+  let u=$('url').value.trim();if(!u){say('mApps','Paste a link first.',true);return}
+  if(!/^https?:\/\//i.test(u))u='https://'+u;
+  if(await sendTv({url:u},'Opening the link on the TV…'))$('url').value=''}
+$('url').addEventListener('keydown',e=>{if(e.key==='Enter')sendUrl()});
+setInterval(()=>{if(T&&!$('p-apps').classList.contains('hide')&&!$('app').classList.contains('hide'))loadApps().catch(()=>{})},8000);
 
 // ── TVs ──
 async function loadTvs(){

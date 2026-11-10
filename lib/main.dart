@@ -1456,6 +1456,11 @@ class _HomeScreenState extends State<HomeScreen>
     _weatherTimer = Timer.periodic(const Duration(minutes: 20), (_) => _loadWeather(force: true));
     _updateTimer = Timer.periodic(const Duration(minutes: 30), (_) => _checkUpdate(force: true));
     _sportsTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadSports());
+    kDrop.onCommand = _onDropCommand;
+    kDrop.appsProvider = () async => [
+          for (final a in await fetchInstalledApps())
+            {'package': a.package, 'label': a.label, 'icon': base64Encode(a.icon)}
+        ];
     _dropTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted || !_fg) return;
       final s = SettingsScope.read(context);
@@ -1467,6 +1472,16 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Timer? _sportsTimer;
+
+  /// "Open on TV" from the phone page. Only acts while Foyer is on screen.
+  void _onDropCommand(String type, String value) {
+    if (!mounted || !_fg) return;
+    if (type == 'open') {
+      _openPkg(value);
+    } else if (type == 'url') {
+      kChannel.invokeMethod<bool>('openUrl', {'url': value}).catchError((Object _) => false);
+    }
+  }
   Timer? _dropTimer;
 
   void _loadSports() {

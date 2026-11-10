@@ -20,6 +20,11 @@ Open `http://<your-server-ip>:8080` (or your own domain) and create the first ac
 
 Unlink a TV any time from the same page.
 
+## Open on TV
+
+The **Apps** tab on the web page lists the apps on your TV. Tap one and the TV opens it, or paste a link (a YouTube video, for example).
+Foyer has to be on screen on the TV; a request that is not picked up within 20 seconds is dropped.
+
 ## Family and friends
 
 The owner sees an **invite code** on the TVs page. Others pick "Create an account" and enter it.

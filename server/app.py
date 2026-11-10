@@ -7,6 +7,7 @@ import asyncio
 import base64
 import hashlib
 import io
+import json
 import os
 import re
 import secrets
@@ -58,6 +59,7 @@ with closing(db()) as _c, _c:
           id TEXT PRIMARY KEY, user_id INTEGER, text TEXT, sender TEXT, created REAL, expires REAL);
         CREATE TABLE IF NOT EXISTS media(
           id TEXT PRIMARY KEY, user_id INTEGER, kind TEXT, sender TEXT, created REAL);
+        CREATE TABLE IF NOT EXISTS tv_apps(tv_id TEXT PRIMARY KEY, apps TEXT, updated REAL);
         CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
         """
     )
@@ -122,6 +124,7 @@ class Who:
         self.user_id = row["user_id"]
         self.kind = row["kind"]
         self.token_hash = row["hash"]
+        self.token_id = row["id"]
         self.name = row["name"]
         self.owner = bool(row["owner"])
 
@@ -133,7 +136,7 @@ def who(authorization: str = Header(default="")) -> Who:
     h = _hash_token(raw)
     with closing(db()) as c, c:
         row = c.execute(
-            "SELECT t.hash,t.user_id,t.kind,t.last,u.name,u.owner FROM tokens t "
+            "SELECT t.hash,t.id,t.user_id,t.kind,t.last,u.name,u.owner FROM tokens t "
             "JOIN users u ON u.id=t.user_id WHERE t.hash=?",
             (h,),
         ).fetchone()
@@ -256,7 +259,9 @@ def invite_new(w: Who = Depends(web)):
 @app.delete("/api/tvs/{tv_id}")
 def unlink_tv(tv_id: str, w: Who = Depends(web)):
     with closing(db()) as c, c:
-        c.execute("DELETE FROM tokens WHERE id=? AND user_id=? AND kind='tv'", (tv_id, w.user_id))
+        cur = c.execute("DELETE FROM tokens WHERE id=? AND user_id=? AND kind='tv'", (tv_id, w.user_id))
+        if cur.rowcount:
+            c.execute("DELETE FROM tv_apps WHERE tv_id=?", (tv_id,))
     return {"ok": True}
 
 
@@ -360,6 +365,8 @@ def bump(user_id: int):
 @app.get("/api/wait")
 async def wait(v: int = 0, w: Who = Depends(who)):
     cur = _versions.get(w.user_id, _BOOT)
+    if w.kind == "tv":
+        _tv_seen[w.token_id] = time.time()
     if v == cur:
         ev = asyncio.Event()
         _waiters.setdefault(w.user_id, set()).add(ev)
@@ -372,7 +379,97 @@ async def wait(v: int = 0, w: Who = Depends(who)):
             if not _waiters.get(w.user_id):
                 _waiters.pop(w.user_id, None)
         cur = _versions.get(w.user_id, _BOOT)
+        if w.kind == "tv":
+            _tv_seen[w.token_id] = time.time()
     return {"v": cur}
+
+
+# ───────────────────────── open things on the TV from the phone ─────────────────────────
+
+_tv_seen: dict = {}  # tv id -> last time Foyer was on screen and listening
+_commands: dict = {}  # tv id -> things to do, delivered once
+_cmd_lock = threading.Lock()
+COMMAND_SECONDS = 20  # older than this is dropped, so nothing opens by surprise later
+B64_RE = re.compile(r"^[A-Za-z0-9+/=]*$")
+
+
+def _take_commands(tv_id: str):
+    cutoff = time.time() - COMMAND_SECONDS
+    with _cmd_lock:
+        return [c for c in _commands.pop(tv_id, []) if c["created"] > cutoff]
+
+
+@app.post("/api/tv/apps")
+def tv_apps(body: dict, w: Who = Depends(who)):
+    """The TV tells us which apps it has, so the phone page can show them."""
+    if w.kind != "tv":
+        raise HTTPException(403, "Only a TV sends this")
+    apps = []
+    for a in (body.get("apps") or [])[:200]:
+        if not isinstance(a, dict):
+            continue
+        pkg = str(a.get("package", ""))[:150]
+        icon = str(a.get("icon", ""))
+        if not re.match(r"^[A-Za-z0-9._]+$", pkg):
+            continue
+        if len(icon) > 60000 or not B64_RE.match(icon):
+            icon = ""
+        apps.append({"package": pkg, "label": str(a.get("label", pkg))[:60], "icon": icon})
+    with closing(db()) as c, c:
+        c.execute(
+            "INSERT OR REPLACE INTO tv_apps(tv_id,apps,updated) VALUES(?,?,?)",
+            (w.token_id, json.dumps(apps), time.time()),
+        )
+    return {"ok": True, "count": len(apps)}
+
+
+@app.get("/api/tvs/apps")
+def tvs_apps(w: Who = Depends(web)):
+    now = time.time()
+    with closing(db()) as c:
+        rows = c.execute(
+            "SELECT t.id,t.label,a.apps FROM tokens t LEFT JOIN tv_apps a ON a.tv_id=t.id "
+            "WHERE t.user_id=? AND t.kind='tv' ORDER BY t.created DESC",
+            (w.user_id,),
+        ).fetchall()
+    return {
+        "tvs": [
+            {
+                "id": r["id"],
+                "label": r["label"] or "Fire TV",
+                "ready": now - _tv_seen.get(r["id"], 0) < 40,
+                "apps": json.loads(r["apps"]) if r["apps"] else [],
+            }
+            for r in rows
+        ]
+    }
+
+
+@app.post("/api/tvs/{tv_id}/send")
+def tv_send(tv_id: str, body: dict, w: Who = Depends(web)):
+    """Open an app, or a link, on one of your TVs."""
+    with closing(db()) as c:
+        ok = c.execute(
+            "SELECT 1 FROM tokens WHERE id=? AND user_id=? AND kind='tv'", (tv_id, w.user_id)
+        ).fetchone()
+    if not ok:
+        raise HTTPException(404, "That TV is not linked any more")
+    pkg = str(body.get("package", "")).strip()
+    url = str(body.get("url", "")).strip()
+    if pkg and re.match(r"^[A-Za-z0-9._]{1,150}$", pkg):
+        cmd = {"type": "open", "value": pkg}
+    elif url:
+        if not re.match(r"^https?://[^\s]{3,800}$", url):
+            raise HTTPException(400, "That does not look like a link. It should start with https://")
+        cmd = {"type": "url", "value": url}
+    else:
+        raise HTTPException(400, "Nothing to open")
+    cmd["created"] = time.time()
+    with _cmd_lock:
+        q = [c for c in _commands.get(tv_id, []) if c["created"] > cmd["created"] - COMMAND_SECONDS]
+        _commands[tv_id] = (q + [cmd])[-5:]
+    bump(w.user_id)
+    return {"ok": True, "ready": time.time() - _tv_seen.get(tv_id, 0) < 40}
 
 
 # ───────────────────────── notes ─────────────────────────
@@ -434,11 +531,15 @@ def feed(w: Who = Depends(who)):
         photos = c.execute(
             "SELECT COUNT(*) n, MAX(created) m FROM media WHERE user_id=? AND kind='photo'", (w.user_id,)
         ).fetchone()
-    return {
+    out = {
         "notes": [{"id": r["id"], "text": r["text"], "from": r["sender"]} for r in notes],
         "drawing": {"id": d[0]["id"], "from": d[0]["sender"]} if d else None,
         "photos": f"{photos['n']}:{photos['m'] or 0}",
     }
+    if w.kind == "tv":
+        _tv_seen[w.token_id] = now
+        out["commands"] = [{"type": c["type"], "value": c["value"]} for c in _take_commands(w.token_id)]
+    return out
 
 def _media(c, user_id: int, kind: str, limit: int):
     return c.execute(

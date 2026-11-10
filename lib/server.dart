@@ -131,6 +131,32 @@ class DropFeed {
 
   /// Changes whenever photos are added or removed, so the screensaver can reload.
   final ValueNotifier<String> photosStamp = ValueNotifier('');
+
+  /// Set by the home screen: runs "open this app" / "open this link" sent from the phone.
+  void Function(String type, String value)? onCommand;
+
+  /// Set by the home screen: the installed apps, so the phone page can list them.
+  Future<List<Map<String, String>>> Function()? appsProvider;
+  String _appsSentFor = '';
+  DateTime? _appsSentAt;
+
+  Future<void> _sendApps(String url, String token, String sig) async {
+    final p = appsProvider;
+    if (p == null) return;
+    final fresh = _appsSentFor == sig &&
+        _appsSentAt != null &&
+        DateTime.now().difference(_appsSentAt!).inHours < 6;
+    if (fresh) return;
+    _appsSentFor = sig;
+    _appsSentAt = DateTime.now();
+    try {
+      final apps = await p();
+      if (apps.isEmpty) throw const HttpException('no apps');
+      await DropApi._send(url, '/api/tv/apps', token: token, post: {'apps': apps}, waitSeconds: 30);
+    } catch (_) {
+      _appsSentFor = ''; // try again next time
+    }
+  }
   DateTime? _last;
   String _sig = '';
   bool _busy = false;
@@ -215,6 +241,13 @@ class DropFeed {
             : null;
         final ph = '${j['photos'] ?? ''}';
         if (ph != photosStamp.value) photosStamp.value = ph;
+        final cmds = j['commands'];
+        if (cmds is List) {
+          for (final c in cmds) {
+            if (c is Map) onCommand?.call('${c['type']}', '${c['value']}');
+          }
+        }
+        _sendApps(url, token, sig);
       } on HttpException catch (e) {
         if (e.message != 'Server answered 404') rethrow;
         // an older server without the quick feed
