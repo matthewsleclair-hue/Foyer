@@ -1,28 +1,34 @@
 # Foyer Drop (optional server)
 
-A tiny web app you host yourself. Send **notes** and **photos** from any phone;
-Foyer shows the notes on the home screen and can use the photos as its screensaver.
+A tiny web app you host yourself. Send **notes**, **drawings** and **photos** from any phone.
+Foyer shows notes and the newest drawing on the home screen and can use the photos as its screensaver.
 
 ## Run it (Docker)
 
 ```bash
 cd server
-echo "FOYER_TOKEN=$(openssl rand -hex 24)" > .env   # the password. Keep it private.
 docker compose up -d --build
-cat .env                                            # copy the token for later
 ```
 
-Open `http://<your-server-ip>:8080` on a phone, enter the token once, then send notes and photos.
+Open `http://<your-server-ip>:8080` (or your own domain) and create the first account. That account is the owner.
 
-## Connect Foyer
+## Link a TV (no long tokens)
 
-On the TV: Settings → Home screen → **Photo and note drop**. Set the address
-(for example `192.168.1.50:8080`) and the token (typing from your phone works), then Test connection.
-For the screensaver: Settings → Screensaver and power → Screensaver → Background → **Photo drop**.
+1. On the TV: Settings → Home screen → **Photo and note drop** → **Link this TV**. Enter the server address once.
+2. The TV shows a 5-character code.
+3. On the web page: sign in → **TVs** → type the code. The TV links itself within a few seconds.
+
+Unlink a TV any time from the same page.
+
+## Family and friends
+
+The owner sees an **invite code** on the TVs page. Others pick "Create an account" and enter it.
+Each account has its own TVs, notes, drawings and photos.
 
 ## Notes
 
+- Everything is stored in `./data` (a SQLite file and the pictures). Back that folder up.
 - Photos are shrunk to 1920 px on upload so the stick stays fast.
-- Notes disappear after 24 hours by default (`NOTE_HOURS`), or pick "keep" on the page.
-- Reaching it away from home: put it behind HTTPS (a reverse proxy or a tunnel). Do not open the port raw to the internet.
-- Never commit your `.env` file.
+- Notes disappear after 24 hours by default (`NOTE_HOURS`), or choose how long on the page.
+- Away from home: put it behind HTTPS (for example a Cloudflare Tunnel). Do not open the port raw to the internet.
+- Upgrading from the first version (the one with `FOYER_TOKEN`): the token is no longer used. Photos already sent move to the first account you create. Old notes are not kept.

@@ -1,69 +1,296 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14122b">
 <title>Foyer Drop</title>
 <style>
-:root{--bg:#101746;--card:#1b2670;--ink:#fff;--mute:#b9c3ff;--amber:#ffb454}
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-main{max-width:640px;margin:0 auto;padding:22px 18px 60px}
-h1{font-size:26px;margin:0 0 4px}.sub{color:var(--mute);margin:0 0 20px}
-.tabs{display:flex;gap:8px;margin-bottom:18px}
-.tabs button{flex:1;padding:12px;border-radius:12px;border:0;background:var(--card);color:var(--ink);font-size:17px}
-.tabs button.on{background:var(--amber);color:#201000;font-weight:700}
-input,textarea{width:100%;font-size:18px;padding:14px;border-radius:12px;border:0;margin-bottom:10px}
-.btn{width:100%;padding:14px;border-radius:12px;border:0;background:var(--amber);color:#201000;font-size:18px;font-weight:700}
-.row{display:flex;gap:10px}.row>*{flex:1}
-.note{background:var(--card);border-radius:14px;padding:14px;margin:10px 0;display:flex;justify-content:space-between;gap:10px}
-.note small{color:var(--mute)}.x{background:none;border:0;color:var(--mute);font-size:22px}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
-.grid div{position:relative;aspect-ratio:1;background:#0b0f33;border-radius:10px;overflow:hidden}
-.grid img{width:100%;height:100%;object-fit:cover}.grid button{position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:28px;height:28px;background:#000a;color:#fff}
-.msg{margin:12px 0;color:var(--mute)}.hide{display:none}
+:root{--bg:#14122b;--bg2:#1d1a3d;--card:#262250;--line:#3a356e;--ink:#f6f3ff;--mute:#a9a3d6;--amber:#ffb454;--amber-ink:#2a1700;--bad:#ff8f8f;--r:16px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{min-height:100vh;background:radial-gradient(900px 500px at 80% -10%,#3b2a6b 0,transparent 60%),radial-gradient(700px 500px at -10% 110%,#5a3a2a 0,transparent 55%),var(--bg);background-attachment:fixed}
+main{max-width:620px;margin:0 auto;padding:22px 16px calc(96px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;letter-spacing:.2px}
+.brand i{width:30px;height:30px;border-radius:9px;background:linear-gradient(140deg,var(--amber),#ff7a59);display:block;box-shadow:0 4px 14px #ffb45455}
+.who{color:var(--mute);font-size:14px}
+h2{font-size:26px;margin:0 0 4px}.sub{color:var(--mute);margin:0 0 18px}
+.card{background:#ffffff0d;border:1px solid #ffffff1a;border-radius:var(--r);padding:16px;margin-bottom:14px;backdrop-filter:blur(10px)}
+label{display:block;font-size:14px;color:var(--mute);margin:0 0 6px}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:#0000003d;border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:12px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--amber)}
+textarea{resize:vertical;min-height:92px}
+.btn{display:block;width:100%;font:inherit;font-weight:700;padding:14px;border:0;border-radius:12px;background:var(--amber);color:var(--amber-ink);cursor:pointer}
+.btn:active{transform:scale(.985)}.btn[disabled]{opacity:.55}
+.btn.ghost{background:#ffffff14;color:var(--ink);font-weight:600}
+.link{background:none;border:0;color:var(--amber);font:inherit;padding:10px 0;cursor:pointer}
+.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
+.msg{min-height:22px;margin:10px 2px 0;color:var(--mute);font-size:15px}.msg.bad{color:var(--bad)}
+.hide{display:none!important}
+.item{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 0;border-top:1px solid #ffffff14}
+.item:first-child{border-top:0;padding-top:0}.item:last-child{padding-bottom:0}
+.item small{display:block;color:var(--mute);font-size:13px;margin-top:2px}
+.x{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:#ffffff14;color:var(--ink);font-size:18px;line-height:1;cursor:pointer}
+.empty{color:var(--mute);text-align:center;padding:8px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid>div{position:relative;aspect-ratio:1;background:#0003;border-radius:12px;overflow:hidden}
+.grid img{width:100%;height:100%;object-fit:cover;display:block}
+.grid .x{position:absolute;top:5px;right:5px;width:28px;height:28px;background:#000a;font-size:15px}
+.grid.draw>div{aspect-ratio:16/10;background:#0006}.grid.draw img{object-fit:contain}
+.pick{display:block;border:2px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;color:var(--mute);margin-bottom:12px;cursor:pointer}
+.pick b{display:block;color:var(--ink);font-size:18px;margin-bottom:2px}.pick input{display:none}
+/* drawing pad */
+.pad{position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#2a2560,#1a1838);border:1px solid var(--line);margin-bottom:12px}
+canvas{display:block;width:100%;aspect-ratio:16/10;touch-action:none;cursor:crosshair}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.sw{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;padding:0;flex:none}
+.sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--bg)}
+.chip{font:inherit;font-size:15px;border:1px solid var(--line);background:#0000003d;color:var(--ink);border-radius:20px;padding:7px 13px;cursor:pointer}
+.chip.on{background:var(--ink);color:#14122b;border-color:var(--ink)}
+.sp{flex:1}
+/* code box */
+#code{font-size:30px;font-weight:700;letter-spacing:10px;text-align:center;text-transform:uppercase}
+.invite{font-size:22px;font-weight:700;letter-spacing:3px}
+/* bottom tabs */
+nav{position:fixed;left:0;right:0;bottom:0;background:#14122bee;backdrop-filter:blur(14px);border-top:1px solid #ffffff1a;padding:8px 10px calc(8px + env(safe-area-inset-bottom))}
+nav div{max-width:620px;margin:0 auto;display:flex;gap:6px}
+nav button{flex:1;font:inherit;font-size:13px;color:var(--mute);background:none;border:0;border-radius:12px;padding:8px 2px;cursor:pointer}
+nav svg{display:block;margin:0 auto 3px;width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--amber-ink);background:var(--amber);font-weight:700}
 </style></head><body><main>
-<h1>Foyer Drop</h1><p class="sub">Send a note or a photo to the TV.</p>
-<div id="login" class="hide">
-  <p class="msg" id="loginmsg">Enter the token from your server's setup. It is remembered on this phone.</p>
-  <input id="tok" type="password" placeholder="Token" autocomplete="off">
-  <button class="btn" onclick="saveTok()">Continue</button>
-</div>
+
+<header>
+  <div class="brand"><i></i>Foyer Drop</div>
+  <div class="who" id="whoami"></div>
+</header>
+
+<!-- sign in / create account -->
+<section id="auth" class="hide">
+  <h2 id="authTitle">Welcome back</h2>
+  <p class="sub" id="authSub">Sign in to send things to your TV.</p>
+  <div class="card">
+    <label for="aName">Name</label>
+    <input id="aName" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="for example matthew">
+    <label for="aPass">Password</label>
+    <input id="aPass" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+    <div id="inviteWrap" class="hide">
+      <label for="aInvite">Invite code (from the person who runs this server)</label>
+      <input id="aInvite" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH">
+    </div>
+    <button class="btn" id="authBtn" onclick="doAuth()">Sign in</button>
+    <p class="msg" id="authMsg"></p>
+  </div>
+  <button class="link" id="authSwap" onclick="swapAuth()">New here? Create an account</button>
+</section>
+
 <div id="app" class="hide">
-  <div class="tabs"><button id="t1" class="on" onclick="tab(1)">Notes</button><button id="t2" onclick="tab(2)">Photos</button></div>
-  <section id="s1">
-    <textarea id="txt" rows="3" maxlength="300" placeholder="Dinner is at 6!"></textarea>
-    <div class="row"><input id="from" placeholder="From (optional)" maxlength="30">
-    <select id="hrs" style="font-size:18px;border-radius:12px;border:0;padding:12px;margin-bottom:10px">
-      <option value="3">Shows 3 hours</option><option value="24" selected>Shows 1 day</option><option value="72">Shows 3 days</option><option value="0">Until I delete it</option></select></div>
-    <button class="btn" onclick="sendNote()">Send note</button>
-    <p class="msg" id="m1"></p><div id="notes"></div>
+  <!-- notes -->
+  <section id="p-notes">
+    <h2>Send a note</h2><p class="sub">It appears on the TV's home screen within a minute.</p>
+    <div class="card">
+      <textarea id="txt" maxlength="300" placeholder="Dinner is at 6!"></textarea>
+      <div class="row">
+        <input id="from" maxlength="30" placeholder="From (optional)">
+        <select id="hrs"><option value="3">Show for 3 hours</option><option value="24" selected>Show for 1 day</option><option value="72">Show for 3 days</option><option value="0">Until I remove it</option></select>
+      </div>
+      <button class="btn" onclick="sendNote()">Send to TV</button>
+      <p class="msg" id="mNotes"></p>
+    </div>
+    <div class="card"><label>On the TV now</label><div id="notes"></div></div>
   </section>
-  <section id="s2" class="hide">
-    <input id="pics" type="file" accept="image/*" multiple>
-    <button class="btn" onclick="sendPics()">Send photos to the TV</button>
-    <p class="msg" id="m2"></p><div class="grid" id="grid"></div>
+
+  <!-- draw -->
+  <section id="p-draw" class="hide">
+    <h2>Draw something</h2><p class="sub">Your drawing shows on the TV's home screen. The newest one wins.</p>
+    <div class="card">
+      <div class="pad"><canvas id="cv" width="1200" height="750"></canvas></div>
+      <div class="tools" id="colors"></div>
+      <div class="tools">
+        <button class="chip" data-size="6">Fine</button><button class="chip on" data-size="14">Medium</button><button class="chip" data-size="30">Bold</button>
+        <button class="chip" id="eraser">Eraser</button><span class="sp"></span>
+        <button class="chip" onclick="undo()">Undo</button><button class="chip" onclick="clearPad()">Clear</button>
+      </div>
+      <input id="dFrom" maxlength="30" placeholder="From (optional)">
+      <button class="btn" onclick="sendDrawing()">Send to TV</button>
+      <p class="msg" id="mDraw"></p>
+    </div>
+    <div class="card"><label>Recent drawings (first one is on the TV)</label><div class="grid draw" id="drawings"></div></div>
+  </section>
+
+  <!-- photos -->
+  <section id="p-photos" class="hide">
+    <h2>Send photos</h2><p class="sub">They join the TV's screensaver when it is set to "Photo drop".</p>
+    <div class="card">
+      <label class="pick"><b>Choose photos</b><span id="pickHint">Tap to pick from this phone</span><input id="pics" type="file" accept="image/*" multiple onchange="sendPics()"></label>
+      <p class="msg" id="mPhotos"></p>
+    </div>
+    <div class="card"><label>Photos on the TV</label><div class="grid" id="grid"></div></div>
+  </section>
+
+  <!-- TVs and account -->
+  <section id="p-tvs" class="hide">
+    <h2>Link a TV</h2><p class="sub">On the TV: Foyer Settings → Home screen → Photo and note drop → Link this TV. Then type the code it shows.</p>
+    <div class="card">
+      <input id="code" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="•••••">
+      <button class="btn" onclick="claim()">Link TV</button>
+      <p class="msg" id="mTvs"></p>
+    </div>
+    <div class="card"><label>Linked TVs</label><div id="tvs"></div></div>
+    <div class="card hide" id="inviteCard">
+      <label>Invite code for family and friends</label>
+      <div class="row" style="align-items:center"><div class="invite" id="invite"></div><button class="btn ghost" style="flex:none;width:auto;padding:10px 14px" onclick="newInvite()">New code</button></div>
+      <p class="msg">They choose "Create an account" on this page and enter it. Each account has its own TVs, notes and photos.</p>
+    </div>
+    <button class="btn ghost" onclick="signOut()">Sign out</button>
   </section>
 </div>
+</main>
+
+<nav id="nav" class="hide"><div>
+  <button data-p="notes" class="on"><svg viewBox="0 0 24 24"><path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5M8 9h8M8 13h4"/></svg>Notes</button>
+  <button data-p="draw"><svg viewBox="0 0 24 24"><path d="M4 20l4-1L19 8l-3-3L5 16z"/><path d="M14 7l3 3"/></svg>Draw</button>
+  <button data-p="photos"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 4 3 3-2 4 3"/></svg>Photos</button>
+  <button data-p="tvs"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg>TVs</button>
+</div></nav>
+
 <script>
 const $=id=>document.getElementById(id);
-let T=localStorage.getItem('foyerTok')||'';
-const H=()=>({'Authorization':'Bearer '+T});
-function saveTok(){T=$('tok').value.trim();localStorage.setItem('foyerTok',T);start()}
-async function api(p,o={}){const r=await fetch(p,{...o,headers:{...H(),...(o.headers||{})}});if(r.status==401){localStorage.removeItem('foyerTok');T='';start();const e=$('loginmsg');if(e)e.textContent='That token was not accepted. Check it matches FOYER_TOKEN on the server (no spaces).';throw 0}return r}
-function tab(n){$('s1').classList.toggle('hide',n!=1);$('s2').classList.toggle('hide',n!=2);$('t1').classList.toggle('on',n==1);$('t2').classList.toggle('on',n==2)}
-async function loadNotes(){const j=await (await api('/api/notes')).json();$('notes').innerHTML='';
- j.notes.forEach(n=>{const d=document.createElement('div');d.className='note';
-  const a=document.createElement('div');a.textContent=n.text;const s=document.createElement('small');s.textContent=(n.from?n.from+' · ':'')+new Date(n.created*1000).toLocaleString();a.appendChild(document.createElement('br'));a.appendChild(s);
-  const b=document.createElement('button');b.className='x';b.textContent='×';b.onclick=async()=>{await api('/api/notes/'+n.id,{method:'DELETE'});loadNotes()};
-  d.append(a,b);$('notes').appendChild(d)})}
-async function sendNote(){const text=$('txt').value.trim();if(!text)return;
- await api('/api/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,from:$('from').value,hours:+$('hrs').value})});
- $('txt').value='';$('m1').textContent='Sent. It shows up on the TV within a minute.';loadNotes()}
-async function loadPics(){const j=await (await api('/api/photos')).json();$('grid').innerHTML='';
- for(const id of j.photos){const d=document.createElement('div');const i=document.createElement('img');i.loading='lazy';i.src='/photos/'+id+'.jpg?token='+encodeURIComponent(T);
-  const b=document.createElement('button');b.textContent='×';b.onclick=async()=>{await api('/api/photos/'+id,{method:'DELETE'});loadPics()};d.append(i,b);$('grid').appendChild(d)}}
-async function sendPics(){const f=$('pics').files;if(!f.length)return;$('m2').textContent='Sending…';
- for(const file of f){const fd=new FormData();fd.append('files',file);const r=await api('/api/photos',{method:'POST',body:fd});if(!r.ok){$('m2').textContent='Could not send '+file.name;return}}
- $('pics').value='';$('m2').textContent='Sent. They join the TV screensaver within a few minutes.';loadPics()}
-async function start(){if(!T){$('login').classList.remove('hide');$('app').classList.add('hide');return}
- $('login').classList.add('hide');$('app').classList.remove('hide');try{await loadNotes();await loadPics()}catch(e){}}
+const store={get(k){try{return localStorage.getItem(k)||''}catch(e){return ''}},set(k,v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
+let T=store.get('foyerSession'),ME=store.get('foyerName'),creating=false,firstRun=false;
+
+function say(id,text,bad){const e=$(id);e.textContent=text||'';e.classList.toggle('bad',!!bad)}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d}
+async function api(path,opt={}){
+  const h={...(opt.headers||{})};if(T)h.Authorization='Bearer '+T;
+  if(opt.json!==undefined){h['Content-Type']='application/json';opt.body=JSON.stringify(opt.json)}
+  let r;try{r=await fetch(path,{...opt,headers:h})}catch(e){throw new Error('Could not reach the server. Check your connection.')}
+  if(r.status===401&&T&&!path.startsWith('/api/login')){T='';store.set('foyerSession','');showAuth('Please sign in again.');throw new Error('Please sign in again.')}
+  if(!r.ok){let d='Something went wrong ('+r.status+').';try{d=(await r.json()).detail||d}catch(e){}throw new Error(d)}
+  return r}
+const getJSON=async(p,o)=>(await api(p,o)).json();
+async function blobUrl(path){return URL.createObjectURL(await (await api(path)).blob())}
+
+// ── sign in ──
+function paintAuth(){
+  const make=creating||firstRun;
+  $('authTitle').textContent=firstRun?'Set up Foyer Drop':(make?'Create an account':'Welcome back');
+  $('authSub').textContent=firstRun?'Create the first account. It becomes the owner of this server.':(make?'You need an invite code from whoever runs this server.':'Sign in to send things to your TV.');
+  $('authBtn').textContent=make?'Create account':'Sign in';
+  $('inviteWrap').classList.toggle('hide',!creating||firstRun);
+  $('authSwap').classList.toggle('hide',firstRun);
+  $('authSwap').textContent=creating?'Already have an account? Sign in':'New here? Create an account';
+  $('aPass').autocomplete=make?'new-password':'current-password'}
+function swapAuth(){creating=!creating;say('authMsg','');paintAuth()}
+async function showAuth(msg){
+  $('app').classList.add('hide');$('nav').classList.add('hide');$('auth').classList.remove('hide');$('whoami').textContent='';
+  try{firstRun=(await getJSON('/api/state')).first}catch(e){}
+  paintAuth();say('authMsg',msg||'',!!msg)}
+async function doAuth(){
+  const make=creating||firstRun,b=$('authBtn');b.disabled=true;say('authMsg','');
+  try{
+    const j=await getJSON(make?'/api/signup':'/api/login',{method:'POST',json:{name:$('aName').value,password:$('aPass').value,invite:$('aInvite').value}});
+    T=j.token;ME=j.name;store.set('foyerSession',T);store.set('foyerName',ME);$('aPass').value='';
+    start(make?'tvs':'notes')
+  }catch(e){say('authMsg',e.message,true)}
+  b.disabled=false}
+async function signOut(){try{await api('/api/logout',{method:'POST'})}catch(e){}T='';store.set('foyerSession','');creating=false;showAuth()}
+['aName','aPass','aInvite'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')doAuth()}));
+
+// ── tabs ──
+const loaders={notes:loadNotes,draw:loadDrawings,photos:loadPics,tvs:loadTvs};
+function go(p){
+  for(const k in loaders)$('p-'+k).classList.toggle('hide',k!==p);
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  store.set('foyerTab',p);window.scrollTo(0,0);loaders[p]().catch(()=>{})}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.p));
+
+// ── notes ──
+function when(t){return new Date(t*1000).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'})}
+async function loadNotes(){
+  const j=await getJSON('/api/notes'),box=$('notes');box.innerHTML='';
+  if(!j.notes.length){box.innerHTML='<div class="empty">No notes right now.</div>';return}
+  j.notes.forEach(n=>{
+    const row=document.createElement('div');row.className='item';
+    const a=esc(n.text),s=document.createElement('small');s.textContent=(n.from?n.from+' · ':'')+when(n.created);a.appendChild(s);
+    const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Remove note');
+    x.onclick=async()=>{await api('/api/notes/'+n.id,{method:'DELETE'});loadNotes()};
+    row.append(a,x);box.appendChild(row)})}
+async function sendNote(){
+  const text=$('txt').value.trim();if(!text){say('mNotes','Write something first.',true);return}
+  try{await api('/api/notes',{method:'POST',json:{text,from:$('from').value,hours:+$('hrs').value}});
+    store.set('foyerFrom',$('from').value);$('txt').value='';say('mNotes','Sent. It shows on the TV within a minute.');loadNotes()
+  }catch(e){say('mNotes',e.message,true)}}
+
+// ── drawing pad ──
+const cv=$('cv'),cx=cv.getContext('2d');
+const COLORS=['#ffffff','#ffb454','#ff6b6b','#ff8fd0','#b28cff','#6fb7ff','#5fe0c0','#9be35a','#ffe66d'];
+let strokes=[],cur=null,color=COLORS[0],size=14,erasing=false;
+COLORS.forEach((c,i)=>{const b=document.createElement('button');b.className='sw'+(i?'':' on');b.style.background=c;b.setAttribute('aria-label','Color '+(i+1));
+  b.onclick=()=>{color=c;erasing=false;$('eraser').classList.remove('on');document.querySelectorAll('.sw').forEach(s=>s.classList.toggle('on',s===b))};$('colors').appendChild(b)});
+document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{size=+b.dataset.size;document.querySelectorAll('[data-size]').forEach(s=>s.classList.toggle('on',s===b))});
+$('eraser').onclick=()=>{erasing=!erasing;$('eraser').classList.toggle('on',erasing)};
+function pos(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]}
+function paint(s){
+  cx.globalCompositeOperation=s.erase?'destination-out':'source-over';cx.strokeStyle=cx.fillStyle=s.color;cx.lineWidth=s.size;cx.lineCap=cx.lineJoin='round';
+  const p=s.pts;if(p.length===1){cx.beginPath();cx.arc(p[0][0],p[0][1],s.size/2,0,7);cx.fill();return}
+  cx.beginPath();cx.moveTo(p[0][0],p[0][1]);
+  for(let i=1;i<p.length-1;i++){const mx=(p[i][0]+p[i+1][0])/2,my=(p[i][1]+p[i+1][1])/2;cx.quadraticCurveTo(p[i][0],p[i][1],mx,my)}
+  cx.lineTo(p[p.length-1][0],p[p.length-1][1]);cx.stroke()}
+function redraw(){cx.clearRect(0,0,cv.width,cv.height);strokes.forEach(paint);if(cur)paint(cur)}
+cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.setPointerCapture(e.pointerId);cur={color,size:erasing?size*2.2:size,erase:erasing,pts:[pos(e)]};redraw()});
+cv.addEventListener('pointermove',e=>{if(!cur)return;e.preventDefault();cur.pts.push(pos(e));redraw()});
+const endStroke=()=>{if(cur){strokes.push(cur);cur=null;redraw()}};
+cv.addEventListener('pointerup',endStroke);cv.addEventListener('pointercancel',endStroke);
+function undo(){strokes.pop();redraw()}
+function clearPad(){strokes=[];redraw()}
+async function sendDrawing(){
+  if(!strokes.some(s=>!s.erase)){say('mDraw','Draw something first.',true);return}
+  say('mDraw','Sending…');
+  try{await api('/api/drawings',{method:'POST',json:{image:cv.toDataURL('image/png'),from:$('dFrom').value}});
+    store.set('foyerFrom',$('dFrom').value);clearPad();say('mDraw','Sent. It shows on the TV within a minute.');loadDrawings()
+  }catch(e){say('mDraw',e.message,true)}}
+async function tiles(box,ids,path,del,reload,emptyText){
+  box.innerHTML='';if(!ids.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">'+emptyText+'</div>';return}
+  for(const id of ids){
+    const d=document.createElement('div'),i=document.createElement('img');i.alt='';
+    const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Remove');
+    x.onclick=async()=>{await api(del+id,{method:'DELETE'});reload()};
+    d.append(i,x);box.appendChild(d);blobUrl(path(id)).then(u=>i.src=u).catch(()=>{})}}
+async function loadDrawings(){const j=await getJSON('/api/drawings');
+  await tiles($('drawings'),j.drawings.slice(0,6).map(d=>d.id),id=>'/drawings/'+id+'.png','/api/drawings/',loadDrawings,'No drawings yet.')}
+
+// ── photos ──
+async function loadPics(){const j=await getJSON('/api/photos');
+  await tiles($('grid'),j.photos,id=>'/photos/'+id+'.jpg','/api/photos/',loadPics,'No photos yet.')}
+async function sendPics(){
+  const files=[...$('pics').files];if(!files.length)return;let n=0;
+  for(const f of files){say('mPhotos','Sending '+(n+1)+' of '+files.length+'…');
+    const fd=new FormData();fd.append('files',f);
+    try{await api('/api/photos',{method:'POST',body:fd});n++}catch(e){say('mPhotos',f.name+': '+e.message,true);$('pics').value='';loadPics();return}}
+  $('pics').value='';say('mPhotos',n===1?'Sent 1 photo.':'Sent '+n+' photos.');loadPics()}
+
+// ── TVs ──
+async function loadTvs(){
+  const j=await getJSON('/api/me'),box=$('tvs');box.innerHTML='';
+  if(!j.tvs.length)box.innerHTML='<div class="empty">No TVs linked yet.</div>';
+  j.tvs.forEach(t=>{
+    const row=document.createElement('div');row.className='item';
+    const a=esc(t.label||'Fire TV'),s=document.createElement('small');s.textContent='Last seen '+when(t.last);a.appendChild(s);
+    const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Unlink this TV');
+    x.onclick=async()=>{if(!confirm('Unlink '+(t.label||'this TV')+'?'))return;await api('/api/tvs/'+t.id,{method:'DELETE'});loadTvs()};
+    row.append(a,x);box.appendChild(row)});
+  $('inviteCard').classList.toggle('hide',!j.owner);if(j.owner)$('invite').textContent=j.invite}
+async function claim(){
+  const code=$('code').value.trim();if(code.length<5){say('mTvs','Type the 5-character code from the TV.',true);return}
+  try{const j=await getJSON('/api/link/claim',{method:'POST',json:{code}});$('code').value='';say('mTvs','Linked '+j.name+'. The TV will say so in a few seconds.');loadTvs()
+  }catch(e){say('mTvs',e.message,true)}}
+$('code').addEventListener('keydown',e=>{if(e.key==='Enter')claim()});
+async function newInvite(){if(!confirm('Make a new invite code? The old one stops working.'))return;const j=await getJSON('/api/invite/new',{method:'POST'});$('invite').textContent=j.invite}
+
+// ── start ──
+async function start(tab){
+  if(!T)return showAuth();
+  $('auth').classList.add('hide');$('app').classList.remove('hide');$('nav').classList.remove('hide');
+  $('whoami').textContent=ME;$('from').value=$('dFrom').value=store.get('foyerFrom');
+  const p=tab||store.get('foyerTab');go(loaders[p]?p:'notes')}
 start();
-</script></main></body></html>
+</script></body></html>

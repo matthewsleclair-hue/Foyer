@@ -1851,8 +1851,7 @@ class _HomeScreenState extends State<HomeScreen>
           bottom: 300,
           child: FadeTransition(
               opacity: _fadeLate,
-              child: ValueListenableBuilder<List<DropNote>>(
-                  valueListenable: kDrop.notes, builder: (_, n, __) => NotesCard(notes: n)))),
+              child: const DropCorner())),
       Positioned(
           left: 96,
           bottom: 300,

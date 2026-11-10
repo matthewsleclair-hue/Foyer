@@ -5,11 +5,8 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
-    environment:
-      # Read from the .env file next to this one (see README).
-      # You type the same token into your phone's page and into Foyer's settings.
-      FOYER_TOKEN: "${FOYER_TOKEN:?Create a .env file with FOYER_TOKEN=...}"
-      # NOTE_HOURS: "24"        # how long notes show by default
-      # MAX_PHOTO_PX: "1920"    # photos are shrunk to this size for the stick
+    # environment:
+    #   NOTE_HOURS: "24"        # how long notes show by default
+    #   MAX_PHOTO_PX: "1920"    # photos are shrunk to this size for the stick
     volumes:
       - ./data:/data
