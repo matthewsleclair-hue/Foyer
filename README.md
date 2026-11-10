@@ -64,7 +64,7 @@ Regenerate with `python3 tools/make_icons.py` (needs `pip install playwright`). 
 See [GUIDE.md](GUIDE.md) for the step-by-step install and clean-up guide.
 
 ## Version numbers
-Small update: last number +1 (1.0.1 -> 1.0.2). Medium: middle number +1 (1.0.1 -> 1.1.1). Large: first number +1 (1.0.1 -> 2.0.1).
+Small update: last number +1 (1.0.1 -> 1.0.2). Medium: middle number +1 and the last goes back to 0 (1.5.10 -> 1.6.0). Large: first number +1 and the rest go back to 0 (1.5.10 -> 2.0.0).
 `bash tools/bump.sh small|medium|large` does it; `bash tools/publish.sh` then builds and releases.
 
 ## Live scores and Foyer Drop

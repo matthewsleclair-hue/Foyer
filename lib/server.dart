@@ -41,8 +41,10 @@ class DropApi {
       final req = await (post == null ? c.getUrl(uri) : c.postUrl(uri)).timeout(const Duration(seconds: 8));
       if (token.isNotEmpty) req.headers.set('Authorization', 'Bearer $token');
       if (post != null) {
+        final bytes = utf8.encode(jsonEncode(post));
         req.headers.contentType = ContentType.json;
-        req.add(utf8.encode(jsonEncode(post)));
+        req.contentLength = bytes.length; // a plain sized upload: some proxies dislike chunked ones
+        req.add(bytes);
       }
       final res = await req.close().timeout(Duration(seconds: waitSeconds));
       final body = await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 15));
@@ -171,9 +173,17 @@ class DropFeed {
         out = e.message == 'unlinked'
             ? 'This TV is no longer linked. Link it again.'
             : 'Could not update the phone page: ${e.message}';
-      } catch (_) {
+      } on StateError catch (e) {
         _appsSentFor = '';
-        out = 'Could not reach the server to update the phone page.';
+        out = 'Could not read this TV\'s app list (${e.message}). Try again in a moment.';
+      } on TimeoutException {
+        _appsSentFor = '';
+        out = 'The server took too long to answer. Try again in a moment.';
+      } catch (e) {
+        _appsSentFor = '';
+        // show the real reason so it can be fixed
+        final why = '$e';
+        out = 'Could not update the phone page: ${why.length > 160 ? why.substring(0, 160) : why}';
       }
     } while (_appsAgain);
     _appsBusy = false;
