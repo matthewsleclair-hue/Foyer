@@ -1464,8 +1464,11 @@ class _HomeScreenState extends State<HomeScreen>
     _sportsTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadSports());
     kDrop.onCommand = _onDropCommand;
     kDrop.appsProvider = () async {
-      if (!mounted) throw StateError('home screen is gone');
-      final hidden = SettingsScope.read(context).dropHidden.toSet();
+      // Settings screens replace the home screen, so read settings from the app itself,
+      // not from this screen (which may be gone by the time this runs).
+      final ctx = kNavKey.currentContext;
+      if (ctx == null) throw StateError('the app is still starting');
+      final hidden = SettingsScope.read(ctx).dropHidden.toSet();
       final all = await fetchInstalledApps();
       // an empty list here means the lookup failed, not that the TV has no apps
       if (all.isEmpty) throw StateError('could not list apps');
