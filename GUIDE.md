@@ -73,3 +73,19 @@ On a Google TV Streamer, Chromecast with Google TV or similar box, Foyer can be 
 To go back to the normal Google TV home screen: `bash tools/googletv.sh <TV IP> undo`.
 
 This has been checked against a guide for the Chromecast with Google TV (Android 14), not on every box. A system update may switch the stock home screen back on; run the script again if that happens.
+
+### TV settings inside Foyer
+
+Once Foyer is the home screen (the step above), **Settings > TV settings** covers the TV itself, so you don't need the stock settings app:
+
+- **Network and internet:** see nearby Wi-Fi, join one (type the password on the remote or your phone), forget networks, add a hidden one, turn Wi-Fi off. Shows when a cable is plugged in.
+- **Bluetooth and remotes:** turn Bluetooth on or off, pair headphones, speakers, controllers and keyboards, forget devices.
+- **Picture and display:** resolution and refresh rate (with a 15-second "Keep this picture?" so a bad choice undoes itself), when the screen turns off, Google's own screensaver on or off.
+- **Sound:** volume, mute, button click sounds.
+- **Apps:** open, force close, clear cache, clear data, turn off, uninstall, and turn back on apps you switched off.
+- **Storage:** space used, and **Free up space** to clear every app's temporary files.
+- **Name and about:** rename the TV (what phones see when casting), model, Android version, address.
+- **Power:** sleep now, restart.
+- **More:** Google account, privacy, date and time, language, keyboard, accessibility and system update. Google locks these to its own pages, so they open on top of Foyer; Back returns.
+
+Most of these use the same debugging link as "Make Foyer the home screen". If one says debugging isn't on, run that step again. If a TV update blocks one of them, the screen offers the matching stock page instead.

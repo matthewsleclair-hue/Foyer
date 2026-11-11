@@ -45,6 +45,9 @@ class LocalAdb(private val dir: File, private val log: (String) -> Unit) {
     private var helloMax = MAXDATA
     private var helloBanner = "host::\u0000"
 
+    /** What each command printed, in order (filled by run). */
+    val outputs = ArrayList<String>()
+
     fun run(commands: List<String>) {
         // make the key first: generating it on a slow stick can take a while
         val kp = keys()
@@ -88,6 +91,7 @@ class LocalAdb(private val dir: File, private val log: (String) -> Unit) {
             handshake(kp)
             sock.soTimeout = 60000
             log("Connected.")
+            outputs.clear()
             for (c in commands) {
                 log("$ $c")
                 val out = try {
@@ -96,6 +100,7 @@ class LocalAdb(private val dir: File, private val log: (String) -> Unit) {
                     if (c.trim() == "reboot") { log("Restarting…"); return true }
                     throw e
                 }
+                outputs.add(out)
                 if (out.isNotEmpty()) out.lines().take(6).forEach { log(it.take(160)) }
             }
             return true

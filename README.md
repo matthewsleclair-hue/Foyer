@@ -72,3 +72,7 @@ Small update: last number +1 (1.0.1 -> 1.0.2). Medium: middle number +1 and the 
 Settings → Home screen → **Sports scores** (also a step in first-run setup) lets you follow NHL, MLB, NBA, NFL teams and Formula 1.
 Scores come from ESPN's public data, which is unofficial and can change, so the pill simply hides if it stops working.
 **Foyer Drop** links the TV with a short code to the optional Docker server in [`server/`](server/README.md).
+
+## TV settings (Google TV / Android TV)
+
+Settings > **TV settings** puts Wi-Fi, Bluetooth, picture, sound, apps, storage, name and power inside Foyer (`lib/system.dart`, `TvSystem.kt`). It uses on-device ADB for the parts apps can't change themselves, and falls back to the stock page when a TV won't allow something. Not shown on Fire TV, where Amazon blocks on-device ADB. See GUIDE.md.

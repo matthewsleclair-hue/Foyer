@@ -1330,6 +1330,9 @@ class _SetupScreenState extends State<SetupScreen> {
     });
     final err = await adbQuick([
       if (!undo) 'pm grant com.leclair.leclair_home android.permission.WRITE_SECURE_SETTINGS',
+      // lets TV settings > Bluetooth work right away
+      if (!undo) 'pm grant com.leclair.leclair_home android.permission.BLUETOOTH_SCAN',
+      if (!undo) 'pm grant com.leclair.leclair_home android.permission.BLUETOOTH_CONNECT',
       for (final p in _stockHome) undo ? 'pm enable $p' : 'pm disable-user --user 0 $p',
     ]);
     final home = await loadDevice();

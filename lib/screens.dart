@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'main.dart';
 import 'server.dart';
 import 'sports.dart';
+import 'system.dart';
 import 'online.dart';
 import 'update.dart';
 import 'weather.dart';
@@ -494,6 +495,9 @@ final List<_Group> _groups = [
     if (kIsFireTv)
       _HubItem(Icons.restart_alt_rounded, 'Restart Fire TV',
           'Reboots the stick (needs ADB debugging on)', () => restartStick(c)),
+    if (!kIsFireTv)
+      _HubItem(Icons.restart_alt_rounded, 'Restart or sleep',
+          'Restart the TV box, or put it to sleep', () => _push(c, const PowerScreen())),
   ]),
   // The title stays "Fire TV tools" on a Fire TV; on other boxes the page shows only what applies.
   _Group(Icons.build_rounded, 'Fire TV tools', 'Home button, tune-up and cleanup', (c, s) => [
@@ -540,10 +544,16 @@ class SettingsHub extends StatelessWidget {
       if (up != null)
         _HubItem(Icons.system_update_rounded, 'Update available',
             'Version ${up.version} is ready to install', () => _push(context, const UpdateScreen())),
+      // On Google TV / Android TV the TV's own settings live inside Foyer.
+      if (!kIsFireTv)
+        _HubItem(Icons.tv_rounded, 'TV settings',
+            'Wi-Fi, Bluetooth, picture, sound, apps, storage, power',
+            () => _push(context, const SystemScreen())),
       for (final g in _groups)
         _HubItem(g.icon, g.title, g.subtitle, () => _push(context, _GroupScreen(g))),
-      _HubItem(Icons.settings_rounded, 'Fire TV settings',
-          'Open the stock Wi-Fi, display and sound settings', () => openFireSettings(context)),
+      if (kIsFireTv)
+        _HubItem(Icons.settings_rounded, 'Fire TV settings',
+            'Open the stock Wi-Fi, display and sound settings', () => openFireSettings(context)),
     ];
     return PopScope(
       canPop: false,

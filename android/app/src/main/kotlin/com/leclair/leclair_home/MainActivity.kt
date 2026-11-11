@@ -34,12 +34,14 @@ class MainActivity : FlutterActivity() {
         runOnUiThread { phoneChannel?.invokeMethod("text", text) }
     }
     private var pendingStorage: MethodChannel.Result? = null
+    private var tvSystem: TvSystem? = null
 
     private val backupName = "Foyer-backup.json"
     private val imageExt = setOf("jpg", "jpeg", "png", "webp")
 
     override fun onDestroy() {
         phoneInput.stop()
+        tvSystem?.stop()
         if (DropRemote.activity === this) {
             DropRemote.activity = null
             DropRemote.activityResumed = false
@@ -67,6 +69,11 @@ class MainActivity : FlutterActivity() {
         val ch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/launcher")
         channel = ch
         navChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/nav")
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/system").also { sc ->
+            val sys = TvSystem(this, sc)
+            tvSystem = sys
+            sc.setMethodCallHandler { call, result -> sys.handle(call, result) }
+        }
         phoneChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/phone").also { pc ->
             pc.setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -179,8 +186,9 @@ class MainActivity : FlutterActivity() {
                     val cmds = call.argument<List<String>>("commands") ?: emptyList()
                     Thread {
                         val out: Map<String, Any?> = try {
-                            LocalAdb(filesDir) { line -> runOnUiThread { ch.invokeMethod("adbLog", line) } }.run(cmds)
-                            mapOf("ok" to true)
+                            val adb = LocalAdb(filesDir) { line -> runOnUiThread { ch.invokeMethod("adbLog", line) } }
+                            adb.run(cmds)
+                            mapOf("ok" to true, "outputs" to adb.outputs.toList())
                         } catch (e: Exception) {
                             mapOf("ok" to false, "error" to "${e.javaClass.simpleName}: ${e.message}")
                         }
