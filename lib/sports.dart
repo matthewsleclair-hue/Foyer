@@ -488,16 +488,17 @@ void showScoreAlert({
       'size': kScoreAlertSize,
     }).catchError((_) => null);
 
+/// Sample on the Sports page: a Canadiens goal at the Bell Centre. Go Habs Go.
 void showSampleAlert() => showScoreAlert(
     league: 'nhl',
-    event: 'GOAL · TOR',
+    event: 'GOAL · MTL',
     away: 'TOR',
-    awayScore: '2',
+    awayScore: '1',
     home: 'MTL',
-    homeScore: '1',
-    detail: '2nd period · 12:34',
-    side: 'away',
-    color: '00205b');
+    homeScore: '2',
+    detail: '3rd period · 4:21',
+    side: 'home',
+    color: 'af1e2d');
 const List<String> kScoreAlertNames = ['Off', 'Scores only', 'Scores, start and final'];
 
 /// Watches the games of the teams you follow and pops a note over whatever is playing
