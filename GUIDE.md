@@ -148,4 +148,4 @@ Choices are saved as you go. **Settings > Backup and updates > Run setup again**
 
 **Settings > Home screen > Dashboard**: type the address you open Homarr at (for example `http://192.168.2.10:7575`, or your Cloudflare address). You can type it on your phone. Once it's connected, a dashboard button appears above the fireplace on the home screen; it isn't there until then.
 
-The dashboard opens full screen. Up and down scroll, left/right/OK move between and press things, Menu refreshes, Back closes. **Size** sets how much fits on screen (Small fits the most). If Homarr asks you to sign in, do it once; Foyer remembers it. **Remove the dashboard** takes the button away again.
+The dashboard opens full screen. Up and down scroll, left/right/OK move between and press things, Menu refreshes, Back closes. On a sign-in page, Up and Down move between the boxes and buttons instead (the selected one gets a green outline) and OK on a box opens the keyboard. **Size** sets how much fits on screen (Small fits the most). If Homarr asks you to sign in, do it once; Foyer remembers it. **Remove the dashboard** takes the button away again.

@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -49,6 +50,14 @@ class DashboardActivity : Activity() {
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true)
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = false
+            override fun onPageFinished(view: WebView, url: String?) {
+                // a clear outline on whatever is selected, so the remote can see where it is
+                view.evaluateJavascript(
+                    "(function(){if(document.getElementById('foyer-focus'))return;var s=document.createElement('style');" +
+                        "s.id='foyer-focus';s.textContent='*:focus{outline:4px solid #63E6BE !important;outline-offset:3px !important}';" +
+                        "document.head.appendChild(s);})();", null
+                )
+            }
         }
         web.webChromeClient = WebChromeClient()
         root.addView(web)
@@ -67,7 +76,7 @@ class DashboardActivity : Activity() {
         }
         web.loadUrl(url)
         web.requestFocus()
-        Toast.makeText(this, "Up and down scroll · Menu refreshes · Back closes", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "Up and down scroll (or move between boxes) · OK types or presses · Back closes", Toast.LENGTH_LONG).show()
     }
 
     private fun scroll(dy: Int) {
@@ -85,11 +94,68 @@ class DashboardActivity : Activity() {
         web.evaluateJavascript(js, null)
     }
 
+    /**
+     * Up/Down: on a page with typing boxes (a sign-in page), move between the boxes and
+     * buttons; on a normal dashboard, scroll.
+     */
+    private fun upDown(dir: Int) {
+        val js = """
+            (function(dir){
+              var vis=function(e){var r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&getComputedStyle(e).visibility!='hidden';};
+              var boxes=[].slice.call(document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]),textarea')).filter(vis);
+              if(!boxes.length) return 'scroll';
+              var all=[].slice.call(document.querySelectorAll('input:not([type=hidden]),textarea,select,button,a[href],[tabindex]:not([tabindex="-1"])')).filter(vis);
+              var i=all.indexOf(document.activeElement);
+              var n=i<0?(dir>0?0:all.length-1):Math.min(all.length-1,Math.max(0,i+dir));
+              all[n].focus();all[n].scrollIntoView({block:'center'});
+              return 'moved';
+            })($dir);
+        """.trimIndent()
+        web.evaluateJavascript(js) { r -> if (r != null && r.contains("scroll")) scroll(if (dir > 0) 420 else -420) }
+    }
+
+    /** OK: on a typing box, open the keyboard; on anything else, press it. */
+    private fun ok() {
+        val js = """
+            (function(){
+              var e=document.activeElement;
+              if(!e||e===document.body) return 'none';
+              var t=(e.tagName||'').toLowerCase(), ty=(e.type||'').toLowerCase();
+              if(t=='textarea'||(t=='input'&&['checkbox','radio','button','submit','reset'].indexOf(ty)<0)){e.focus();return 'box';}
+              e.click();return 'clicked';
+            })();
+        """.trimIndent()
+        web.evaluateJavascript(js) { r ->
+            when {
+                r == null -> {}
+                r.contains("box") -> {
+                    web.requestFocus()
+                    (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
+                        .showSoftInput(web, InputMethodManager.SHOW_IMPLICIT)
+                }
+                r.contains("none") -> {
+                    // nothing selected in the page: let the web view handle OK itself
+                    web.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER))
+                    web.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_CENTER))
+                }
+            }
+        }
+    }
+
+    private fun isOk(code: Int) =
+        code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER || code == KeyEvent.KEYCODE_NUMPAD_ENTER
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // while the on-screen keyboard is typing into the page, leave every key to it
+        if (imeOpen()) return super.dispatchKeyEvent(event)
+        if (isOk(event.keyCode)) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) ok()
+            return true
+        }
         if (event.action == KeyEvent.ACTION_DOWN) {
             when (event.keyCode) {
-                KeyEvent.KEYCODE_DPAD_UP -> { scroll(-420); return true }
-                KeyEvent.KEYCODE_DPAD_DOWN -> { scroll(420); return true }
+                KeyEvent.KEYCODE_DPAD_UP -> { upDown(-1); return true }
+                KeyEvent.KEYCODE_DPAD_DOWN -> { upDown(1); return true }
                 KeyEvent.KEYCODE_MENU -> { web.reload(); return true }
                 KeyEvent.KEYCODE_BACK -> {
                     if (web.canGoBack()) web.goBack() else finish()
@@ -101,6 +167,13 @@ class DashboardActivity : Activity() {
             event.keyCode == KeyEvent.KEYCODE_MENU || event.keyCode == KeyEvent.KEYCODE_BACK) return true
         return super.dispatchKeyEvent(event)
     }
+
+    private fun imeOpen(): Boolean = try {
+        val r = android.graphics.Rect()
+        window.decorView.getWindowVisibleDisplayFrame(r)
+        // the keyboard covers part of the screen
+        r.height() < window.decorView.height * 0.85
+    } catch (e: Exception) { false }
 
     override fun onDestroy() {
         try {
