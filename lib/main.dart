@@ -1673,13 +1673,26 @@ class _AllAppsScreenState extends State<AllAppsScreen> {
             const Text('All apps',
                 style: TextStyle(fontSize: 64, fontWeight: FontWeight.w700, letterSpacing: -1)),
             const SizedBox(height: 10),
-            const Text('Select to open. Hold Select to pin or unpin from your home screen.',
+            const Text('Select to open. Hold Select to pin or unpin. Up from the top row goes back home.',
                 style: TextStyle(fontSize: 26, color: Colors.white70)),
             const SizedBox(height: 32),
             Expanded(
               child: _loading
                   ? const Text('Loading…', style: TextStyle(fontSize: 28, color: Colors.white70))
-                  : SingleChildScrollView(
+                  : Focus(
+                      canRequestFocus: false,
+                      skipTraversal: true,
+                      // Up from the top row: back to the home screen
+                      onKeyEvent: (_, e) {
+                        if (e is KeyDownEvent && e.logicalKey == LogicalKeyboardKey.arrowUp) {
+                          if (!(primaryFocus?.focusInDirection(TraversalDirection.up) ?? false)) {
+                            Navigator.of(context).maybePop();
+                          }
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
                       child: Wrap(spacing: 20, runSpacing: 20, children: [
                         for (var i = 0; i < _apps.length; i++)
@@ -1694,6 +1707,7 @@ class _AllAppsScreenState extends State<AllAppsScreen> {
                             onLongPress: () => _pinMenu(_apps[i]),
                           ),
                       ]),
+                    ),
                     ),
             ),
           ]),
@@ -2166,8 +2180,13 @@ class _HomeScreenState extends State<HomeScreen>
       transitionDuration: const Duration(milliseconds: 260),
       reverseTransitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (_, __, ___) => const AllAppsScreen(),
-      // plain fade: the zoom-in made a strip down the right edge of this screen on some sticks
-      transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+      // rises from the app row (a slide, not a zoom: the zoom left a strip on some sticks)
+      transitionsBuilder: (_, a, __, child) => FadeTransition(
+          opacity: a,
+          child: SlideTransition(
+              position: Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
+                  .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+              child: child)),
     ));
   }
 
@@ -2252,7 +2271,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _content(List<AppInfo> apps, Settings settings) {
-    final count = apps.length + 1; // + the All apps tile
+    final count = max(apps.length, 1); // the All apps tile only shows when nothing is pinned
     // room on the left for the two round buttons
     const avail = 1920.0 - 200 - 100 - 80;
     final tileW = ((avail - 28.0 * (count - 1)) / count).clamp(120.0, 240.0).toDouble();
@@ -2367,6 +2386,28 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ),
+      // a quiet hint under the app row: Down shows every app
+      if (apps.isNotEmpty)
+        Positioned(
+          left: 200,
+          right: 100,
+          bottom: 8,
+          child: IgnorePointer(
+            child: FadeTransition(
+              opacity: _fadeLate,
+              child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.keyboard_arrow_down_rounded, size: 30, color: Colors.white54),
+                SizedBox(width: 4),
+                Text('All apps',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white54,
+                        shadows: [Shadow(color: Color(0x99000000), blurRadius: 12)])),
+              ]),
+            ),
+          ),
+        ),
     ]);
   }
 
@@ -2528,8 +2569,9 @@ class _Dock extends StatelessWidget {
                   onLongPress: () => onMenu(apps[i], i),
                 ),
               ),
+            if (apps.isEmpty)
             Padding(
-              padding: EdgeInsets.only(left: apps.isEmpty ? 0 : 28),
+              padding: EdgeInsets.zero,
               child: _Tile(
                 key: const ValueKey('__all_apps__'),
                 index: apps.length,
