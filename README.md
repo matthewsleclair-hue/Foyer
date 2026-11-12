@@ -22,15 +22,13 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 ## What you get
 
 **A home screen that's actually yours**
-- Your favourite apps along the bottom, in the order you like
-- A big clock with "Good evening · 4° Cloudy" underneath
-- Glass-style design that warms up at sunset and dims late at night
-- Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
-- Photo backgrounds (a misty meadow, the Matterhorn, a volcano at dusk, a starry lake, a misty forest) with a big clock tucked behind the mountains and trees
+- Your favourite apps along the bottom, in the order you like. Press **Down** to see every app, and **Up** at the top to come back
+- **Keep watching:** the shows you're part way through, in Plex, Netflix, Disney+, Prime Video, Fibe TV, YouTube and more, with how far in you are. One press picks up right where you left off
+- **People:** everyone in the house gets their own apps and sports teams. Their names sit under the greeting; pick one to switch, and Foyer says "Good evening, Sarah"
+- **Photo backgrounds** with a big clock tucked behind the mountains and trees: a misty meadow, the Matterhorn, a volcano at dusk, a starry lake and a misty forest. They take turns, or follow the time of day
 - Rain, snow or fog drifting over the background when that's the weather outside
-- Press Down on your apps to see all of them, and Up to go back
-- **Keep watching:** the shows you're part way through in Netflix, Disney+, Prime Video, YouTube and more, with how far in you are. One press picks up right where you left off
-- **People:** everyone in the house gets their own apps and teams; switch at the top left of the home screen
+- "Good evening · 4° Cloudy", and glass that warms up at sunset and dims late at night
+- Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
 
 **No ads, no clutter**
 - Google's ad-filled home screen is switched off
@@ -40,24 +38,66 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - Live scores for your teams (NHL, MLB, NBA, NFL and Formula 1)
 - A small pop-up when your team scores, even while you're watching Netflix, in your team's colours
 
-**Little things that make evenings nicer**
+**Evenings and bedtime** (the moon button, bottom left)
 - A **sleep timer** that turns the TV off after an episode or two, with a "still watching?" warning
-- The **star button** on the remote opens whatever you want (Plex, say)
-- A fireplace video for cozy evenings, in the moon menu
-- Soft click sounds as you move around (or none, if you prefer)
 - **Screen off:** the picture goes black while the sound keeps playing, for music or falling asleep to a show
+- A crackling **fireplace** video
 - **Smart idle:** when nobody's watching, a dim drifting clock protects the screen, and a show left paused turns the TV off by itself (after a "still here?" note)
 
-**Your TV's settings, without the maze**
+**Your TV's settings, without the maze** (the gear button, bottom left)
+- Sections on the left, their options on the right, in plain words
 - Wi-Fi, Bluetooth headphones, picture, sound, apps and storage, all inside Foyer
-- Settings laid out simply: the sections on the left, their options on the right
+- The **star button** on the remote opens whatever you want (Plex, say), and soft click sounds as you move around (or none)
 - Updates install with one press
-- If something ever goes wrong and Foyer keeps crashing, the TV's own home screen steps in by itself for a few minutes, so the TV never gets stuck
+- If Foyer ever keeps crashing, the TV's own home screen steps in by itself for a few minutes, so the TV never gets stuck
 
 **The Foyer companion app on your phone**
 - A remote with a real keyboard, plus photos, notes and drawings sent to the TV. [More below](#the-foyer-companion-app).
 
-**Photo backgrounds, with the clock tucked behind the scenery.** They take turns, or follow the time of day: the meadow at sunrise, the forest in the morning mist, the Matterhorn at midday, the volcano at dusk and the starry lake at night.
+<table>
+  <tr>
+    <td><img src="docs/screenshots/settings.png" alt="Settings"></td>
+    <td><img src="docs/screenshots/all-apps.png" alt="All apps"></td>
+  </tr>
+  <tr>
+    <td align="center">Settings: sections on the left, options on the right</td>
+    <td align="center">Every app, one press down from your row</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/people.png" alt="People"></td>
+    <td><img src="docs/screenshots/tv-settings.png" alt="TV settings"></td>
+  </tr>
+  <tr>
+    <td align="center">Everyone gets their own apps and teams</td>
+    <td align="center">Wi-Fi, Bluetooth, picture and sound</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/weather.png" alt="Rain over the background"></td>
+    <td><img src="docs/screenshots/smart-idle.png" alt="Smart idle"></td>
+  </tr>
+  <tr>
+    <td align="center">The weather outside, on the background</td>
+    <td align="center">Smart idle looks after the screen</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/sports.png" alt="Sports settings"></td>
+    <td><img src="docs/screenshots/alert.png" alt="Score alert"></td>
+  </tr>
+  <tr>
+    <td align="center">Pick your teams</td>
+    <td align="center">A goal alert over whatever you're watching</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/sleep.png" alt="The moon menu"></td>
+    <td><img src="docs/screenshots/setup.png" alt="Welcome setup"></td>
+  </tr>
+  <tr>
+    <td align="center">Goodnight, sleep timer, screen off and the fireplace</td>
+    <td align="center">A friendly setup the first time</td>
+  </tr>
+</table>
+
+**The photo backgrounds.** They take turns, or follow the time of day: the meadow at sunrise, the forest in the morning mist, the Matterhorn at midday, the volcano at dusk and the starry lake at night.
 
 <table>
   <tr>
@@ -77,44 +117,27 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
     <td align="center">Starry lake</td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="docs/screenshots/scene-mistforest.jpg" width="50%" alt="Misty forest"><br>Misty forest</td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td><img src="docs/screenshots/all-apps.png" alt="All apps"></td>
-    <td><img src="docs/screenshots/settings.png" alt="Settings"></td>
-  </tr>
-  <tr>
-    <td align="center">All your apps</td>
-    <td align="center">Settings, in plain words</td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/sports.png" alt="Sports settings"></td>
-    <td><img src="docs/screenshots/alert.png" alt="Score alert"></td>
-  </tr>
-  <tr>
-    <td align="center">Pick your teams</td>
-    <td align="center">A goal alert over whatever you're watching</td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/tv-settings.png" alt="TV settings"></td>
-    <td><img src="docs/screenshots/sleep.png" alt="Sleep timer"></td>
-  </tr>
-  <tr>
-    <td align="center">Wi-Fi, Bluetooth, picture and sound</td>
-    <td align="center">Goodnight and the sleep timer</td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/setup.png" alt="Welcome setup"></td>
+    <td><img src="docs/screenshots/scene-mistforest.jpg" alt="Misty forest"></td>
     <td><img src="docs/screenshots/holiday.png" alt="Holiday theme"></td>
   </tr>
   <tr>
-    <td align="center">A friendly setup the first time</td>
+    <td align="center">Misty forest</td>
     <td align="center">Holiday themes switch on by themselves</td>
   </tr>
 </table>
+
+## Where things are in Settings
+
+Press the **gear** at the bottom left of the home screen (or the remote's menu button).
+
+| Section | What's in it |
+|---|---|
+| **TV settings** | Network and Wi-Fi, VPN, Bluetooth and remotes, picture and resolution, sound, apps, storage, the TV's name, power |
+| **Home screen** | Name and clock, your apps, **People**, **Plex**, **Keep watching** (on or off), weather, sports and score alerts, Foyer Drop |
+| **Appearance** | Glass style, wallpaper and **scenes**, performance mode, light that follows the day, **weather on the background**, holiday themes, sounds |
+| **Screensaver and power** | Screensaver, **Smart idle**, **Screen off**, start on boot, restart or sleep |
+| **TV tools** | Home button, Tune-up, remote buttons |
+| **Backup and updates** | Updates, backup and restore, reset for someone new, run setup again |
 
 ## The Foyer companion app
 
@@ -152,7 +175,7 @@ Foyer isn't in the Play Store. It's shared with friends and family:
 - **Easiest:** ask whoever gave you Foyer to set up your box. They can hand it to you ready to go, and the first time you turn it on, Foyer walks you through the rest with just the remote: Wi-Fi, your name, how it looks and your apps.
 - **Doing it yourself:** follow the [step-by-step guide](GUIDE.md). You'll need a computer once, for about 10 minutes.
 
-After that, updates come with one press: **Settings → Updates → Download and install**.
+After that, updates come with one press: **Settings → Backup and updates → Updates → Download and install**.
 
 ## Common questions
 
@@ -166,7 +189,7 @@ Yes, any time: **Settings → TV tools → Home button → Bring back the TV's o
 No. Foyer has no ads and no tracking. Weather and scores come from public sources; Foyer Drop runs on a server that belongs to whoever set it up for you.
 
 **Something looks wrong. What do I do?**
-Press **Home** to come back to Foyer. If that doesn't help, try **Settings → Screensaver and power → Restart or sleep → Restart**, then tell whoever set up Foyer for you.
+Press **Home** to come back to Foyer. If it ever keeps crashing, the TV's own home screen takes over for a few minutes by itself. If that doesn't help, try **Settings → Screensaver and power → Restart or sleep → Restart**, then tell whoever set up Foyer for you.
 
 **Is it free?**
 Yes.
