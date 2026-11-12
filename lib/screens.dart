@@ -464,7 +464,7 @@ Future<void> openAmazonHome(BuildContext context) async {
 }
 
 final List<_Group> _groups = [
-  _Group(Icons.home_rounded, 'Home screen', 'Name, apps, weather, Plex', (c, s) => [
+  _Group(Icons.home_rounded, 'Home screen', 'Name, apps, weather, sports', (c, s) => [
     _HubItem(Icons.badge_rounded, 'Name and clock',
         '${s.name}, ${s.clock24 ? '24-hour' : '12-hour'} clock', () => _editStep(c, 0)),
     _HubItem(Icons.apps_rounded, 'Pinned apps', '${s.pinned.length} on your home screen',
@@ -476,8 +476,6 @@ final List<_Group> _groups = [
             ? 'Off'
             : '${s.weatherCity}, ${s.weatherF ? 'Fahrenheit' : 'Celsius'}',
         () => _push(c, const WeatherScreen())),
-    _HubItem(Icons.video_library_rounded, 'Plex',
-        s.plexToken.isEmpty ? 'Not linked' : 'Linked to ${s.plexName}', () => _editStep(c, 3)),
     _HubItem(
         Icons.sports_score_rounded,
         'Sports',

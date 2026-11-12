@@ -688,16 +688,9 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
         child: SingleChildScrollView(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SysRow(
-                icon: Icons.video_library_rounded,
-                title: 'Plex',
-                subtitle: 'Continue watching from your Plex server on the home screen',
-                value: s.plexName.isNotEmpty ? '✓ ${s.plexName}' : '',
-                autofocus: true,
-                onSelect: () => _open(SetupScreen(
-                    firstRun: false, only: 3, onDone: () => Navigator.of(context).pop()))),
-            SysRow(
                 icon: Icons.sports_hockey_rounded,
                 title: 'Sports scores',
+                autofocus: true,
                 subtitle: 'Live scores and goal alerts for your teams: NHL, MLB, NBA, NFL, F1',
                 value: teams > 0 ? '✓ $teams' : '',
                 onSelect: () => _open(const SportsSettingsScreen())),
@@ -754,7 +747,6 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
         line(_helper, 'Remote helper on'),
         line(s.pinned.isNotEmpty, '${s.pinned.length} apps on your home screen'),
         line(s.weatherCity.isNotEmpty, s.weatherCity.isEmpty ? 'Weather (not set)' : 'Weather for ${s.weatherCity}'),
-        line(s.plexName.isNotEmpty, s.plexName.isEmpty ? 'Plex (not linked)' : 'Plex: ${s.plexName}'),
         line(s.sportsTeams.isNotEmpty, s.sportsTeams.isEmpty ? 'Sports scores (none)' : 'Following ${s.sportsTeams.length} teams'),
         line(s.serverUrl.isNotEmpty && s.serverToken.isNotEmpty, 'Foyer Drop'),
         const SizedBox(height: 26),

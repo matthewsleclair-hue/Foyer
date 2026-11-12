@@ -1733,9 +1733,6 @@ class _HomeScreenState extends State<HomeScreen>
   bool _leaving = false;
   final ValueNotifier<int> _focus = ValueNotifier(0);
 
-  PlexRow? _plex;
-  String _plexSig = '\u0000';
-  Timer? _plexTimer;
 
   WeatherNow? _weather;
   String _weatherSig = '\u0000';
@@ -1783,7 +1780,6 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _plexTimer = Timer.periodic(const Duration(minutes: 15), (_) => _loadPlex(force: true));
     _weatherTimer = Timer.periodic(const Duration(minutes: 20), (_) => _loadWeather(force: true));
     _updateTimer = Timer.periodic(const Duration(minutes: 30), (_) => _checkUpdate(force: true));
     _sportsTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadSports());
@@ -1881,7 +1877,6 @@ class _HomeScreenState extends State<HomeScreen>
     super.didChangeDependencies();
     // runs on first build and whenever settings change
     _load();
-    _loadPlex();
     _loadWeather();
     _loadSports();
     _checkUpdate();
@@ -1891,7 +1886,6 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _endZoom();
     WidgetsBinding.instance.removeObserver(this);
-    _plexTimer?.cancel();
     _weatherTimer?.cancel();
     _sportsTimer?.cancel();
     _dropTimer?.cancel();
@@ -1915,7 +1909,6 @@ class _HomeScreenState extends State<HomeScreen>
       _endZoom();
       if (_leaving) setState(() => _leaving = false);
       _load();
-      _loadPlex(force: true);
       _checkUpdate(force: true);
     }
   }
@@ -1967,37 +1960,6 @@ class _HomeScreenState extends State<HomeScreen>
         for (final p in pinned)
           if (_cache[p] != null && _cache[p] != _missingMarker) _cache[p]!
       ];
-
-  /// Opens the title's own page in Plex; the Plex app if there's no link to use.
-  Future<void> _openPlexItem(PlexItem it) async {
-    // seasons open the show; movies and episodes open themselves
-    final link = it.type == 'season' ? it.showLink : it.plexLink;
-    if (link.isNotEmpty) {
-      bool ok = false;
-      try {
-        ok = (await kChannel.invokeMethod<bool>('openLink', {'url': link, 'package': kPlexPackage})) ?? false;
-      } catch (_) {}
-      if (ok) return;
-    }
-    _openPkg(kPlexPackage);
-  }
-
-  Future<void> _loadPlex({bool force = false}) async {
-    final s = SettingsScope.read(context);
-    final sig = '${s.plexUrl}|${s.plexToken}';
-    if (s.plexUrl.isEmpty || s.plexToken.isEmpty) {
-      _plex = null;
-      _plexSig = sig;
-      return;
-    }
-    if (!force && sig == _plexSig) return;
-    _plexSig = sig;
-    try {
-      final row = await PlexApi(s.clientId)
-          .fetchRow(PlexServer(s.plexName, s.plexUrl, s.plexToken));
-      if (mounted) setState(() => _plex = row.items.isEmpty ? null : row);
-    } catch (_) {}
-  }
 
   Future<void> _checkUpdate({bool force = false}) async {
     final s = SettingsScope.read(context);
@@ -2274,12 +2236,6 @@ class _HomeScreenState extends State<HomeScreen>
                 const SleepPill(),
 
               ]))),
-      if (_plex != null)
-        Positioned(
-            left: 96,
-            right: 96,
-            top: 232,
-            child: FadeTransition(opacity: _fadeLate, child: _plexRow(_plex!))),
       Positioned(
           right: 96,
           bottom: 300,
@@ -2326,25 +2282,6 @@ class _HomeScreenState extends State<HomeScreen>
     ]);
   }
 
-  Widget _plexRow(PlexRow row) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(row.title,
-            style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w600,
-                color: Colors.white70,
-                shadows: [Shadow(color: Color(0x80000000), blurRadius: 16)])),
-        const SizedBox(height: 16),
-        FocusTraversalGroup(
-          child: Row(children: [
-            for (final it in row.items)
-              Padding(
-                padding: const EdgeInsets.only(right: 28),
-                child: _PlexCard(item: it, onOpen: () => _openPlexItem(it)),
-              ),
-          ]),
-        ),
-      ]);
-
   Widget _hero(List<AppInfo> apps) => ValueListenableBuilder<int>(
         valueListenable: _focus,
         builder: (_, i, __) {
@@ -2370,69 +2307,6 @@ class _HomeScreenState extends State<HomeScreen>
                     shadows: [Shadow(color: Color(0x80000000), blurRadius: 24)])),
           );
         },
-      );
-}
-
-class _PlexCard extends StatelessWidget {
-  const _PlexCard({required this.item, required this.onOpen});
-  final PlexItem item;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) => FocusButton(
-        onSelect: onOpen,
-        builder: (_, f) => SizedBox(
-          width: 320,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 140),
-              width: 320,
-              height: 180,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                    color: f ? Colors.white : Colors.white.withAlpha(50), width: f ? 3 : 1.2),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withAlpha(f ? 150 : 70),
-                      blurRadius: f ? 28 : 12,
-                      offset: Offset(0, f ? 16 : 6))
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: Stack(fit: StackFit.expand, children: [
-                  Image.network(item.imageUrl,
-                      fit: BoxFit.cover,
-                      cacheWidth: 640,
-                      gaplessPlayback: true,
-                      errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF1A1D2B))),
-                  if (item.progress != null)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: LinearProgressIndicator(
-                          value: item.progress,
-                          minHeight: 6,
-                          backgroundColor: Colors.black54,
-                          color: Colors.white),
-                    ),
-                ]),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(item.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
-            if (item.subtitle.isNotEmpty)
-              Text(item.subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 20, color: Colors.white60)),
-          ]),
-        ),
       );
 }
 
