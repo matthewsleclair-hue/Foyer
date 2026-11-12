@@ -95,6 +95,7 @@ class _RemoteButtonsScreenState extends State<RemoteButtonsScreen> {
     }
     if (action == 'foyer') return 'Foyer home';
     if (action == 'sleep') return 'Sleep timer (+30 min)';
+    if (action == 'screenoff') return 'Screen off';
     return _labels[action] ?? action;
   }
 
@@ -251,6 +252,7 @@ class _ActionPickerState extends State<_ActionPicker> {
             _row(Icons.undo_rounded, widget.normalLabel, '', first: true),
             _row(Icons.home_rounded, 'Foyer home', 'foyer'),
             _row(Icons.bedtime_rounded, 'Sleep timer: 30 more minutes each press', 'sleep'),
+            _row(Icons.tv_off_rounded, 'Screen off: picture off, sound keeps playing', 'screenoff'),
             for (final a in _apps) _row(Icons.apps_rounded, a.label, a.package),
           ]),
         ),

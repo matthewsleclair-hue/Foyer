@@ -74,6 +74,7 @@ class HomeKeyService : AccessibilityService() {
         getSharedPreferences("leclair_home", MODE_PRIVATE).edit().putBoolean("homeKeyWanted", true).apply()
         RemoteKeys.reload(this)
         SleepTimer.restore(this)
+        IdleWatch.restore(this)
         refreshFilter()
         DropRemote.service = this
         DropRemote.ensure(this)
@@ -84,6 +85,8 @@ class HomeKeyService : AccessibilityService() {
     fun goHomeFromRemote() = fightForFront()
 
     private fun openFoyer() {
+        // Foyer had trouble and is letting the TV's own home run for a few minutes
+        if (CrashGuard.aside(this)) return
         try {
             startActivity(
                 Intent(this, MainActivity::class.java)

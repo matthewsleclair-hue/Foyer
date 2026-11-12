@@ -14,6 +14,8 @@ import 'seasons.dart';
 import 'scenes.dart';
 import 'setup.dart';
 import 'remote.dart';
+import 'idle.dart';
+import 'weatherfx.dart';
 import 'online.dart';
 import 'update.dart';
 import 'weather.dart';
@@ -186,13 +188,13 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: Colors.black,
         body: Stack(fit: StackFit.expand, children: [
-          const Positioned.fill(child: RepaintBoundary(child: Backdrop(tint: kDefaultTint))),
+          const Positioned.fill(child: SettingsBackdrop()),
           Padding(
-            padding: const EdgeInsets.fromLTRB(140, 80, 140, 60),
+            padding: const EdgeInsets.fromLTRB(140, 72, 140, 56),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title,
                   style: const TextStyle(
-                      fontSize: 62, fontWeight: FontWeight.w700, letterSpacing: -1)),
+                      fontSize: 52, fontWeight: FontWeight.w700, letterSpacing: -1)),
               if (subtitle != null) ...[
                 const SizedBox(height: 10),
                 SizedBox(
@@ -425,12 +427,14 @@ void _push(BuildContext c, Widget w) =>
 
 // ───────────────────────── settings hub ─────────────────────────
 
-class _HubItem {
-  _HubItem(this.icon, this.title, this.subtitle, this.onSelect);
+/// One row in the settings: icon, title, a small line, and an optional value on the right.
+class HubEntry {
+  HubEntry(this.icon, this.title, this.subtitle, this.onSelect, {this.value = ''});
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onSelect;
+  final String value;
 }
 
 class _Group {
@@ -442,7 +446,7 @@ class _Group {
   final IconData icon;
   final String _title;
   final String _subtitle;
-  final List<_HubItem> Function(BuildContext c, Settings s) items;
+  final List<HubEntry> Function(BuildContext c, Settings s) items;
 }
 
 /// Opens one step of the first-run setup on its own (0 name/clock, 1 glass, 2 apps, 3 Plex, 4 Home button, 5 sports).
@@ -468,25 +472,25 @@ Future<void> openAmazonHome(BuildContext context) async {
 
 final List<_Group> _groups = [
   _Group(Icons.home_rounded, 'Home screen', 'Name, apps, weather, sports', (c, s) => [
-    _HubItem(Icons.badge_rounded, 'Name and clock',
+    HubEntry(Icons.badge_rounded, 'Name and clock',
         '${s.name}, ${s.clock24 ? '24-hour' : '12-hour'} clock', () => _editStep(c, 0)),
-    _HubItem(Icons.apps_rounded, 'Pinned apps', '${s.pinned.length} on your home screen',
+    HubEntry(Icons.apps_rounded, 'Pinned apps', '${s.pinned.length} on your home screen',
         () => _editStep(c, 2)),
-    _HubItem(
+    HubEntry(
         Icons.wb_sunny_rounded,
         'Weather',
         s.weatherCity.isEmpty
             ? 'Off'
             : '${s.weatherCity}, ${s.weatherF ? 'Fahrenheit' : 'Celsius'}',
         () => _push(c, const WeatherScreen())),
-    _HubItem(
+    HubEntry(
         Icons.sports_score_rounded,
         'Sports',
         s.sportsTeams.isEmpty
             ? 'Pick your teams for live scores and alerts'
             : '${s.sportsTeams.length} teams · alerts ${s.scoreAlerts == 0 ? 'off' : (s.scoreDelay > 0 ? 'on, ${s.scoreDelay} s delay' : 'on')}',
         () => _push(c, const SportsSettingsScreen())),
-    _HubItem(Icons.local_fire_department_rounded, 'Fireplace video',
+    HubEntry(Icons.local_fire_department_rounded, 'Fireplace video',
         s.fireplaceUrl.isEmpty ? 'The flame button opens Foyer\'s pick on YouTube' : 'Your own: ${s.fireplaceUrl}',
         () async {
       final v = await askText(c, 'YouTube link for the fireplace', s.fireplaceUrl,
@@ -499,17 +503,17 @@ final List<_Group> _groups = [
       }
       s.change(() => s.fireplaceUrl = (t.isEmpty || t.startsWith('http')) ? t : 'https://$t');
     }),
-    _HubItem(Icons.cloud_sync_rounded, 'Foyer Drop',
+    HubEntry(Icons.cloud_sync_rounded, 'Foyer Drop',
         s.serverUrl.isEmpty || s.serverToken.isEmpty ? 'Not linked' : 'Linked to ${s.serverUrl}',
         () => _push(c, const ServerScreen())),
   ]),
   _Group(Icons.palette_rounded, 'Appearance', 'Glass style, wallpaper, holidays, sounds', (c, s) => [
-    _HubItem(
+    HubEntry(
         Icons.blur_on_rounded,
         'Glass style',
         s.liquid ? (s.perfMode ? 'Liquid glass (blur is off in Performance mode)' : 'Liquid glass') : 'Simple glass',
         () => _editStep(c, 1)),
-    _HubItem(
+    HubEntry(
         Icons.wallpaper_rounded,
         'Wallpaper',
         s.wallMode == 'scenes'
@@ -522,10 +526,10 @@ final List<_Group> _groups = [
                 ? kWallPresets[clampIdx(int.tryParse(s.wallValue) ?? 0, kWallPresets.length - 1)].name
                 : 'Follows the selected app'),
         () => _push(c, const WallpaperScreen())),
-    _HubItem(Icons.speed_rounded, 'Performance mode',
+    HubEntry(Icons.speed_rounded, 'Performance mode',
         s.perfMode ? 'On: no blur, lighter animations' : 'Off',
         () => s.change(() => s.perfMode = !s.perfMode)),
-    _HubItem(Icons.wb_twilight_rounded, 'Light follows the day',
+    HubEntry(Icons.wb_twilight_rounded, 'Light follows the day',
         s.dayLightOn ? 'On: warmer at sunset, dimmer late at night' : 'Off: the same all day', () {
       s.change(() {
         s.dayLightOn = !s.dayLightOn;
@@ -533,10 +537,13 @@ final List<_Group> _groups = [
       });
       kDayTick.value++;
     }),
-    _HubItem(Icons.celebration_rounded, 'Seasonal themes',
+    HubEntry(Icons.thunderstorm_rounded, 'Weather on the background',
+        s.weatherFx ? 'On: rain, snow and fog when it\'s like that outside' : 'Off',
+        () => _push(c, const WeatherFxScreen())),
+    HubEntry(Icons.celebration_rounded, 'Seasonal themes',
         s.seasonal ? 'On: Halloween, Christmas, New Year and Easter' : 'Off',
         () => _push(c, const SeasonsScreen())),
-    _HubItem(Icons.music_note_rounded, 'Sounds',
+    HubEntry(Icons.music_note_rounded, 'Sounds',
         '${kSoundNames[s.soundLevel]}: a soft tick when you move around', () {
       s.change(() {
         s.soundLevel = (s.soundLevel + 1) % 3;
@@ -545,53 +552,57 @@ final List<_Group> _groups = [
     }),
   ]),
   _Group(Icons.bedtime_rounded, 'Screensaver and power', 'Screensaver, start on boot, restart', (c, s) => [
-    _HubItem(Icons.bedtime_rounded, 'Screensaver',
+    HubEntry(Icons.bedtime_rounded, 'Screensaver',
         s.ssMinutes == 0 ? 'Off' : 'Starts after ${s.ssMinutes} min idle',
         () => _push(c, const ScreensaverScreen())),
-    _HubItem(Icons.power_settings_new_rounded, 'Start on boot',
+    HubEntry(Icons.nights_stay_rounded, 'Smart idle', smartIdleSummary(s),
+        () => _push(c, const SmartIdleScreen())),
+    HubEntry(Icons.tv_off_rounded, 'Screen off',
+        'Picture off, sound keeps playing. Any button brings it back', () => screenOffNow(c)),
+    HubEntry(Icons.power_settings_new_rounded, 'Start on boot',
         s.autoStart ? 'On: opens Foyer when the stick starts' : 'Off',
         () => s.change(() => s.autoStart = !s.autoStart)),
     if (kIsFireTv)
-      _HubItem(Icons.restart_alt_rounded, 'Restart Fire TV',
+      HubEntry(Icons.restart_alt_rounded, 'Restart Fire TV',
           'Reboots the stick (needs ADB debugging on)', () => restartStick(c)),
     if (!kIsFireTv)
-      _HubItem(Icons.restart_alt_rounded, 'Restart or sleep',
+      HubEntry(Icons.restart_alt_rounded, 'Restart or sleep',
           'Restart the TV box, or put it to sleep', () => _push(c, const PowerScreen())),
   ]),
   // The title stays "Fire TV tools" on a Fire TV; on other boxes the page shows only what applies.
   _Group(Icons.build_rounded, 'Fire TV tools', 'Home button, tune-up, remote buttons', (c, s) => [
-    _HubItem(
+    HubEntry(
         Icons.keyboard_return_rounded,
         'Home button',
         kIsFireTv ? 'Keep Foyer in front of Amazon\'s home' : 'Make Foyer this TV\'s home screen',
         () => _editStep(c, 4)),
     if (kIsFireTv)
-      _HubItem(Icons.home_work_rounded, 'Amazon home screen',
+      HubEntry(Icons.home_work_rounded, 'Amazon home screen',
           'Open the stock Fire TV home for a moment', () => openAmazonHome(c)),
     if (kIsFireTv)
-      _HubItem(Icons.build_rounded, 'Tune-up',
+      HubEntry(Icons.build_rounded, 'Tune-up',
           'Debug report and how to remove Amazon ads', () => _push(c, const TuneUpScreen())),
     if (!kIsFireTv)
-      _HubItem(Icons.cleaning_services_rounded, 'Tune-up',
+      HubEntry(Icons.cleaning_services_rounded, 'Tune-up',
           'Switch off Google\'s ads, tracking and extra apps', () => _push(c, const GoogleTuneUpScreen())),
-    _HubItem(Icons.settings_remote_rounded, 'Remote buttons',
+    HubEntry(Icons.settings_remote_rounded, 'Remote buttons',
         s.remoteKeys.values.any((v) => v.isNotEmpty)
             ? 'Custom buttons are set'
             : 'Choose what the star, YouTube and Netflix buttons open',
         () => _push(c, const RemoteButtonsScreen())),
   ]),
   _Group(Icons.system_update_rounded, 'Backup and updates', 'Updates, backup, run setup again', (c, s) => [
-    _HubItem(
+    HubEntry(
         Icons.system_update_rounded,
         'Updates',
         kUpdate.value != null
             ? 'Version ${kUpdate.value!.version} is available'
             : (s.updateUrl.isEmpty ? 'Set up an update link' : 'Check for a newer version'),
         () => _push(c, const UpdateScreen())),
-    _HubItem(Icons.backup_rounded, 'Backup and restore',
+    HubEntry(Icons.backup_rounded, 'Backup and restore',
         'Save your settings to a file, or load them back',
         () => _push(c, const BackupScreen())),
-    _HubItem(Icons.card_giftcard_rounded, 'Reset for someone new',
+    HubEntry(Icons.card_giftcard_rounded, 'Reset for someone new',
         'Giving this box away? Clears your accounts and settings, keeps the TV set up', () {
       showMenu2(c, 'Reset for someone new?', [
         MenuChoice('Forgets your name, apps, Plex, Foyer Drop, teams, remote buttons and tokens. '
@@ -603,15 +614,100 @@ final List<_Group> _groups = [
         MenuChoice('Cancel', () {}),
       ]);
     }),
-    _HubItem(Icons.restart_alt_rounded, 'Run setup again',
+    HubEntry(Icons.restart_alt_rounded, 'Run setup again',
         'The guided setup from the first day. Your settings are kept',
         () => _push(c, FirstRunSetup(onDone: () => Navigator.of(c).pop()))),
   ]),
 ];
 
-class SettingsHub extends StatelessWidget {
+class _Section {
+  _Section(this.icon, this.title, this.rows, {this.dot = false});
+  final IconData icon;
+  final String title;
+  final List<HubEntry> rows;
+  final bool dot;
+}
+
+/// Settings, two panes: the sections down the left, the chosen section's rows on the right.
+/// Up and down move, Right or OK goes into a section, Left or Back comes back out,
+/// and Back on the left closes settings.
+class SettingsHub extends StatefulWidget {
   const SettingsHub({super.key, required this.onClose});
   final VoidCallback onClose;
+  @override
+  State<SettingsHub> createState() => _SettingsHubState();
+}
+
+class _SettingsHubState extends State<SettingsHub> {
+  int _sel = 0;
+  bool _inRight = false;
+  Map<String, dynamic> _tv = {};
+  final List<FocusNode> _left = [];
+  final List<FocusNode> _right = [];
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTv();
+  }
+
+  Future<void> _loadTv() async {
+    if (kIsFireTv) return;
+    final i = await sysCall('info');
+    if (mounted) setState(() => _tv = i);
+  }
+
+  @override
+  void dispose() {
+    for (final n in [..._left, ..._right]) {
+      n.dispose();
+    }
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  FocusNode _node(List<FocusNode> l, int i) {
+    while (l.length <= i) {
+      l.add(FocusNode());
+    }
+    return l[i];
+  }
+
+  Future<void> _open(Widget w) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => w));
+    _loadTv();
+  }
+
+  List<_Section> _sections(BuildContext c, Settings s) {
+    final up = kUpdate.value;
+    return [
+      if (up != null)
+        _Section(Icons.system_update_rounded, 'Update available', [
+          HubEntry(Icons.system_update_rounded, 'Install version ${up.version}', 'Takes about a minute. Your settings stay',
+              () => _open(const UpdateScreen())),
+        ], dot: true),
+      if (!kIsFireTv)
+        _Section(Icons.tv_rounded, 'TV settings', tvSettingsEntries(c, _tv, _open)),
+      for (final g in _groups) _Section(g.icon, g.title, g.items(c, s)),
+      if (kIsFireTv)
+        _Section(Icons.settings_rounded, 'Fire TV settings', [
+          HubEntry(Icons.settings_rounded, 'Open Fire TV settings', 'The stock Wi-Fi, display and sound settings',
+              () => openFireSettings(c)),
+        ]),
+      if (s.devMode)
+        _Section(Icons.developer_mode_rounded, 'Developer options', [
+          HubEntry(Icons.developer_mode_rounded, 'Developer options', 'Where updates come from, GitHub repo and access token',
+              () => _open(const DeveloperScreen())),
+        ]),
+    ];
+  }
+
+  void _toRight() {
+    if (_right.isNotEmpty) _right.first.requestFocus();
+  }
+
+  void _toLeft() => _node(_left, _sel).requestFocus();
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<UpdateInfo?>(
@@ -620,59 +716,130 @@ class SettingsHub extends StatelessWidget {
       );
 
   Widget _build(BuildContext context) {
-    final up = kUpdate.value;
-    final rows = <_HubItem>[
-      // Only shown while a newer version is available.
-      if (up != null)
-        _HubItem(Icons.system_update_rounded, 'Update available',
-            'Version ${up.version} is ready to install', () => _push(context, const UpdateScreen())),
-      // On Google TV / Android TV the TV's own settings live inside Foyer.
-      if (!kIsFireTv)
-        _HubItem(Icons.tv_rounded, 'TV settings',
-            'Wi-Fi, Bluetooth, picture, sound, apps, storage, power',
-            () => _push(context, const SystemScreen())),
-      for (final g in _groups)
-        _HubItem(g.icon, g.title, g.subtitle, () => _push(context, _GroupScreen(g))),
-      if (kIsFireTv)
-        _HubItem(Icons.settings_rounded, 'Fire TV settings',
-            'Open the stock Wi-Fi, display and sound settings', () => openFireSettings(context)),
-      if (SettingsScope.of(context).devMode)
-        _HubItem(Icons.developer_mode_rounded, 'Developer options',
-            'Where updates come from, GitHub repo and access token', () => _push(context, const DeveloperScreen())),
-    ];
+    final s = SettingsScope.of(context);
+    final secs = _sections(context, s);
+    if (_sel >= secs.length) _sel = secs.length - 1;
+    final sec = secs[_sel];
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) onClose();
+        if (didPop) return;
+        if (_inRight) {
+          _toLeft();
+        } else {
+          widget.onClose();
+        }
       },
       child: Scaffold(
         backgroundColor: Colors.black,
         body: Stack(fit: StackFit.expand, children: [
-          const Positioned.fill(child: RepaintBoundary(child: Backdrop(tint: kDefaultTint))),
+          const Positioned.fill(child: SettingsBackdrop()),
           Padding(
-            padding: const EdgeInsets.fromLTRB(140, 80, 140, 60),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Settings',
-                  style: TextStyle(fontSize: 62, fontWeight: FontWeight.w700, letterSpacing: -1)),
-              const SizedBox(height: 28),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
-                  child: Column(children: [
-                    for (var i = 0; i < rows.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
-                        child: _HubRow(item: rows[i], autofocus: i == 0),
+            padding: const EdgeInsets.fromLTRB(96, 72, 110, 48),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // ── left: the sections ──
+              SizedBox(
+                width: 560,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 18),
+                    child: Text('Settings',
+                        style: TextStyle(fontSize: 58, fontWeight: FontWeight.w700, letterSpacing: -1)),
+                  ),
+                  const SizedBox(height: 40),
+                  Expanded(
+                    child: FocusTraversalGroup(
+                      child: Focus(
+                        canRequestFocus: false,
+                        skipTraversal: true,
+                        onKeyEvent: (_, e) {
+                          if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+                          final k = e.logicalKey;
+                          if (k == LogicalKeyboardKey.arrowRight) {
+                            _toRight();
+                            return KeyEventResult.handled;
+                          }
+                          // stay in the list at its ends
+                          if (k == LogicalKeyboardKey.arrowDown && _sel >= secs.length - 1) return KeyEventResult.handled;
+                          if (k == LogicalKeyboardKey.arrowUp && _sel <= 0) return KeyEventResult.handled;
+                          if (k == LogicalKeyboardKey.arrowLeft) return KeyEventResult.handled;
+                          return KeyEventResult.ignored;
+                        },
+                        child: SingleChildScrollView(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            for (var i = 0; i < secs.length; i++)
+                              _SideItem(
+                                section: secs[i],
+                                node: _node(_left, i),
+                                autofocus: i == _sel,
+                                chosen: i == _sel,
+                                onFocus: () {
+                                  _inRight = false;
+                                  if (_sel != i) {
+                                    setState(() => _sel = i);
+                                    if (_scroll.hasClients) _scroll.jumpTo(0);
+                                  }
+                                },
+                                onSelect: _toRight,
+                              ),
+                          ]),
+                        ),
                       ),
-                  ]),
-                ),
+                    ),
+                  ),
+                ]),
               ),
-              const SizedBox(height: 16),
-              Row(children: [
-                PillButton(label: 'Close', onSelect: onClose),
-                const Spacer(),
-                const Text('Foyer', style: TextStyle(fontSize: 22, color: Colors.white38)),
-              ]),
+              const SizedBox(width: 48),
+              // ── right: the chosen section ──
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const SizedBox(height: 14),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child: Text(sec.title,
+                        key: ValueKey(sec.title),
+                        style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(height: 34),
+                  Expanded(
+                    child: FocusTraversalGroup(
+                      child: Focus(
+                        canRequestFocus: false,
+                        skipTraversal: true,
+                        onFocusChange: (f) => setState(() => _inRight = f),
+                        onKeyEvent: (_, e) {
+                          if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+                          final k = e.logicalKey;
+                          if (k == LogicalKeyboardKey.arrowLeft) {
+                            _toLeft();
+                            return KeyEventResult.handled;
+                          }
+                          final n = sec.rows.length;
+                          if (k == LogicalKeyboardKey.arrowDown && n > 0 && _right[n - 1].hasFocus) {
+                            return KeyEventResult.handled;
+                          }
+                          if (k == LogicalKeyboardKey.arrowUp && n > 0 && _right[0].hasFocus) {
+                            return KeyEventResult.handled;
+                          }
+                          if (k == LogicalKeyboardKey.arrowRight) return KeyEventResult.handled;
+                          return KeyEventResult.ignored;
+                        },
+                        child: SingleChildScrollView(
+                          controller: _scroll,
+                          padding: const EdgeInsets.only(bottom: 30),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            for (var i = 0; i < sec.rows.length; i++)
+                              SettingRow(entry: sec.rows[i], node: _node(_right, i)),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(_inRight ? 'OK to open  ·  Left or Back to go back' : 'Right or OK to open  ·  Back to close',
+                      style: const TextStyle(fontSize: 21, color: Colors.white38)),
+                ]),
+              ),
             ]),
           ),
         ]),
@@ -681,69 +848,142 @@ class SettingsHub extends StatelessWidget {
   }
 }
 
-class _GroupScreen extends StatelessWidget {
-  const _GroupScreen(this.group);
-  final _Group group;
-
+/// The calm, dark background behind every settings page.
+class SettingsBackdrop extends StatelessWidget {
+  const SettingsBackdrop({super.key});
   @override
-  Widget build(BuildContext context) {
-    final s = SettingsScope.of(context); // rebuild when a value changes
-    final rows = group.items(context, s);
-    return SettingsPage(
-      title: group.title,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
-        child: Column(children: [
-          for (var i = 0; i < rows.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 18),
-              child: _HubRow(item: rows[i], autofocus: i == 0),
-            ),
-        ]),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const Stack(fit: StackFit.expand, children: [
+        RepaintBoundary(child: Backdrop(tint: kDefaultTint)),
+        DecoratedBox(
+            decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0xD9000000), Color(0x99000000)]))),
+      ]);
 }
 
-class _HubRow extends StatelessWidget {
-  const _HubRow({required this.item, this.autofocus = false});
-  final _HubItem item;
+class _SideItem extends StatelessWidget {
+  const _SideItem(
+      {required this.section,
+      required this.node,
+      required this.autofocus,
+      required this.chosen,
+      required this.onFocus,
+      required this.onSelect});
+  final _Section section;
+  final FocusNode node;
   final bool autofocus;
+  final bool chosen;
+  final VoidCallback onFocus;
+  final VoidCallback onSelect;
+
   @override
-  Widget build(BuildContext context) => FocusButton(
-        autofocus: autofocus,
-        scale: 1.0, // growing the row squares off its corners on some sticks
-        scrollIntoView: true,
-        onSelect: item.onSelect,
-        builder: (_, f) => AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          width: 1300,
-          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 26),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(36),
-            color: f ? Colors.white : Colors.white.withAlpha(24),
-            border: Border.all(color: Colors.white.withAlpha(f ? 255 : 60), width: 1.5),
-          ),
-          child: Row(children: [
-            Icon(item.icon, size: 44, color: f ? Colors.black : Colors.white),
-            const SizedBox(width: 28),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(item.title,
-                    style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w700,
-                        color: f ? Colors.black : Colors.white)),
-                const SizedBox(height: 4),
-                Text(item.subtitle,
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: FocusButton(
+          focusNode: node,
+          autofocus: autofocus,
+          scale: 1.0,
+          scrollIntoView: true,
+          onFocusChange: (f) {
+            if (f) onFocus();
+          },
+          onSelect: onSelect,
+          builder: (_, f) => AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            width: 540,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              color: f ? Colors.white : (chosen ? Colors.white.withAlpha(34) : Colors.transparent),
+            ),
+            child: Row(children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: f ? Colors.black.withAlpha(20) : Colors.white.withAlpha(24),
+                ),
+                child: Icon(section.icon, size: 30, color: f ? Colors.black : Colors.white),
+              ),
+              const SizedBox(width: 22),
+              Expanded(
+                child: Text(section.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 24, color: f ? Colors.black54 : Colors.white70)),
-              ]),
+                        fontSize: 30,
+                        fontWeight: f || chosen ? FontWeight.w600 : FontWeight.w500,
+                        color: f ? Colors.black : (chosen ? Colors.white : Colors.white70))),
+              ),
+              if (section.dot)
+                Container(
+                    width: 14,
+                    height: 14,
+                    decoration: const BoxDecoration(color: Color(0xFFFF9F0A), shape: BoxShape.circle)),
+            ]),
+          ),
+        ),
+      );
+}
+
+/// A row on the right side of settings (and on the TV settings pages).
+class SettingRow extends StatelessWidget {
+  const SettingRow({super.key, required this.entry, this.node, this.autofocus = false});
+  final HubEntry entry;
+  final FocusNode? node;
+  final bool autofocus;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: FocusButton(
+          focusNode: node,
+          autofocus: autofocus,
+          scale: 1.0,
+          scrollIntoView: true,
+          onSelect: entry.onSelect,
+          builder: (_, f) => AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              color: f ? Colors.white : Colors.white.withAlpha(20),
+              boxShadow: f ? const [BoxShadow(color: Color(0x40000000), blurRadius: 24, offset: Offset(0, 8))] : null,
             ),
-            Icon(Icons.chevron_right_rounded, size: 44, color: f ? Colors.black : Colors.white54),
-          ]),
+            child: Row(children: [
+              Icon(entry.icon, size: 34, color: f ? Colors.black : Colors.white70),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(entry.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 30, fontWeight: FontWeight.w600, color: f ? Colors.black : Colors.white)),
+                  if (entry.subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(entry.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 21, color: f ? Colors.black54 : Colors.white54)),
+                  ],
+                ]),
+              ),
+              if (entry.value.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: Text(entry.value,
+                      style: TextStyle(fontSize: 26, color: f ? Colors.black54 : Colors.white60)),
+                ),
+              Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Icon(Icons.chevron_right_rounded, size: 36, color: f ? Colors.black45 : Colors.white38),
+              ),
+            ]),
+          ),
         ),
       );
 }

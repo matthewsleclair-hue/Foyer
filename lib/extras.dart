@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'idle.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
 
@@ -210,6 +211,7 @@ Future<void> goodnightMenu(BuildContext context) async {
   showMenu2(context, on ? 'Sleep in ${sleepLeft(kSleepAt.value)}' : 'Goodnight', [
     MenuChoice('Goodnight now', () => startGoodnight(context)),
     MenuChoice(on ? 'Change the sleep timer…' : 'Sleep timer…', () => _sleepChoices(context)),
+    MenuChoice('Screen off (the sound keeps playing)', () => screenOffNow(context)),
     if (on) MenuChoice('Turn off the sleep timer', () => setSleep(0)),
     MenuChoice('Cancel', () {}),
   ]);

@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'extras.dart';
+import 'idle.dart';
 import 'plex.dart';
 import 'screens.dart';
 import 'seasons.dart';
@@ -15,6 +16,7 @@ import 'server.dart';
 import 'sports.dart';
 import 'update.dart';
 import 'weather.dart';
+import 'weatherfx.dart';
 
 const MethodChannel kChannel = MethodChannel('leclair/launcher');
 const int kMaxPinned = 8;
@@ -116,6 +118,13 @@ class Settings extends ChangeNotifier {
   String fireplaceUrl = ''; // YouTube video for the flame button ('' = Foyer's pick)
   int scoreDelay = 0; // seconds, to stay behind a delayed stream
   int scoreSize = 1; // alert pop-up: 0 small, 1 medium, 2 large
+  bool weatherFx = true; // rain, snow and fog over the background when it's like that outside
+  // Smart idle
+  bool idleOn = false;
+  int idleMinutes = 30; // nothing pressed on the home screen for this long...
+  String idleAction = 'clock'; // ...then: clock | screenoff | tvoff
+  int pausedMinutes = 30; // a paused show or song turns the TV off after this (0 = never)
+  bool quietHours = false; // 11 pm to 6 am: shorter waits
 
   /// Custom remote buttons: "313" = pressed, "313L" = held -> app package, "foyer" or "" (normal).
   Map<String, String> remoteKeys = {};
@@ -165,6 +174,12 @@ class Settings extends ChangeNotifier {
         'fireplaceUrl': fireplaceUrl,
         'scoreDelay': scoreDelay,
         'alertSize': scoreSize,
+        'weatherFx': weatherFx,
+        'idleOn': idleOn,
+        'idleMinutes': idleMinutes,
+        'idleAction': idleAction,
+        'pausedMinutes': pausedMinutes,
+        'quietHours': quietHours,
         'remoteKeys': remoteKeys,
         'updateUrl': updateUrl,
         'sportsTeams': [for (final t in sportsTeams) t.toJson()],
@@ -230,6 +245,15 @@ class Settings extends ChangeNotifier {
     final ss2 = j['alertSize'];
     if (ss2 is num) scoreSize = ss2.toInt().clamp(0, 2).toInt();
     kScoreAlertSize = scoreSize;
+    weatherFx = _b(j['weatherFx'], weatherFx);
+    idleOn = _b(j['idleOn'], idleOn);
+    final im = j['idleMinutes'];
+    if (im is num) idleMinutes = im.toInt().clamp(5, 240).toInt();
+    final ia = j['idleAction'];
+    if (ia == 'clock' || ia == 'screenoff' || ia == 'tvoff') idleAction = ia as String;
+    final pm = j['pausedMinutes'];
+    if (pm is num) pausedMinutes = pm.toInt().clamp(0, 240).toInt();
+    quietHours = _b(j['quietHours'], quietHours);
     final rk = j['remoteKeys'];
     if (rk is Map) remoteKeys = {for (final e in rk.entries) '${e.key}': '${e.value}'};
     updateUrl = _s(j['updateUrl'], updateUrl);
@@ -683,8 +707,12 @@ class FocusButton extends StatefulWidget {
       this.onLongPress,
       this.autofocus = false,
       this.scale = 1.05,
-      this.scrollIntoView = false});
+      this.scrollIntoView = false,
+      this.focusNode,
+      this.onFocusChange});
   final double scale;
+  final FocusNode? focusNode;
+  final ValueChanged<bool>? onFocusChange;
   final VoidCallback onSelect;
   final VoidCallback? onLongPress;
   final Widget Function(BuildContext context, bool focused) builder;
@@ -703,8 +731,10 @@ class _FocusButtonState extends State<FocusButton> {
   Widget build(BuildContext context) {
     return Focus(
       autofocus: widget.autofocus,
+      focusNode: widget.focusNode,
       onFocusChange: (f) {
         setState(() => _f = f);
+        widget.onFocusChange?.call(f);
         if (f && widget.scrollIntoView) {
           Scrollable.ensureVisible(context,
               alignment: 0.5,
@@ -1831,12 +1861,27 @@ class _HomeScreenState extends State<HomeScreen>
 
   bool _onAnyKey(KeyEvent e) {
     _lastKey = DateTime.now();
+    _idleActed = false;
     return false;
   }
 
+  bool _idleActed = false;
+  BuildContext? _saverCtx;
+
   void _checkIdle() {
-    if (!mounted || !_fg || _saverUp || _leaving) return;
-    final mins = SettingsScope.read(context).ssMinutes;
+    if (!mounted || !_fg || _leaving) return;
+    final s = SettingsScope.read(context);
+    // Smart idle: a long while with nobody pressing anything on the home screen
+    if (s.idleOn &&
+        !_idleActed &&
+        (_saverUp || ModalRoute.of(context)?.isCurrent == true) &&
+        DateTime.now().difference(_lastKey) >= smartIdleWait(s)) {
+      _idleActed = true;
+      _smartIdle(s.idleAction);
+      return;
+    }
+    if (_saverUp) return;
+    final mins = s.ssMinutes;
     if (mins <= 0) return;
     if (ModalRoute.of(context)?.isCurrent != true) return;
     if (DateTime.now().difference(_lastKey) >= Duration(minutes: mins)) _showSaver();
@@ -1851,6 +1896,7 @@ class _HomeScreenState extends State<HomeScreen>
       reverseTransitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (ctx, __, ___) {
         var closed = false;
+        _saverCtx = ctx;
         return Scaffold(
           backgroundColor: Colors.black,
           body: Focus(
@@ -1870,6 +1916,42 @@ class _HomeScreenState extends State<HomeScreen>
     ));
     _lastKey = DateTime.now();
     _saverUp = false;
+    _saverCtx = null;
+  }
+
+  Future<void> _smartIdle(String action) async {
+    // the screensaver steps aside first
+    final sc = _saverCtx;
+    if (_saverUp && sc != null && sc.mounted) Navigator.of(sc).pop();
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+    if (action == 'tvoff' || action == 'screenoff') {
+      if (action == 'tvoff') {
+        kChannel.invokeMethod('tvOffSoon').catchError((Object _) => null);
+      } else {
+        await screenOffNow(context);
+      }
+      // the button that wakes the TV is used up by the helper, so start the wait over here
+      _lastKey = DateTime.now();
+      _idleActed = false;
+      return;
+    }
+    await Navigator.of(context).push(PageRouteBuilder<void>(
+      opaque: true,
+      transitionDuration: const Duration(milliseconds: 800),
+      reverseTransitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (ctx, __, ___) => Focus(
+        autofocus: true,
+        onKeyEvent: (_, e) {
+          if (e is KeyDownEvent) Navigator.of(ctx).pop();
+          return KeyEventResult.handled; // the wake-up press does nothing else
+        },
+        child: const DimClockView(),
+      ),
+      transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+    ));
+    _lastKey = DateTime.now();
+    _idleActed = false;
   }
 
   @override
@@ -1880,6 +1962,7 @@ class _HomeScreenState extends State<HomeScreen>
     _loadWeather();
     _loadSports();
     _checkUpdate();
+    syncSmartIdle(SettingsScope.read(context));
   }
 
   @override
@@ -2144,6 +2227,9 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ),
+            // rain, snow or fog when it's like that outside
+            if (settings.weatherFx && _weather != null)
+              Positioned.fill(child: WeatherFx(kind: fxFor(_weather!.code), light: settings.perfMode)),
             // holiday leaves, bats, snow, confetti or petals
             Positioned.fill(
                 child: SeasonLayer(season: activeSeason(settings), light: settings.perfMode)),
@@ -2413,7 +2499,18 @@ class _Dock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => FocusTraversalGroup(
-        child: Glass(
+        child: Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          // Down from the app row opens every app
+          onKeyEvent: (_, e) {
+            if (e is KeyDownEvent && e.logicalKey == LogicalKeyboardKey.arrowDown) {
+              onAllApps();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Glass(
           radius: 44,
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 34),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -2452,6 +2549,7 @@ class _Dock extends StatelessWidget {
               ),
             ),
           ]),
+        ),
         ),
       );
 }

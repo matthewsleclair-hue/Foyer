@@ -49,16 +49,21 @@ object SleepTimer {
         else if (at != 0L && at <= System.currentTimeMillis()) prefs(c).edit().remove(KEY).apply()
     }
 
+    private const val DEFAULT_NOTE = "Going to sleep in 1 minute\nPress any button to keep watching"
+    private var note = DEFAULT_NOTE
+
     /** Starts (or replaces) the timer. 0 minutes turns it off. */
-    fun start(c: Context, minutes: Int) {
+    fun start(c: Context, minutes: Int, message: String = DEFAULT_NOTE) {
         app = c.applicationContext
         if (minutes <= 0) return cancel(c)
+        note = message
         schedule(c, System.currentTimeMillis() + minutes * 60_000L)
     }
 
     /** For a remote button: off -> 30 min, on -> 30 more (up to 3 hours). */
     fun bump(c: Context) {
         val now = System.currentTimeMillis()
+        note = DEFAULT_NOTE
         val left = if (endAt > now) endAt - now else 0L
         val next = ((left + 30 * 60_000L).coerceAtMost(180 * 60_000L))
         schedule(c, now + next)
@@ -102,7 +107,7 @@ object SleepTimer {
             val wm = svc.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val dp = { v: Float -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, svc.resources.displayMetrics) }
             val t = TextView(svc).apply {
-                text = "Going to sleep in 1 minute\nPress any button to keep watching"
+                text = note
                 setTextColor(Color.WHITE)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
                 gravity = Gravity.CENTER

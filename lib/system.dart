@@ -99,11 +99,11 @@ class SysRow extends StatelessWidget {
           builder: (_, f) => AnimatedContainer(
             duration: const Duration(milliseconds: 140),
             width: 1300,
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 22),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(34),
-              color: f ? Colors.white : Colors.white.withAlpha(24),
-              border: Border.all(color: Colors.white.withAlpha(f ? 255 : 60), width: 1.5),
+              borderRadius: BorderRadius.circular(22),
+              color: f ? Colors.white : Colors.white.withAlpha(20),
+              boxShadow: f ? const [BoxShadow(color: Color(0x40000000), blurRadius: 24, offset: Offset(0, 8))] : null,
             ),
             child: Row(children: [
               Icon(icon, size: 42, color: f ? Colors.black : Colors.white),
@@ -183,71 +183,44 @@ class _SystemScreenState extends State<SystemScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final link = _i['link'] ?? '';
-    final net = link == 'ethernet' ? 'Wired' : (link == 'wifi' ? 'Wi-Fi' : (link == 'none' ? 'Not connected' : ''));
-    final free = _i['storageFree'] as num?;
+    final rows = tvSettingsEntries(context, _i, _open);
     return SettingsPage(
       title: 'TV settings',
       subtitle: 'Everything for the TV itself, without leaving Foyer.',
       child: _list([
-        SysRow(
-            icon: Icons.wifi_rounded,
-            title: 'Network and internet',
-            subtitle: 'Wi-Fi networks, passwords, wired connection',
-            value: net,
-            autofocus: true,
-            onSelect: () => _open(const WifiScreen())),
-        SysRow(
-            icon: Icons.vpn_lock_rounded,
-            title: 'VPN',
-            subtitle: 'NordVPN, ExpressVPN, Proton, Tailscale and more',
-            value: _i['vpn'] == true ? 'On' : '',
-            onSelect: () => _open(const VpnScreen())),
-        SysRow(
-            icon: Icons.bluetooth_rounded,
-            title: 'Bluetooth and remotes',
-            subtitle: 'Headphones, speakers, game controllers, keyboards',
-            onSelect: () => _open(const BluetoothScreen())),
-        SysRow(
-            icon: Icons.tv_rounded,
-            title: 'Picture and display',
-            subtitle: 'Resolution, refresh rate, when the screen turns off',
-            onSelect: () => _open(const DisplayScreen())),
-        SysRow(
-            icon: Icons.volume_up_rounded,
-            title: 'Sound',
-            subtitle: 'Volume, mute, button sounds',
-            onSelect: () => _open(const SoundScreen())),
-        SysRow(
-            icon: Icons.apps_rounded,
-            title: 'Apps',
-            subtitle: 'Open, close, reset, turn off or uninstall any app',
-            onSelect: () => _open(const AppsManagerScreen())),
-        SysRow(
-            icon: Icons.sd_storage_rounded,
-            title: 'Storage',
-            subtitle: 'See what\'s free and clear app caches',
-            value: free == null ? '' : '${fmtBytes(free)} free',
-            onSelect: () => _open(const StorageScreen())),
-        SysRow(
-            icon: Icons.info_outline_rounded,
-            title: 'Name and about',
-            subtitle: 'Rename this TV, model, Android version, address',
-            value: '${_i['name'] ?? ''}',
-            onSelect: () => _open(const AboutTvScreen())),
-        SysRow(
-            icon: Icons.power_settings_new_rounded,
-            title: 'Power',
-            subtitle: 'Restart or put the TV to sleep',
-            onSelect: () => _open(const PowerScreen())),
-        SysRow(
-            icon: Icons.more_horiz_rounded,
-            title: 'More',
-            subtitle: 'Google account, privacy, date, language, keyboard, system update',
-            onSelect: () => _open(const MoreTvScreen())),
+        for (var n = 0; n < rows.length; n++) SettingRow(entry: rows[n], autofocus: n == 0),
       ]),
     );
   }
+}
+
+/// The TV's own settings, as rows (used by Settings and by the TV settings page).
+List<HubEntry> tvSettingsEntries(
+    BuildContext c, Map<String, dynamic> i, Future<void> Function(Widget) open) {
+  final link = i['link'] ?? '';
+  final net = link == 'ethernet' ? 'Wired' : (link == 'wifi' ? 'Wi-Fi' : (link == 'none' ? 'Not connected' : ''));
+  final free = i['storageFree'] as num?;
+  return [
+    HubEntry(Icons.wifi_rounded, 'Network and internet', 'Wi-Fi networks, passwords, wired connection',
+        () => open(const WifiScreen()), value: net),
+    HubEntry(Icons.vpn_lock_rounded, 'VPN', 'NordVPN, ExpressVPN, Proton, Tailscale and more',
+        () => open(const VpnScreen()), value: i['vpn'] == true ? 'On' : ''),
+    HubEntry(Icons.bluetooth_rounded, 'Bluetooth and remotes', 'Headphones, speakers, game controllers, keyboards',
+        () => open(const BluetoothScreen())),
+    HubEntry(Icons.tv_rounded, 'Picture and display', 'Resolution, refresh rate, when the screen turns off',
+        () => open(const DisplayScreen())),
+    HubEntry(Icons.volume_up_rounded, 'Sound', 'Volume, mute, button sounds', () => open(const SoundScreen())),
+    HubEntry(Icons.apps_rounded, 'Apps', 'Open, close, reset, turn off or uninstall any app',
+        () => open(const AppsManagerScreen())),
+    HubEntry(Icons.sd_storage_rounded, 'Storage', 'See what\'s free and clear app caches',
+        () => open(const StorageScreen()), value: free == null ? '' : '${fmtBytes(free)} free'),
+    HubEntry(Icons.info_outline_rounded, 'Name and about', 'Rename this TV, model, Android version, address',
+        () => open(const AboutTvScreen()), value: '${i['name'] ?? ''}'),
+    HubEntry(Icons.power_settings_new_rounded, 'Power', 'Restart or put the TV to sleep',
+        () => open(const PowerScreen())),
+    HubEntry(Icons.more_horiz_rounded, 'More', 'Google account, privacy, date, language, keyboard, system update',
+        () => open(const MoreTvScreen())),
+  ];
 }
 
 // ───────────────────────── Wi-Fi ─────────────────────────

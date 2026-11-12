@@ -87,11 +87,16 @@ object RemoteKeys {
     private fun heldAction(code: Int): String? = map["${code}L"]?.ifEmpty { null }
 
     /** True if the service should listen to every key (costs a little speed, so only when needed). */
-    fun wanted(): Boolean = map.values.any { it.isNotEmpty() } || youtubeDead || SleepTimer.warning
+    fun wanted(): Boolean = map.values.any { it.isNotEmpty() } || youtubeDead || SleepTimer.warning || ScreenOff.active
 
     /** Called for every key the remote sends. Returns true when Foyer handled it. */
     fun onKey(svc: HomeKeyService, e: KeyEvent): Boolean {
         val code = e.keyCode
+        // the screen is off: any button brings the picture back, and does nothing else
+        if (ScreenOff.active) {
+            if (e.action == KeyEvent.ACTION_DOWN) ScreenOff.onKey()
+            return true
+        }
         // "going to sleep in a minute" is up: any button keeps watching
         if (SleepTimer.warning) {
             if (e.action == KeyEvent.ACTION_DOWN) SleepTimer.onKey(svc)
@@ -143,6 +148,10 @@ object RemoteKeys {
         try {
             if (action == "sleep") {
                 SleepTimer.bump(c)
+                return
+            }
+            if (action == "screenoff") {
+                ScreenOff.on(c)
                 return
             }
             if (action == "foyer") {

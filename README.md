@@ -24,9 +24,10 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 **A home screen that's actually yours**
 - Your favourite apps along the bottom, in the order you like
 - A big clock with "Good evening · 4° Cloudy" underneath
-- Continue watching from Plex, right on the home screen
 - Glass-style design that warms up at sunset and dims late at night
 - Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
+- Rain, snow or fog drifting over the background when that's the weather outside
+- Press Down on your apps to see all of them
 
 **No ads, no clutter**
 - Google's ad-filled home screen is switched off
@@ -40,10 +41,14 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - A **sleep timer** that turns the TV off after an episode or two, with a "still watching?" warning
 - The **star button** on the remote opens whatever you want (Plex, say)
 - Soft click sounds as you move around (or none, if you prefer)
+- **Screen off:** the picture goes black while the sound keeps playing, for music or falling asleep to a show
+- **Smart idle:** when nobody's watching, a dim drifting clock protects the screen, and a show left paused turns the TV off by itself (after a "still here?" note)
 
 **Your TV's settings, without the maze**
 - Wi-Fi, Bluetooth headphones, picture, sound, apps and storage, all inside Foyer
+- Settings laid out simply: the sections on the left, their options on the right
 - Updates install with one press
+- If something ever goes wrong and Foyer keeps crashing, the TV's own home screen steps in by itself for a few minutes, so the TV never gets stuck
 
 **The Foyer companion app on your phone**
 - A remote with a real keyboard, plus photos, notes and drawings sent to the TV. [More below](#the-foyer-companion-app).
@@ -140,4 +145,4 @@ Yes.
 
 ---
 
-<sub>For the person who builds Foyer: build, signing and publishing notes are in [docs/DEVELOPING.md](docs/DEVELOPING.md). Foyer uses the font Plus Jakarta Sans (SIL Open Font License).</sub>
+<sub>For the person who builds Foyer: build, signing and publishing notes are in [docs/DEVELOPING.md](docs/DEVELOPING.md). Foyer uses the font Plus Jakarta Sans (SIL Open Font License). Smart idle, Screen off, the weather effects, the crash safety net and the settings layout were inspired by [couch-tv](https://github.com/Seagey/couch-tv) (MIT).</sub>

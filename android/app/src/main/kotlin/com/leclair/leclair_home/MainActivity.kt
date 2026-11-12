@@ -12,6 +12,7 @@ import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
 import android.provider.Settings
@@ -40,6 +41,13 @@ class MainActivity : FlutterActivity() {
 
     private val backupName = "Foyer-backup.json"
     private val imageExt = setOf("jpg", "jpeg", "png", "webp")
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // safety net: if Foyer keeps crashing, the TV's own home takes over for a few minutes
+        val stepAside = CrashGuard.onStart(this)
+        super.onCreate(savedInstanceState)
+        if (stepAside) finish()
+    }
 
     override fun onDestroy() {
         phoneInput.stop()
@@ -180,6 +188,16 @@ class MainActivity : FlutterActivity() {
                 "sleepTimer" -> {
                     SleepTimer.start(this, call.argument<Int>("minutes") ?: 0)
                     result.success(SleepTimer.endAt)
+                }
+                "screenOff" -> result.success(ScreenOff.on(this))
+                "tvOffSoon" -> {
+                    // smart idle on the home screen: off in a minute, any button keeps it on
+                    SleepTimer.start(this, 1, "Nobody's been watching: turning the TV off in 1 minute\nPress any button to keep it on")
+                    result.success(SleepTimer.endAt)
+                }
+                "smartIdle" -> {
+                    IdleWatch.configure(this, call.argument<Int>("pausedMinutes") ?: 0, call.argument<Boolean>("quiet") ?: false)
+                    result.success(true)
                 }
                 "sleepStatus" -> {
                     SleepTimer.restore(this)
