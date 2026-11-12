@@ -29,6 +29,8 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - Photo backgrounds (a misty meadow, the Matterhorn, a volcano at dusk, a starry lake, a misty forest) with a big clock tucked behind the mountains and trees
 - Rain, snow or fog drifting over the background when that's the weather outside
 - Press Down on your apps to see all of them, and Up to go back
+- **Keep watching:** the shows you're part way through in Netflix, Disney+, Prime Video, YouTube and more, with how far in you are. One press picks up right where you left off
+- **People:** everyone in the house gets their own apps and teams; switch at the top right of the home screen
 
 **No ads, no clutter**
 - Google's ad-filled home screen is switched off
@@ -41,6 +43,7 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 **Little things that make evenings nicer**
 - A **sleep timer** that turns the TV off after an episode or two, with a "still watching?" warning
 - The **star button** on the remote opens whatever you want (Plex, say)
+- A fireplace video for cozy evenings, in the moon menu
 - Soft click sounds as you move around (or none, if you prefer)
 - **Screen off:** the picture goes black while the sound keeps playing, for music or falling asleep to a show
 - **Smart idle:** when nobody's watching, a dim drifting clock protects the screen, and a show left paused turns the TV off by itself (after a "still here?" note)

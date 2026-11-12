@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'extras.dart';
 import 'idle.dart';
+import 'keep.dart';
 import 'plex.dart';
 import 'screens.dart';
 import 'seasons.dart';
@@ -89,6 +90,29 @@ int clampIdx(int i, int hi) => i < 0 ? 0 : (i > hi ? hi : i);
 
 // ───────────────────────── settings ─────────────────────────
 
+/// One person who watches this TV: their name, their apps and their teams.
+class Profile {
+  Profile(this.name, this.pinned, this.teams);
+  final String name;
+  final List<String> pinned;
+  final List<FollowedTeam> teams;
+
+  Map<String, dynamic> toJson() => {'name': name, 'pinned': pinned, 'teams': [for (final t in teams) t.toJson()]};
+
+  static Profile? fromJson(Object? j) {
+    if (j is! Map) return null;
+    final n = j['name'];
+    if (n is! String || n.trim().isEmpty) return null;
+    final p = j['pinned'];
+    final t = j['teams'];
+    return Profile(
+      n.trim(),
+      p is List ? p.whereType<String>().take(kMaxPinned).toList() : <String>[],
+      t is List ? [for (final x in t) if (FollowedTeam.fromJson(x) != null) FollowedTeam.fromJson(x)!] : <FollowedTeam>[],
+    );
+  }
+}
+
 class Settings extends ChangeNotifier {
   String name = 'Home';
   bool liquid = false;
@@ -119,6 +143,11 @@ class Settings extends ChangeNotifier {
   int scoreDelay = 0; // seconds, to stay behind a delayed stream
   int scoreSize = 1; // alert pop-up: 0 small, 1 medium, 2 large
   bool weatherFx = true; // rain, snow and fog over the background when it's like that outside
+  bool keepWatching = true; // the Keep watching row on the home screen
+  /// The people who watch this TV, each with their own apps and teams. Empty = just one.
+  /// The active person's apps and teams live in `pinned` and `sportsTeams` while they're picked.
+  List<Profile> profiles = [];
+  int activeProfile = 0;
   // Smart idle
   bool idleOn = false;
   int idleMinutes = 30; // nothing pressed on the home screen for this long...
@@ -138,6 +167,62 @@ class Settings extends ChangeNotifier {
   List<String> dropHidden = [];
   String serverUrl = '';
   String serverToken = '';
+
+  /// The profiles with the active person's current apps and teams filled in.
+  List<Profile> _profilesNow() => [
+        for (var i = 0; i < profiles.length; i++)
+          i == activeProfile ? Profile(profiles[i].name, [...pinned], [...sportsTeams]) : profiles[i]
+      ];
+
+  /// Who's watching ('' when there's only one person).
+  String get personName => profiles.length > 1 ? profiles[activeProfile].name : '';
+
+  void switchProfile(int i) {
+    if (i == activeProfile || i < 0 || i >= profiles.length) return;
+    profiles = _profilesNow();
+    activeProfile = i;
+    pinned = [...profiles[i].pinned];
+    sportsTeams = [...profiles[i].teams];
+    notifyListeners();
+    _persist();
+  }
+
+  /// Adds someone. The first time, the person already using the TV becomes [firstName].
+  void addPerson(String name, {String firstName = 'Me'}) {
+    change(() {
+      if (profiles.isEmpty) profiles = [Profile(firstName, [...pinned], [...sportsTeams])];
+      profiles = [..._profilesNow(), Profile(name, [...pinned], [])];
+    });
+  }
+
+  void renamePerson(int i, String name) => change(() {
+        profiles = _profilesNow();
+        profiles[i] = Profile(name, profiles[i].pinned, profiles[i].teams);
+      });
+
+  void removePerson(int i) => change(() {
+        final all = _profilesNow()..removeAt(i);
+        if (activeProfile >= all.length || i == activeProfile) activeProfile = 0;
+        else if (i < activeProfile) activeProfile--;
+        pinned = [...all[activeProfile].pinned];
+        sportsTeams = [...all[activeProfile].teams];
+        profiles = all.length > 1 ? all : []; // one person left: back to a plain TV
+        if (profiles.isEmpty) activeProfile = 0;
+      });
+
+  void movePerson(int i, int dir) => change(() {
+        final all = _profilesNow();
+        final j = i + dir;
+        if (j < 0 || j >= all.length) return;
+        final x = all.removeAt(i);
+        all.insert(j, x);
+        if (activeProfile == i) {
+          activeProfile = j;
+        } else if (activeProfile == j) {
+          activeProfile = i;
+        }
+        profiles = all;
+      });
 
   bool follows(FollowedTeam t) => sportsTeams.any((x) => x.league == t.league && x.id == t.id);
   int countIn(String league) => sportsTeams.where((t) => t.league == league).length;
@@ -175,6 +260,9 @@ class Settings extends ChangeNotifier {
         'scoreDelay': scoreDelay,
         'alertSize': scoreSize,
         'weatherFx': weatherFx,
+        'keepWatching': keepWatching,
+        'profiles': [for (final x in _profilesNow()) x.toJson()],
+        'activeProfile': activeProfile,
         'idleOn': idleOn,
         'idleMinutes': idleMinutes,
         'idleAction': idleAction,
@@ -246,6 +334,12 @@ class Settings extends ChangeNotifier {
     if (ss2 is num) scoreSize = ss2.toInt().clamp(0, 2).toInt();
     kScoreAlertSize = scoreSize;
     weatherFx = _b(j['weatherFx'], weatherFx);
+    keepWatching = _b(j['keepWatching'], keepWatching);
+    final pr = j['profiles'];
+    if (pr is List) profiles = [for (final x in pr) if (Profile.fromJson(x) != null) Profile.fromJson(x)!];
+    final ap = j['activeProfile'];
+    if (ap is num) activeProfile = ap.toInt();
+    if (activeProfile < 0 || activeProfile >= profiles.length) activeProfile = 0;
     idleOn = _b(j['idleOn'], idleOn);
     final im = j['idleMinutes'];
     if (im is num) idleMinutes = im.toInt().clamp(5, 240).toInt();
@@ -1851,9 +1945,16 @@ class _HomeScreenState extends State<HomeScreen>
     kUpdate.addListener(_onUpdateFound);
     HardwareKeyboard.instance.addHandler(_onAnyKey);
     _idleTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkIdle());
+    _keepTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted && _fg && SettingsScope.read(context).keepWatching) refreshKeepWatching();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && SettingsScope.read(context).keepWatching) refreshKeepWatching(force: true);
+    });
   }
 
   Timer? _sportsTimer;
+  Timer? _keepTimer;
 
   /// "Open on TV" from the phone page. Only acts while Foyer is on screen.
   void _onDropCommand(String type, String value) {
@@ -1987,6 +2088,7 @@ class _HomeScreenState extends State<HomeScreen>
     _sportsTimer?.cancel();
     _dropTimer?.cancel();
     _idleTimer?.cancel();
+    _keepTimer?.cancel();
     _updateTimer?.cancel();
     _toastTimer?.cancel();
     kUpdate.removeListener(_onUpdateFound);
@@ -2001,6 +2103,7 @@ class _HomeScreenState extends State<HomeScreen>
     _fg = s == AppLifecycleState.resumed;
     if (_fg) _lastKey = DateTime.now();
     if (s == AppLifecycleState.resumed) {
+      if (SettingsScope.read(context).keepWatching) refreshKeepWatching(force: true);
       _loadWeather(force: true);
       _loadSports();
       _endZoom();
@@ -2172,7 +2275,6 @@ class _HomeScreenState extends State<HomeScreen>
     return true;
   }
 
-  void _openFireplace() => openFireplace(context);
 
   void _openAllApps() {
     Navigator.of(context).push(PageRouteBuilder<void>(
@@ -2305,34 +2407,7 @@ class _HomeScreenState extends State<HomeScreen>
           child: FadeTransition(
               opacity: _fadeEarly,
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                FocusButton(
-                  onSelect: widget.onOpenSettings,
-                  builder: (_, f) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 140),
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(44),
-                        border: Border.all(color: f ? Colors.white : Colors.transparent, width: 3)),
-                    child: Glass(
-                        radius: 40,
-                        padding: const EdgeInsets.all(16),
-                        child: ValueListenableBuilder<UpdateInfo?>(
-                          valueListenable: kUpdate,
-                          builder: (_, u, __) => Stack(clipBehavior: Clip.none, children: [
-                            Icon(Icons.settings_rounded,
-                                size: 30, color: f ? Colors.white : Colors.white70),
-                            if (u != null)
-                              Positioned(
-                                  right: -4,
-                                  top: -4,
-                                  child: Container(
-                                      width: 14,
-                                      height: 14,
-                                      decoration: const BoxDecoration(
-                                          color: Color(0xFFFF9F0A), shape: BoxShape.circle))),
-                          ]),
-                        )),
-                  ),
-                ),
+                const ProfilePills(),
                 const SizedBox(width: 16),
                 ValueListenableBuilder<List<GameLine>>(
                     valueListenable: kSports.games,
@@ -2352,14 +2427,22 @@ class _HomeScreenState extends State<HomeScreen>
       Positioned(
           left: 96,
           bottom: 300,
-          child: FadeTransition(opacity: _fadeLate, child: _hero(apps))),
+          child: FadeTransition(
+              opacity: _fadeLate,
+              child: !settings.keepWatching
+                  ? _hero(apps)
+                  : ValueListenableBuilder<List<KeepItem>>(
+                      valueListenable: kKeep,
+                      builder: (_, k, __) =>
+                          k.isEmpty ? _hero(apps) : KeepWatchingRow(onOpen: (item) => openKeepItem(item)),
+                    ))),
       Positioned(
         left: 70,
         bottom: 44,
         child: FadeTransition(
           opacity: _fadeEarly,
           child: HomeSideButtons(
-            onFireplace: _openFireplace,
+            onSettings: widget.onOpenSettings,
             onGoodnight: () => goodnightMenu(context),
           ),
         ),
@@ -2509,7 +2592,7 @@ class _HomeHeaderState extends State<_HomeHeader> {
         if (widget.season != Season.none)
           DefaultTextStyle.merge(style: const TextStyle(shadows: shadow), child: SeasonGreeting(season: widget.season, fallback: _hello))
         else
-          Text(_hello, style: line),
+          Text(s.personName.isEmpty ? _hello : '$_hello, ${s.personName}', style: line),
         if (w != null) ...[
           Text('   ·   ', style: line.copyWith(color: Colors.white38)),
           Icon(w.icon, size: 32, color: Colors.white, shadows: shadow),

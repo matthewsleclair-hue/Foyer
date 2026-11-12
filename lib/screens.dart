@@ -15,6 +15,7 @@ import 'scenes.dart';
 import 'setup.dart';
 import 'remote.dart';
 import 'idle.dart';
+import 'keep.dart';
 import 'weatherfx.dart';
 import 'online.dart';
 import 'update.dart';
@@ -474,8 +475,17 @@ final List<_Group> _groups = [
   _Group(Icons.home_rounded, 'Home screen', 'Name, apps, weather, sports', (c, s) => [
     HubEntry(Icons.badge_rounded, 'Name and clock',
         '${s.name}, ${s.clock24 ? '24-hour' : '12-hour'} clock', () => _editStep(c, 0)),
-    HubEntry(Icons.apps_rounded, 'Pinned apps', '${s.pinned.length} on your home screen',
+    HubEntry(Icons.apps_rounded, 'Pinned apps',
+        s.personName.isEmpty ? '${s.pinned.length} on your home screen' : '${s.pinned.length} for ${s.personName}',
         () => _editStep(c, 2)),
+    HubEntry(Icons.people_alt_rounded, 'People',
+        s.profiles.length < 2 ? 'Give each person their own apps and teams' : s.profiles.map((p) => p.name).join(', '),
+        () => _push(c, const PeopleScreen())),
+    HubEntry(Icons.play_circle_outline_rounded, 'Keep watching',
+        s.keepWatching ? 'On: shows you\'re part way through, above your apps' : 'Off', () {
+      s.change(() => s.keepWatching = !s.keepWatching);
+      if (s.keepWatching) refreshKeepWatching(force: true);
+    }),
     HubEntry(
         Icons.wb_sunny_rounded,
         'Weather',
@@ -491,7 +501,7 @@ final List<_Group> _groups = [
             : '${s.sportsTeams.length} teams · alerts ${s.scoreAlerts == 0 ? 'off' : (s.scoreDelay > 0 ? 'on, ${s.scoreDelay} s delay' : 'on')}',
         () => _push(c, const SportsSettingsScreen())),
     HubEntry(Icons.local_fire_department_rounded, 'Fireplace video',
-        s.fireplaceUrl.isEmpty ? 'The flame button opens Foyer\'s pick on YouTube' : 'Your own: ${s.fireplaceUrl}',
+        s.fireplaceUrl.isEmpty ? 'In the moon menu: Foyer\'s pick on YouTube' : 'Your own: ${s.fireplaceUrl}',
         () async {
       final v = await askText(c, 'YouTube link for the fireplace', s.fireplaceUrl,
           hint: 'Leave empty for Foyer\'s pick', maxLength: 200);

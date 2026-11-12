@@ -4,22 +4,35 @@ import 'package:flutter/material.dart';
 import 'idle.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
+import 'update.dart';
 
 // ───────────────────────── the two small buttons on the home screen ─────────────────────────
 
 class HomeSideButtons extends StatelessWidget {
-  const HomeSideButtons({super.key, required this.onFireplace, required this.onGoodnight});
-  final VoidCallback onFireplace;
+  const HomeSideButtons({super.key, required this.onSettings, required this.onGoodnight});
+  final VoidCallback onSettings;
   final VoidCallback onGoodnight;
 
   @override
   Widget build(BuildContext context) => FocusTraversalGroup(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          _RoundButton(
-              icon: Icons.local_fire_department_rounded,
-              tooltip: 'Fireplace',
-              color: const Color(0xFFFFB454),
-              onSelect: onFireplace),
+          // settings, with an orange dot when an update is ready
+          ValueListenableBuilder<UpdateInfo?>(
+            valueListenable: kUpdate,
+            builder: (_, u, __) => Stack(clipBehavior: Clip.none, children: [
+              _RoundButton(
+                  icon: Icons.settings_rounded, tooltip: 'Settings', color: Colors.white, onSelect: onSettings),
+              if (u != null)
+                Positioned(
+                    right: 2,
+                    top: 2,
+                    child: IgnorePointer(
+                        child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: const BoxDecoration(color: Color(0xFFFF9F0A), shape: BoxShape.circle)))),
+            ]),
+          ),
           const SizedBox(height: 18),
           _RoundButton(
               icon: Icons.nightlight_round,
@@ -212,6 +225,7 @@ Future<void> goodnightMenu(BuildContext context) async {
     MenuChoice('Goodnight now', () => startGoodnight(context)),
     MenuChoice(on ? 'Change the sleep timer…' : 'Sleep timer…', () => _sleepChoices(context)),
     MenuChoice('Screen off (the sound keeps playing)', () => screenOffNow(context)),
+    MenuChoice('Fireplace', () => openFireplace(context)),
     if (on) MenuChoice('Turn off the sleep timer', () => setSleep(0)),
     MenuChoice('Cancel', () {}),
   ]);

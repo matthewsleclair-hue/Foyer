@@ -190,6 +190,18 @@ class MainActivity : FlutterActivity() {
                     result.success(SleepTimer.endAt)
                 }
                 "screenOff" -> result.success(ScreenOff.on(this))
+                "watchNext" -> {
+                    val max = call.argument<Int>("max") ?: 6
+                    val skip = (call.argument<List<String>>("skip") ?: emptyList()).toSet()
+                    Thread {
+                        val r = WatchNext.list(this, max, skip)
+                        runOnUiThread { result.success(r) }
+                    }.start()
+                }
+                "openWatchNext" -> {
+                    val id = (call.argument<Number>("id") ?: -1L).toLong()
+                    result.success(WatchNext.open(this, id))
+                }
                 "tvOffSoon" -> {
                     // smart idle on the home screen: off in a minute, any button keeps it on
                     SleepTimer.start(this, 1, "Nobody's been watching: turning the TV off in 1 minute\nPress any button to keep it on")
