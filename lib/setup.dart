@@ -620,7 +620,7 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
                         selected: s.wallValue.isEmpty,
                         onSelect: () => s.change(() => s.wallValue = '')),
                     Opt(
-                        label: 'Match the time of day',
+                        label: 'Follow the sun',
                         selected: s.wallValue == 'auto',
                         onSelect: () => s.change(() => s.wallValue = 'auto')),
                     for (final k in kSceneTurns)

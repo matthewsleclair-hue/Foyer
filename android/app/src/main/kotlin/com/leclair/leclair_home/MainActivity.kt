@@ -190,6 +190,20 @@ class MainActivity : FlutterActivity() {
                     result.success(SleepTimer.endAt)
                 }
                 "screenOff" -> result.success(ScreenOff.on(this))
+                "soundscape" -> {
+                    val k = call.argument<String>("kind") ?: ""
+                    if (k.isEmpty()) Soundscape.stop() else Soundscape.play(k)
+                    result.success(Soundscape.kind)
+                }
+                "soundscapeStatus" -> result.success(Soundscape.kind)
+                "nowPlaying" -> Thread {
+                    val r = NowPlaying.get(this)
+                    runOnUiThread { result.success(r) }
+                }.start()
+                "nowPlayingControl" -> Thread {
+                    val ok = NowPlaying.control(this, call.argument<String>("action") ?: "", call.argument<String>("package"))
+                    runOnUiThread { result.success(ok) }
+                }.start()
                 "watchNext" -> {
                     val max = call.argument<Int>("max") ?: 6
                     val skip = (call.argument<List<String>>("skip") ?: emptyList()).toSet()

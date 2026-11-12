@@ -144,6 +144,9 @@ class Settings extends ChangeNotifier {
   int scoreSize = 1; // alert pop-up: 0 small, 1 medium, 2 large
   bool weatherFx = true; // rain, snow and fog over the background when it's like that outside
   bool keepWatching = true; // the Keep watching row on the home screen
+  bool nowPlaying = true; // the song playing behind Foyer, first in that row
+  List<String> keepHidden = []; // shows hidden from Keep watching ("package|title")
+  List<String> keepHiddenApps = []; // apps hidden from Keep watching
   /// The people who watch this TV, each with their own apps and teams. Empty = just one.
   /// The active person's apps and teams live in `pinned` and `sportsTeams` while they're picked.
   List<Profile> profiles = [];
@@ -261,6 +264,9 @@ class Settings extends ChangeNotifier {
         'alertSize': scoreSize,
         'weatherFx': weatherFx,
         'keepWatching': keepWatching,
+        'nowPlaying': nowPlaying,
+        'keepHidden': keepHidden,
+        'keepHiddenApps': keepHiddenApps,
         'profiles': [for (final x in _profilesNow()) x.toJson()],
         'activeProfile': activeProfile,
         'idleOn': idleOn,
@@ -335,6 +341,11 @@ class Settings extends ChangeNotifier {
     kScoreAlertSize = scoreSize;
     weatherFx = _b(j['weatherFx'], weatherFx);
     keepWatching = _b(j['keepWatching'], keepWatching);
+    nowPlaying = _b(j['nowPlaying'], nowPlaying);
+    final kh = j['keepHidden'];
+    if (kh is List) keepHidden = kh.whereType<String>().toList();
+    final ka = j['keepHiddenApps'];
+    if (ka is List) keepHiddenApps = ka.whereType<String>().toList();
     final pr = j['profiles'];
     if (pr is List) profiles = [for (final x in pr) if (Profile.fromJson(x) != null) Profile.fromJson(x)!];
     final ap = j['activeProfile'];
@@ -1948,6 +1959,16 @@ class _HomeScreenState extends State<HomeScreen>
     _keepTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted && _fg && SettingsScope.read(context).keepWatching) refreshKeepWatching();
     });
+    // the song playing behind Foyer: checked every few seconds while the home screen is up
+    _nowTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_fg) return;
+      final s = SettingsScope.read(context);
+      if (s.keepWatching && s.nowPlaying) {
+        refreshNowPlaying();
+      } else if (kNow.value != null) {
+        kNow.value = null;
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && SettingsScope.read(context).keepWatching) refreshKeepWatching(force: true);
     });
@@ -1955,6 +1976,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Timer? _sportsTimer;
   Timer? _keepTimer;
+  Timer? _nowTimer;
 
   /// "Open on TV" from the phone page. Only acts while Foyer is on screen.
   void _onDropCommand(String type, String value) {
@@ -2089,6 +2111,7 @@ class _HomeScreenState extends State<HomeScreen>
     _dropTimer?.cancel();
     _idleTimer?.cancel();
     _keepTimer?.cancel();
+    _nowTimer?.cancel();
     _updateTimer?.cancel();
     _toastTimer?.cancel();
     kUpdate.removeListener(_onUpdateFound);
@@ -2200,6 +2223,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _openPkg(String pkg) async {
     if (_leaving) return;
+    // a soundscape gives way to the app you open
+    if (kSoundscape.value.isNotEmpty) setSoundscape('');
     final zoom = !SettingsScope.read(context).perfMode && _zoomFrom(pkg);
     setState(() => _leaving = true);
     await Future.delayed(Duration(milliseconds: zoom ? 300 : 190));
@@ -2419,6 +2444,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ? const SizedBox.shrink()
                         : Padding(
                             padding: const EdgeInsets.only(right: 16), child: ScorePill(games: g))),
+                const SoundscapePill(),
                 const SleepPill(),
 
               ]))),
@@ -2435,10 +2461,11 @@ class _HomeScreenState extends State<HomeScreen>
               opacity: _fadeLate,
               child: !settings.keepWatching
                   ? _hero(apps)
-                  : ValueListenableBuilder<List<KeepItem>>(
-                      valueListenable: kKeep,
-                      builder: (_, k, __) =>
-                          k.isEmpty ? _hero(apps) : KeepWatchingRow(onOpen: (item) => openKeepItem(item)),
+                  : AnimatedBuilder(
+                      animation: Listenable.merge([kKeep, kNow]),
+                      builder: (_, __) => !KeepWatchingRow.hasAny
+                          ? _hero(apps)
+                          : KeepWatchingRow(onOpen: (item) => openKeepItem(item)),
                     ))),
       Positioned(
         left: 70,

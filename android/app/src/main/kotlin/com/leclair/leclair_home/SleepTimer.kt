@@ -152,6 +152,7 @@ object SleepTimer {
         prefs(c).edit().remove(KEY).apply()
         HomeKeyService.instance?.refreshFilter()
         Log.d(TAG, "sleeping")
+        Soundscape.stop()
         // The sleep key also turns the TV off over HDMI on most sets.
         Thread {
             var ok = false

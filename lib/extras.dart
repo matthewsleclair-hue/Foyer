@@ -225,6 +225,8 @@ Future<void> goodnightMenu(BuildContext context) async {
     MenuChoice('Goodnight now', () => startGoodnight(context)),
     MenuChoice(on ? 'Change the sleep timer…' : 'Sleep timer…', () => _sleepChoices(context)),
     MenuChoice('Screen off (the sound keeps playing)', () => screenOffNow(context)),
+    MenuChoice(kSoundscape.value.isEmpty ? 'Soundscape…' : 'Soundscape: ${kSoundscapeNames[kSoundscape.value]}…',
+        () => soundscapeMenu(context)),
     MenuChoice('Fireplace', () => openFireplace(context)),
     if (on) MenuChoice('Turn off the sleep timer', () => setSleep(0)),
     MenuChoice('Cancel', () {}),
@@ -277,6 +279,92 @@ class _SleepPillState extends State<SleepPill> {
                 const SizedBox(width: 10),
                 Text(sleepLeft(at), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
               ]),
+            ),
+          );
+        },
+      );
+}
+
+// ───────────────────────── soundscapes ─────────────────────────
+
+/// Rain, waves, a crackling fire or brown noise, made by the TV itself.
+const Map<String, String> kSoundscapeNames = {
+  'rain': 'Rain',
+  'ocean': 'Ocean waves',
+  'fire': 'Crackling fire',
+  'brown': 'Brown noise',
+};
+
+const Map<String, IconData> _soundscapeIcons = {
+  'rain': Icons.water_drop_rounded,
+  'ocean': Icons.waves_rounded,
+  'fire': Icons.local_fire_department_rounded,
+  'brown': Icons.graphic_eq_rounded,
+};
+
+/// Which soundscape is playing ('' = none). Kept by the native side.
+final ValueNotifier<String> kSoundscape = ValueNotifier('');
+
+Future<void> setSoundscape(String kind) async {
+  try {
+    kSoundscape.value = (await kChannel.invokeMethod<String>('soundscape', {'kind': kind})) ?? '';
+  } catch (_) {}
+}
+
+Future<void> refreshSoundscape() async {
+  try {
+    kSoundscape.value = (await kChannel.invokeMethod<String>('soundscapeStatus')) ?? '';
+  } catch (_) {}
+}
+
+void soundscapeMenu(BuildContext context) => showMenu2(context, 'Soundscape', [
+      MenuChoice('Made by the TV, no video. Plays until you stop it or the sleep timer ends. '
+          'Pairs nicely with Screen off.', null),
+      for (final e in kSoundscapeNames.entries)
+        MenuChoice(kSoundscape.value == e.key ? '${e.value} (playing)' : e.value, () => setSoundscape(e.key)),
+      if (kSoundscape.value.isNotEmpty) MenuChoice('Stop', () => setSoundscape('')),
+      MenuChoice('Cancel', () {}),
+    ]);
+
+/// "Rain" on the home screen while a soundscape plays. Select it to stop.
+class SoundscapePill extends StatefulWidget {
+  const SoundscapePill({super.key});
+  @override
+  State<SoundscapePill> createState() => _SoundscapePillState();
+}
+
+class _SoundscapePillState extends State<SoundscapePill> {
+  @override
+  void initState() {
+    super.initState();
+    refreshSoundscape();
+  }
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<String>(
+        valueListenable: kSoundscape,
+        builder: (_, k, __) {
+          if (k.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: FocusButton(
+              scale: 1.0,
+              onSelect: () => soundscapeMenu(context),
+              builder: (_, f) => AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(44),
+                    border: Border.all(color: f ? Colors.white : Colors.transparent, width: 3)),
+                child: Glass(
+                  radius: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(_soundscapeIcons[k] ?? Icons.graphic_eq_rounded, size: 28, color: const Color(0xFFB8C4FF)),
+                    const SizedBox(width: 10),
+                    Text(kSoundscapeNames[k] ?? '', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ),
             ),
           );
         },

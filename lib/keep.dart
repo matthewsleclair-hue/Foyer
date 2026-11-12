@@ -26,6 +26,9 @@ class KeepItem {
   final String imageUrl; // Plex artwork, loaded from your server
   final PlexItem? plex;
   final int at; // last watched, ms since 1970
+
+  /// What "Hide this show" remembers.
+  String get hideKey => '$package|${title.toLowerCase()}';
 }
 
 /// The Keep watching cards, refreshed while the home screen is open.
@@ -43,7 +46,12 @@ Future<void> refreshKeepWatching({bool force = false}) async {
     _fromPlex(s),
     _fromTv(skipPlex: s != null && s.plexUrl.isNotEmpty && s.plexToken.isNotEmpty),
   ]);
-  final all = [...results[0], ...results[1]]..sort((a, b) => b.at.compareTo(a.at));
+  final hiddenShows = s?.keepHidden.toSet() ?? const <String>{};
+  final hiddenApps = s?.keepHiddenApps.toSet() ?? const <String>{};
+  final all = [...results[0], ...results[1]]
+      .where((x) => !hiddenApps.contains(x.package) && !hiddenShows.contains(x.hideKey))
+      .toList()
+    ..sort((a, b) => b.at.compareTo(a.at));
   kKeep.value = all;
 }
 
@@ -123,27 +131,34 @@ class KeepWatchingRow extends StatelessWidget {
   const KeepWatchingRow({super.key, required this.onOpen});
   final ValueChanged<KeepItem> onOpen;
 
+  /// True when there's anything to show (a song playing, or a show to pick up).
+  static bool get hasAny => kKeep.value.isNotEmpty || kNow.value != null;
+
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<List<KeepItem>>(
-        valueListenable: kKeep,
-        builder: (_, items, __) {
-          if (items.isEmpty) return const SizedBox.shrink();
-          final shown = items.take(3).toList();
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: Listenable.merge([kKeep, kNow]),
+        builder: (_, __) {
+          final items = kKeep.value;
+          final song = kNow.value;
+          if (items.isEmpty && song == null) return const SizedBox.shrink();
+          final shown = items.take(song == null ? 3 : 2).toList();
           return FocusTraversalGroup(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              const Padding(
-                padding: EdgeInsets.only(left: 6, bottom: 14),
-                child: Text('Keep watching',
-                    style: TextStyle(
+              Padding(
+                padding: const EdgeInsets.only(left: 6, bottom: 14),
+                child: Text(items.isEmpty ? 'Now playing' : 'Keep watching',
+                    style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
                         shadows: [Shadow(color: Color(0x99000000), blurRadius: 16)])),
               ),
               Row(mainAxisSize: MainAxisSize.min, children: [
+                if (song != null) Padding(padding: const EdgeInsets.only(right: 22), child: _NowCard(song: song)),
                 for (var i = 0; i < shown.length; i++)
                   Padding(
                     padding: EdgeInsets.only(left: i == 0 ? 0 : 22),
-                    child: _KeepCard(item: shown[i], onOpen: () => onOpen(shown[i])),
+                    child: _KeepCard(
+                        item: shown[i], onOpen: () => onOpen(shown[i]), onHold: () => _hideMenu(context, shown[i])),
                   ),
               ]),
             ]),
@@ -152,14 +167,32 @@ class KeepWatchingRow extends StatelessWidget {
       );
 }
 
+void _hideMenu(BuildContext context, KeepItem k) {
+  final s = SettingsScope.read(context);
+  showMenu2(context, k.title, [
+    MenuChoice('Hide this show', () {
+      s.change(() => s.keepHidden = [...s.keepHidden, k.hideKey]);
+      kKeep.value = kKeep.value.where((x) => x.hideKey != k.hideKey).toList();
+    }),
+    MenuChoice('Hide everything from ${k.app}', () {
+      s.change(() => s.keepHiddenApps = [...s.keepHiddenApps, k.package]);
+      kKeep.value = kKeep.value.where((x) => x.package != k.package).toList();
+    }),
+    MenuChoice('Settings → Home screen → Keep watching brings them back.', null),
+    MenuChoice('Cancel', () {}),
+  ]);
+}
+
 class _KeepCard extends StatelessWidget {
-  const _KeepCard({required this.item, required this.onOpen});
+  const _KeepCard({required this.item, required this.onOpen, required this.onHold});
   final KeepItem item;
   final VoidCallback onOpen;
+  final VoidCallback onHold;
 
   @override
   Widget build(BuildContext context) => FocusButton(
         onSelect: onOpen,
+        onLongPress: onHold,
         scale: 1.04,
         builder: (_, f) => AnimatedContainer(
           duration: const Duration(milliseconds: 160),
@@ -351,4 +384,189 @@ class KeepWatchingTicker {
   }
 
   void stop() => _t?.cancel();
+}
+
+// ───────────────────────── now playing ─────────────────────────
+
+class NowSong {
+  NowSong(this.package, this.app, this.title, this.artist, this.playing, this.art);
+  final String package;
+  final String app;
+  final String title;
+  final String artist;
+  final bool playing;
+  final Uint8List? art;
+}
+
+/// The song playing behind Foyer (Spotify, YouTube Music...), or null.
+final ValueNotifier<NowSong?> kNow = ValueNotifier(null);
+
+Future<void> refreshNowPlaying() async {
+  try {
+    final r = await kChannel.invokeMapMethod<String, dynamic>('nowPlaying');
+    if (r == null || r['ok'] != true || r['title'] == null) {
+      if (kNow.value != null) kNow.value = null;
+      return;
+    }
+    final art = r['art'];
+    final old = kNow.value;
+    final n = NowSong('${r['package']}', '${r['app']}', '${r['title']}', '${r['artist']}', r['playing'] == true,
+        art is Uint8List ? art : null);
+    // only tell the screen when something changed
+    if (old == null ||
+        old.title != n.title ||
+        old.artist != n.artist ||
+        old.playing != n.playing ||
+        old.package != n.package) {
+      kNow.value = n;
+    }
+  } catch (_) {}
+}
+
+Future<void> nowPlayingControl(String action) async {
+  final p = kNow.value?.package;
+  try {
+    await kChannel.invokeMethod<bool>('nowPlayingControl', {'action': action, 'package': p});
+  } catch (_) {}
+  await Future.delayed(const Duration(milliseconds: 400));
+  await refreshNowPlaying();
+}
+
+class _NowCard extends StatelessWidget {
+  const _NowCard({required this.song});
+  final NowSong song;
+
+  Widget _btn(IconData icon, VoidCallback onSelect, {bool big = false}) => FocusButton(
+        scale: 1.0,
+        onSelect: onSelect,
+        builder: (_, f) => AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: big ? 64 : 52,
+          height: big ? 64 : 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: f ? Colors.white : Colors.white.withAlpha(big ? 40 : 20),
+          ),
+          child: Icon(icon, size: big ? 38 : 30, color: f ? Colors.black : Colors.white),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) => FocusTraversalGroup(
+        child: Container(
+          width: 560,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            color: Colors.black.withAlpha(90),
+            border: Border.all(color: Colors.white.withAlpha(50), width: 1.5),
+          ),
+          child: Row(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: 84,
+                height: 84,
+                child: song.art != null
+                    ? Image.memory(song.art!, fit: BoxFit.cover, gaplessPlayback: true)
+                    : ColoredBox(
+                        color: Colors.white.withAlpha(30),
+                        child: const Icon(Icons.music_note_rounded, size: 44, color: Colors.white70)),
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('${song.playing ? 'NOW PLAYING' : 'PAUSED'} · ${song.app.toUpperCase()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 17, letterSpacing: 1.2, color: Colors.white60)),
+                const SizedBox(height: 4),
+                Text(song.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
+                Text(song.artist,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 20, color: Colors.white70)),
+              ]),
+            ),
+            const SizedBox(width: 10),
+            _btn(Icons.skip_previous_rounded, () => nowPlayingControl('previous')),
+            const SizedBox(width: 8),
+            _btn(song.playing ? Icons.pause_rounded : Icons.play_arrow_rounded, () => nowPlayingControl('toggle'),
+                big: true),
+            const SizedBox(width: 8),
+            _btn(Icons.skip_next_rounded, () => nowPlayingControl('next')),
+          ]),
+        ),
+      );
+}
+
+// ───────────────────────── Keep watching settings ─────────────────────────
+
+class KeepWatchingScreen extends StatelessWidget {
+  const KeepWatchingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SettingsScope.of(context);
+    final hidden = s.keepHidden.length + s.keepHiddenApps.length;
+    return SettingsPage(
+      title: 'Keep watching',
+      subtitle: 'The shows you\'re part way through, above your apps, and the song that\'s playing. '
+          'Hold OK on a show to hide it, or everything from that app.',
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Wrap(spacing: 16, runSpacing: 16, children: [
+            Opt(
+                autofocus: true,
+                label: 'On',
+                selected: s.keepWatching,
+                onSelect: () {
+                  s.change(() => s.keepWatching = true);
+                  refreshKeepWatching(force: true);
+                }),
+            Opt(label: 'Off', selected: !s.keepWatching, onSelect: () => s.change(() => s.keepWatching = false)),
+          ]),
+          const Padding(
+            padding: EdgeInsets.only(top: 34, bottom: 14),
+            child: Text('Now playing', style: TextStyle(fontSize: 28, color: Colors.white70)),
+          ),
+          Wrap(spacing: 16, runSpacing: 16, children: [
+            Opt(label: 'Show the song', selected: s.nowPlaying, onSelect: () => s.change(() => s.nowPlaying = true)),
+            Opt(label: 'Don\'t', selected: !s.nowPlaying, onSelect: () => s.change(() => s.nowPlaying = false)),
+          ]),
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Text('When Spotify or another music app is playing, its song shows first, with play, pause and skip.',
+                style: TextStyle(fontSize: 23, color: Colors.white54)),
+          ),
+          if (hidden > 0) ...[
+            const SizedBox(height: 34),
+            SettingRow(
+              entry: HubEntry(
+                Icons.visibility_rounded,
+                'Bring back hidden shows',
+                [
+                  if (s.keepHidden.isNotEmpty) '${s.keepHidden.length} ${s.keepHidden.length == 1 ? 'show' : 'shows'}',
+                  if (s.keepHiddenApps.isNotEmpty)
+                    '${s.keepHiddenApps.length} ${s.keepHiddenApps.length == 1 ? 'app' : 'apps'}',
+                ].join(' and ') + ' hidden',
+                () {
+                  s.change(() {
+                    s.keepHidden = [];
+                    s.keepHiddenApps = [];
+                  });
+                  refreshKeepWatching(force: true);
+                },
+              ),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
 }

@@ -13,6 +13,15 @@ class GeoPlace {
   String get label => [name, region, country].where((s) => s.isNotEmpty).join(', ');
 }
 
+/// Today's sunrise and sunset where you are (from the weather place), or null until known.
+class SunTimes {
+  SunTimes(this.rise, this.set);
+  final DateTime rise;
+  final DateTime set;
+}
+
+SunTimes? kSun;
+
 class WeatherNow {
   WeatherNow(this.temp, this.code, this.isDay);
   final double temp;
@@ -85,9 +94,19 @@ class WeatherApi {
       'latitude': '$lat',
       'longitude': '$lon',
       'current': 'temperature_2m,weather_code,is_day',
+      'daily': 'sunrise,sunset',
+      'timezone': 'auto',
+      'forecast_days': '1',
       'temperature_unit': fahrenheit ? 'fahrenheit' : 'celsius',
     }));
     final c = j['current'] as Map;
+    // today's sunrise and sunset there (local times, which is the TV's own zone)
+    try {
+      final d = j['daily'] as Map;
+      final rise = DateTime.parse('${(d['sunrise'] as List).first}');
+      final set = DateTime.parse('${(d['sunset'] as List).first}');
+      kSun = SunTimes(rise, set);
+    } catch (_) {}
     return WeatherNow((c['temperature_2m'] as num).toDouble(),
         (c['weather_code'] as num).toInt(), (c['is_day'] as num) == 1);
   }

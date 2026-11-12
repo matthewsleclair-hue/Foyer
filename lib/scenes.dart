@@ -7,6 +7,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'main.dart';
+import 'weather.dart';
 
 /// A photo scene: the photo, the clock's place, and the strip of scenery that goes in front of it.
 class PhotoScene {
@@ -302,7 +303,24 @@ class _ScenePainter extends CustomPainter {
 
 // ───────────────────────── the widget ─────────────────────────
 
-/// Which scene suits the hour (for "Match the time of day").
+/// Which scene suits right now. With a weather place set, it follows the real sunrise and
+/// sunset there (dawn, morning mist, midday, golden hour, night); without one, the clock.
+String sceneForNow() {
+  final sun = kSun;
+  final now = DateTime.now();
+  if (sun == null) return sceneForHour(now.hour);
+  // sunrise/sunset are today's; move them onto today's date in case the app ran past midnight
+  DateTime today(DateTime t) => DateTime(now.year, now.month, now.day, t.hour, t.minute);
+  final rise = today(sun.rise), set = today(sun.set);
+  if (now.isBefore(rise.subtract(const Duration(minutes: 45)))) return 'starlake';
+  if (now.isBefore(rise.add(const Duration(minutes: 90)))) return 'meadow';
+  if (now.isBefore(DateTime(now.year, now.month, now.day, 11))) return 'mistforest';
+  if (now.isBefore(set.subtract(const Duration(minutes: 100)))) return 'matterhorn';
+  if (now.isBefore(set.add(const Duration(minutes: 40)))) return 'volcano';
+  return 'starlake';
+}
+
+/// Which scene suits the hour (when the sunrise and sunset aren't known).
 String sceneForHour(int h) {
   if (h >= 5 && h < 8) return 'meadow';
   if (h >= 8 && h < 11) return 'mistforest';
@@ -332,7 +350,7 @@ class _SceneViewState extends State<SceneView> {
   void initState() {
     super.initState();
     // start on the scene that suits the hour, then take turns
-    _i = max(0, kSceneTurns.indexOf(sceneForHour(DateTime.now().hour)));
+    _i = max(0, kSceneTurns.indexOf(sceneForNow()));
     _turn = Timer.periodic(const Duration(seconds: 20), (_) {
       if (mounted && (widget.which.isEmpty || widget.which == 'auto')) setState(() => _i++);
     });
@@ -345,7 +363,7 @@ class _SceneViewState extends State<SceneView> {
   }
 
   String get _name {
-    if (widget.which == 'auto') return sceneForHour(DateTime.now().hour);
+    if (widget.which == 'auto') return sceneForNow();
     if (kScenes.containsKey(widget.which) || kPhotoScenes.containsKey(widget.which)) return widget.which;
     return kSceneTurns[_i % kSceneTurns.length];
   }

@@ -23,9 +23,10 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 
 **A home screen that's actually yours**
 - Your favourite apps along the bottom, in the order you like. Press **Down** to see every app, and **Up** at the top to come back
-- **Keep watching:** the shows you're part way through, in Plex, Netflix, Disney+, Prime Video, Fibe TV, YouTube and more, with how far in you are. One press picks up right where you left off
+- **Keep watching:** the shows you're part way through, in Plex, Netflix, Disney+, Prime Video, Fibe TV, YouTube and more, with how far in you are. One press picks up right where you left off. Hold OK on one to hide it
+- **Now playing:** when Spotify or another music app is playing, the song, artist and cover show first in that row, with play, pause and skip
 - **People:** everyone in the house gets their own apps and sports teams. Their names sit under the greeting; pick one to switch, and Foyer says "Good evening, Sarah"
-- **Photo backgrounds** with a big clock tucked behind the mountains and trees: a misty meadow, the Matterhorn, a volcano at dusk, a starry lake and a misty forest. They take turns, or follow the time of day
+- **Photo backgrounds** with a big clock tucked behind the mountains and trees: a misty meadow, the Matterhorn, a volcano at dusk, a starry lake and a misty forest. They take turns, or **follow the sun**: the real sunrise and sunset where you live decide which one shows
 - Rain, snow or fog drifting over the background when that's the weather outside
 - "Good evening · 4° Cloudy", and glass that warms up at sunset and dims late at night
 - Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
@@ -41,6 +42,7 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 **Evenings and bedtime** (the moon button, bottom left)
 - A **sleep timer** that turns the TV off after an episode or two, with a "still watching?" warning
 - **Screen off:** the picture goes black while the sound keeps playing, for music or falling asleep to a show
+- **Soundscapes:** rain, ocean waves, a crackling fire or brown noise, made by the TV itself
 - A crackling **fireplace** video
 - **Smart idle:** when nobody's watching, a dim drifting clock protects the screen, and a show left paused turns the TV off by itself (after a "still here?" note)
 
@@ -97,7 +99,7 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
   </tr>
 </table>
 
-**The photo backgrounds.** They take turns, or follow the time of day: the meadow at sunrise, the forest in the morning mist, the Matterhorn at midday, the volcano at dusk and the starry lake at night.
+**The photo backgrounds.** They take turns, or follow the sun: the meadow at sunrise, the forest in the morning mist, the Matterhorn at midday, the volcano at dusk and the starry lake at night.
 
 <table>
   <tr>

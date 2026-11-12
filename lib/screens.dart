@@ -485,10 +485,11 @@ final List<_Group> _groups = [
         s.plexToken.isEmpty ? 'Link your Plex so Keep watching shows your Plex shows' : 'Linked${s.plexName.isEmpty ? '' : ' to ${s.plexName}'}',
         () => _editStep(c, 3)),
     HubEntry(Icons.play_circle_outline_rounded, 'Keep watching',
-        s.keepWatching ? 'On: shows you\'re part way through, above your apps' : 'Off', () {
-      s.change(() => s.keepWatching = !s.keepWatching);
-      if (s.keepWatching) refreshKeepWatching(force: true);
-    }),
+        !s.keepWatching
+            ? 'Off'
+            : 'On${s.nowPlaying ? ', with the song that\'s playing' : ''}'
+                '${s.keepHidden.length + s.keepHiddenApps.length > 0 ? ' · ${s.keepHidden.length + s.keepHiddenApps.length} hidden' : ''}',
+        () => _push(c, const KeepWatchingScreen())),
     HubEntry(
         Icons.wb_sunny_rounded,
         'Weather',
@@ -519,7 +520,7 @@ final List<_Group> _groups = [
         s.wallMode == 'scenes'
             ? (s.wallValue.isEmpty
                 ? 'Scenes, taking turns'
-                : (s.wallValue == 'auto' ? 'Scenes, matching the time of day' : 'Scene: ${sceneName(s.wallValue)}'))
+                : (s.wallValue == 'auto' ? 'Scenes, following the sun' : 'Scene: ${sceneName(s.wallValue)}'))
             : s.wallMode == 'photo'
             ? 'Your photo'
             : (s.wallMode == 'preset'
@@ -1172,13 +1173,22 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
                       s.wallValue = '';
                     })),
             Opt(
-                label: 'Match the time of day',
+                label: 'Follow the sun',
                 selected: s.wallMode == 'scenes' && s.wallValue == 'auto',
                 onSelect: () => s.change(() {
                       s.wallMode = 'scenes';
                       s.wallValue = 'auto';
                     })),
           ]),
+          if (s.wallMode == 'scenes' && s.wallValue == 'auto')
+            Padding(
+              padding: const EdgeInsets.only(top: 14),
+              child: Text(
+                  s.weatherCity.isEmpty
+                      ? 'Set a weather place (Home screen → Weather) and the scenes follow the real sunrise and sunset there. Until then, they go by the clock.'
+                      : 'The meadow at sunrise, the misty forest in the morning, the Matterhorn at midday, the volcano at golden hour and the starry lake after dark, using today\'s sunrise and sunset in ${s.weatherCity}.',
+                  style: const TextStyle(fontSize: 23, color: Colors.white54)),
+            ),
           const SizedBox(height: 20),
           Wrap(spacing: 20, runSpacing: 20, children: [
             for (final k in kSceneOrder)
