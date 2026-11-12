@@ -515,6 +515,27 @@ class MainActivity : FlutterActivity() {
     private fun installApk(path: String): String {
         val f = File(path)
         if (!f.exists() || f.length() == 0L) return "error"
+        // Google TV: install through the TV's debugging link. No "Update?" box, and Foyer
+        // becomes the installer of record, so later updates can skip the box too.
+        if (!isFireTv()) {
+            Thread {
+                val ok = try {
+                    val adb = LocalAdb(filesDir) { }
+                    adb.run(listOf("pm install -r -i $packageName \"${f.absolutePath}\""))
+                    adb.outputs.firstOrNull()?.contains("Success") == true
+                } catch (e: Exception) {
+                    // the install replaces Foyer, which can cut the link just as it succeeds
+                    e is java.io.EOFException ||
+                        (e is java.net.SocketException && e !is java.net.ConnectException)
+                }
+                if (!ok) runOnUiThread { sessionInstall(f) }
+            }.start()
+            return "started"
+        }
+        return sessionInstall(f)
+    }
+
+    private fun sessionInstall(f: File): String {
         if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
             try {
                 startActivity(
