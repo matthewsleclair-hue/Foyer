@@ -1,78 +1,126 @@
-# Foyer
+<p align="center">
+  <img src="docs/icon.png" width="120" alt="Foyer icon">
+</p>
 
-An Apple TV style home screen for Amazon Fire TV sticks: glass UI, fast, no ads.
-It is a launcher that sits on top of Fire OS (it does not replace the OS).
+<h1 align="center">Foyer</h1>
 
-Features: pinned-app dock, weather, screensaver (colors, your photos, or online photos), wallpapers,
-Plex "Continue Watching" row, backup/restore, performance mode, start on boot, update check, and a
-Tune-up screen that removes Amazon ads and bloat (reversible) over on-device ADB.
+<p align="center"><b>A calm, ad-free home screen for your TV.</b><br>
+Your apps, the time, the weather and your team's score. Nothing you didn't ask for.</p>
 
-## First-time project setup (Mac)
-    flutter create --org com.leclair --project-name leclair_home --platforms android ~/Downloads/leclair_home
-The package id stays `com.leclair.leclair_home` so updates and settings keep working.
+---
 
-## Build and install on your stick
-    ./update.sh            # copies this code into the project, builds, installs, grants permissions
-    ./update.sh --reset    # same, and shows the first-run setup again
+## What is Foyer?
 
-## Signed APK to share
-    tools/create_signing.sh   # once. BACK UP ~/.leclair-signing and never commit it
-    tools/release.sh          # outputs Foyer.apk and update.json
+When you turn on most streaming boxes, the first thing you see is a wall of ads, "sponsored" shows and apps you never installed. **Foyer replaces that screen.** Press Home on your remote and you get a clean, good-looking screen with just *your* apps, a big clock, today's weather and a greeting.
 
-If you switch to a new signing key: back up settings in the app (Settings > Backup and restore),
-`adb uninstall com.leclair.leclair_home`, install the signed build, then restore.
+Everything you already use keeps working exactly as before: **Netflix, Prime Video, Crave, Disney+, YouTube, Plex, Fibe TV** and anything else from the Play Store. Foyer just changes what you see between them.
 
-## Updates from GitHub (Settings > Updates)
-Foyer reads the latest GitHub Release of the repo set in Settings > Updates (default `matthewsleclair-hue/Foyer`).
+<p align="center">
+  <img src="docs/screenshots/home.png" width="860" alt="Foyer's home screen">
+</p>
 
-Publish a new version:
+## What you get
 
-    brew install gh && gh auth login      # once
-    tools/publish.sh ~/Downloads/leclair_home "What changed"
+**A home screen that's actually yours**
+- Your favourite apps along the bottom, in the order you like
+- A big clock with "Good evening · 4° Cloudy" underneath
+- Continue watching from Plex, right on the home screen
+- Glass-style design that warms up at sunset and dims late at night
+- Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
 
-That builds the signed APK and creates a release tagged `v<VERSION>+<build>` with `Foyer.apk` attached.
-On the stick: Settings > Updates > Check now > Download and install. A small orange dot also appears on the
-home screen's settings icon when a newer version exists.
+**No ads, no clutter**
+- Google's ad-filled home screen is switched off
+- A one-press **Tune-up** turns off Google's tracking and the apps you don't use (and can bring them all back)
 
-Quick way to get the token onto the stick (typing 90 characters with a remote is painful):
+**Sports**
+- Live scores for your teams (NHL, MLB, NBA, NFL and Formula 1)
+- A small pop-up when your team scores, even while you're watching Netflix, in your team's colours
 
-    printf '%s' 'github_pat_xxx' > /tmp/foyer-token.txt
-    adb push /tmp/foyer-token.txt /sdcard/Android/data/com.leclair.leclair_home/files/foyer-token.txt
-    rm /tmp/foyer-token.txt
-Then Settings > Updates > Load token from file. The file is deleted from the stick after it is read.
+**Little things that make evenings nicer**
+- A **sleep timer** that turns the TV off after an episode or two, with a "still watching?" warning
+- The **star button** on the remote opens whatever you want (Plex, say)
+- Soft click sounds as you move around (or none, if you prefer)
 
-Private repo: create a fine-grained token (GitHub > Settings > Developer settings > Personal access tokens),
-limited to this repo with **Contents: Read-only**, and add it in Settings > Updates > Add access token. It is
-stored on the TV only and is never included in backups or debug reports. A public repo needs no token.
+**Your TV's settings, without the maze**
+- Wi-Fi, Bluetooth headphones, picture, sound, apps and storage, all inside Foyer
+- Updates install with one press
 
-Not using GitHub? Settings > Updates also accepts a link to a small JSON file
-(`{"version":"1.0.1","build":26110901,"url":"<direct apk link>","notes":""}`).
-`tools/release.sh` writes one as `update.json`.
-Bump `VERSION` to change the version name; the build number goes up automatically (every minute), so you can publish as often as you like.
+**Foyer Drop (optional): your phone, on the TV**
+- Send photos, notes and drawings from your phone to the TV
+- Use your phone as a remote, and type with your phone's keyboard
+- Share the TV with your household: everyone uses their own login
 
-## Icon
-Regenerate with `python3 tools/make_icons.py` (needs `pip install playwright`). Previews are in `docs/`.
+<table>
+  <tr>
+    <td><img src="docs/screenshots/all-apps.png" alt="All apps"></td>
+    <td><img src="docs/screenshots/settings.png" alt="Settings"></td>
+  </tr>
+  <tr>
+    <td align="center">All your apps</td>
+    <td align="center">Settings, in plain words</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/sports.png" alt="Sports settings"></td>
+    <td><img src="docs/screenshots/alert.png" alt="Score alert"></td>
+  </tr>
+  <tr>
+    <td align="center">Pick your teams</td>
+    <td align="center">A goal alert over whatever you're watching</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/tv-settings.png" alt="TV settings"></td>
+    <td><img src="docs/screenshots/sleep.png" alt="Sleep timer"></td>
+  </tr>
+  <tr>
+    <td align="center">Wi-Fi, Bluetooth, picture and sound</td>
+    <td align="center">Goodnight and the sleep timer</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/setup.png" alt="Welcome setup"></td>
+    <td><img src="docs/screenshots/holiday.png" alt="Holiday theme"></td>
+  </tr>
+  <tr>
+    <td align="center">A friendly setup the first time</td>
+    <td align="center">Holiday themes switch on by themselves</td>
+  </tr>
+</table>
 
-## Notes
-- Home button: double-press Home to reach the stock Fire TV home. "Use as my Home screen" in Tune-up disables
-  Amazon's launcher (Restore Amazon home undoes it).
-- Tune-up needs ADB debugging on. Some Fire OS versions block on-device ADB; it then prints the commands to run from a computer.
-- Wallpaper photos: put them in Pictures/Download, or the app's own folder shown in Settings > Wallpaper.
-- Untested on devices other than a Fire TV Stick 3rd Gen (2020).
+## What TV do I need?
 
-## Friends: setting up
-See [GUIDE.md](GUIDE.md) for the step-by-step install and clean-up guide.
+Foyer works on **Google TV and Android TV** boxes and TVs:
 
-## Version numbers
-Small update: last number +1 (1.0.1 -> 1.0.2). Medium: middle number +1 and the last goes back to 0 (1.5.10 -> 1.6.0). Large: first number +1 and the rest go back to 0 (1.5.10 -> 2.0.0).
-`bash tools/bump.sh small|medium|large` does it; `bash tools/publish.sh` then builds and releases.
+| ✅ Works great | ⚠️ Works, with limits | ❌ Doesn't work on its own |
+|---|---|---|
+| Google TV Streamer, Chromecast with Google TV, Onn 4K Pro, and TVs with Google TV built in (most Sony, TCL, Hisense, Philips) | Amazon Fire TV sticks: Amazon won't let its home screen be fully replaced | Samsung and LG smart TVs. Plug in a Google TV box (like an Onn 4K Pro) and Foyer runs on that |
 
-## Live scores and Foyer Drop
+Got a Samsung or LG? Plug a Google TV box into it and turn on HDMI-CEC (Samsung calls it *Anynet+*, LG calls it *SIMPLINK*). Then the box's remote also turns the TV on and off and controls the volume.
 
-Settings → Home screen → **Sports scores** (also a step in first-run setup) lets you follow NHL, MLB, NBA, NFL teams and Formula 1.
-Scores come from ESPN's public data, which is unofficial and can change, so the pill simply hides if it stops working.
-**Foyer Drop** links the TV with a short code to the optional Docker server in [`server/`](server/README.md).
+## How do I get it?
 
-## TV settings (Google TV / Android TV)
+Foyer isn't in the Play Store. It's shared with friends and family:
 
-Settings > **TV settings** puts Wi-Fi, Bluetooth, picture, sound, apps, storage, name and power inside Foyer (`lib/system.dart`, `TvSystem.kt`). It uses on-device ADB for the parts apps can't change themselves, and falls back to the stock page when a TV won't allow something. Not shown on Fire TV, where Amazon blocks on-device ADB. See GUIDE.md.
+- **Easiest:** ask whoever gave you Foyer to set up your box. They can hand it to you ready to go, and the first time you turn it on, Foyer walks you through the rest with just the remote: Wi-Fi, your name, how it looks and your apps.
+- **Doing it yourself:** follow the [step-by-step guide](GUIDE.md). You'll need a computer once, for about 10 minutes.
+
+After that, updates come with one press: **Settings → Updates → Download and install**.
+
+## Common questions
+
+**Will Netflix, Prime and my other apps still work?**
+Yes. They're the same apps from the Play Store. Foyer only replaces the home screen.
+
+**Can I go back to the normal Google TV home screen?**
+Yes, any time: **Settings → TV tools → Home button → Bring back the TV's own home screen**.
+
+**Does Foyer collect anything about me?**
+No. Foyer has no ads and no tracking. Weather and scores come from public sources; Foyer Drop runs on a server that belongs to whoever set it up for you.
+
+**Something looks wrong. What do I do?**
+Press **Home** to come back to Foyer. If that doesn't help, try **Settings → Screensaver and power → Restart or sleep → Restart**, then tell whoever set up Foyer for you.
+
+**Is it free?**
+Yes.
+
+---
+
+<sub>For the person who builds Foyer: build, signing and publishing notes are in [docs/DEVELOPING.md](docs/DEVELOPING.md). Foyer uses the font Plus Jakarta Sans (SIL Open Font License).</sub>
