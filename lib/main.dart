@@ -1346,6 +1346,8 @@ class _SetupScreenState extends State<SetupScreen> {
     });
     final err = await adbQuick([
       if (!undo) 'pm grant com.leclair.leclair_home android.permission.WRITE_SECURE_SETTINGS',
+      // lets the remote helper switch on (Android blocks it for apps updated from an APK file)
+      if (!undo) 'appops set com.leclair.leclair_home ACCESS_RESTRICTED_SETTINGS allow',
       // lets TV settings > Bluetooth work right away
       if (!undo) 'pm grant com.leclair.leclair_home android.permission.BLUETOOTH_SCAN',
       if (!undo) 'pm grant com.leclair.leclair_home android.permission.BLUETOOTH_CONNECT',

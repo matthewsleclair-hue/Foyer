@@ -516,6 +516,32 @@ class MainActivity : FlutterActivity() {
             } catch (e: Exception) { }
             return "needsPermission"
         }
+        // Android's session installer: unlike the old "open this APK" way, it doesn't mark
+        // Foyer as restricted, which would stop the remote helper from being switched on.
+        try {
+            val pi = packageManager.packageInstaller
+            val params = android.content.pm.PackageInstaller.SessionParams(
+                android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL
+            )
+            params.setAppPackageName(packageName)
+            if (Build.VERSION.SDK_INT >= 31) {
+                params.setRequireUserAction(android.content.pm.PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            }
+            val id = pi.createSession(params)
+            pi.openSession(id).use { s ->
+                s.openWrite("foyer.apk", 0, f.length()).use { out ->
+                    f.inputStream().use { it.copyTo(out) }
+                    s.fsync(out)
+                }
+                val flags = android.app.PendingIntent.FLAG_UPDATE_CURRENT or
+                    (if (Build.VERSION.SDK_INT >= 31) android.app.PendingIntent.FLAG_MUTABLE else 0)
+                val done = android.app.PendingIntent.getBroadcast(
+                    this, id, Intent(this, InstallReceiver::class.java), flags
+                )
+                s.commit(done.intentSender)
+            }
+            return "started"
+        } catch (e: Exception) { }
         return try {
             val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", f)
             startActivity(

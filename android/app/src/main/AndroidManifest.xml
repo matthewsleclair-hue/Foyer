@@ -82,6 +82,7 @@
         </receiver>
 
         <meta-data android:name="flutterEmbedding" android:value="2" />
+        <receiver android:name=".InstallReceiver" android:exported="false" />
     </application>
 
     <queries>

@@ -47,6 +47,8 @@ if ! adb -s "$T" shell pm path "$PKG" 2>/dev/null | grep -q package:; then
 fi
 # Lets Foyer manage its own Home button service, in case it is ever needed as a fallback.
 adb -s "$T" shell pm grant "$PKG" android.permission.WRITE_SECURE_SETTINGS 2>/dev/null
+# Android 13+ blocks accessibility helpers for apps updated from an APK file; lift that.
+adb -s "$T" shell appops set "$PKG" ACCESS_RESTRICTED_SETTINGS allow 2>/dev/null
 for p in $STOCK; do
   out=$(adb -s "$T" shell pm disable-user --user 0 "$p" 2>&1)
   case "$out" in

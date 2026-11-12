@@ -62,6 +62,12 @@ class _RemoteButtonsScreenState extends State<RemoteButtonsScreen> {
 
   Future<void> _turnOnHelper() async {
     bool ok = false;
+    setState(() => _msg = 'Turning the helper on…');
+    // Android blocks helpers for apps it calls "restricted" (any app updated by opening
+    // an APK file). Lift that first through the TV's debugging link.
+    if (!kIsFireTv) {
+      await adbQuick(['appops set com.leclair.leclair_home ACCESS_RESTRICTED_SETTINGS allow']);
+    }
     try {
       ok = (await kChannel.invokeMethod<bool>('setHomeKey', {'enabled': true})) ?? false;
     } catch (_) {}
