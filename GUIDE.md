@@ -149,3 +149,9 @@ Choices are saved as you go. **Settings > Backup and updates > Run setup again**
 When one of the teams you follow scores, a small note pops up in the top corner for a few seconds, over whatever you're watching (Netflix, Plex, anything). It slides in from the right in the scoring team's colours, with a sport badge, the big score and the period, and a thin bar along the bottom that runs down before it fades away. NHL goals, MLB runs and NFL touchdowns, field goals and safeties are announced; NBA only gets start and final (a pop-up for every basket would never stop). F1 gets a note when the race goes live.
 
 **Settings > Home screen > Sports** has everything in one place: your teams, score alerts (**Scores, start and final**, **Scores only** or **Off**, plus **Show a sample**), the alert size (**Medium** by default, or Small or Large) and the alert delay. Alerts need the remote helper. During a live game Foyer checks every 8 seconds, so a note shows within about 10 seconds of ESPN having the goal. TV streams usually run 20 to 60 seconds behind live, so an alert can beat the goal on screen: the **Alert delay** on the same page (0, 15, 30, 45 or 60 s) holds alerts back to match your stream.
+
+### Home screen look
+
+- **Big clock and greeting**: top left, a large clock with "Good evening · 4° Cloudy" under it (holiday greetings take over during holiday weeks). The separate clock and weather pills are gone; the top right keeps Settings, scores and the sleep timer.
+- **Light follows the day**: the background is neutral by day, warms up around sunrise and sunset, and dims late at night so Foyer isn't bright blue at midnight. Settings > Appearance > Light follows the day turns it off.
+- **Opening an app**: its tile grows to fill the screen in the app's colour, then the app opens. Performance mode keeps the plain fade.

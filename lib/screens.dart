@@ -493,6 +493,14 @@ final List<_Group> _groups = [
     _HubItem(Icons.speed_rounded, 'Performance mode',
         s.perfMode ? 'On: no blur, lighter animations' : 'Off',
         () => s.change(() => s.perfMode = !s.perfMode)),
+    _HubItem(Icons.wb_twilight_rounded, 'Light follows the day',
+        s.dayLightOn ? 'On: warmer at sunset, dimmer late at night' : 'Off: the same all day', () {
+      s.change(() {
+        s.dayLightOn = !s.dayLightOn;
+        kDayLight = s.dayLightOn;
+      });
+      kDayTick.value++;
+    }),
     _HubItem(Icons.celebration_rounded, 'Seasonal themes',
         s.seasonal ? 'On: Halloween, Christmas, New Year and Easter' : 'Off',
         () => _push(c, const SeasonsScreen())),

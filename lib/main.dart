@@ -111,6 +111,7 @@ class Settings extends ChangeNotifier {
   int soundLevel = 1; // 0 off, 1 quiet, 2 normal
   bool seasonal = true; // Halloween, Christmas, New Year and Easter looks
   int scoreAlerts = 2; // 0 off, 1 scores only, 2 scores + start + final
+  bool dayLightOn = true; // background warms at sunset and dims at night
   int scoreDelay = 0; // seconds, to stay behind a delayed stream
   int scoreSize = 1; // alert pop-up: 0 small, 1 medium, 2 large
 
@@ -155,6 +156,7 @@ class Settings extends ChangeNotifier {
         'soundLevel': soundLevel,
         'seasonal': seasonal,
         'scoreAlerts': scoreAlerts,
+        'dayLight': dayLightOn,
         'scoreDelay': scoreDelay,
         'alertSize': scoreSize,
         'remoteKeys': remoteKeys,
@@ -209,6 +211,8 @@ class Settings extends ChangeNotifier {
     if (sl is num) soundLevel = sl.toInt().clamp(0, 2).toInt();
     kSoundLevel = soundLevel;
     seasonal = _b(j['seasonal'], seasonal);
+    dayLightOn = _b(j['dayLight'], dayLightOn);
+    kDayLight = dayLightOn;
     final sa = j['scoreAlerts'];
     if (sa is num) scoreAlerts = sa.toInt().clamp(0, 2).toInt();
     kScoreAlertLevel = scoreAlerts;
@@ -392,6 +396,8 @@ class _RootState extends State<Root> {
       if (mounted) setState(() => _ready = true);
       // goal pop-ups, also while another app is playing
       if (mounted) kScoreAlerts.start(() => SettingsScope.read(context));
+      // let the background follow the time of day
+      Timer.periodic(const Duration(minutes: 5), (_) => kDayTick.value++);
     });
   }
 
@@ -540,6 +546,42 @@ class _RimPainter extends CustomPainter {
 }
 
 /// Wallpaper: dark base with two soft glows that take the given tint.
+// ───────────────────────── light that follows the day ─────────────────────────
+
+/// Settings > Appearance > Light follows the day.
+bool kDayLight = true;
+
+/// Bumped every few minutes so backdrops pick up the new time of day.
+final ValueNotifier<int> kDayTick = ValueNotifier(0);
+
+const Color _kSunset = Color(0xFFFF8A3D);
+
+/// How warm (0..1) and how dim (0..1) the background is at this time of day.
+/// Bright and neutral by day, warm around sunrise and sunset, dim late at night.
+(double, double) dayLight(DateTime t) {
+  if (!kDayLight) return (0.0, 0.0);
+  const keys = <List<double>>[
+    [0, 0.10, 0.55],
+    [5.5, 0.10, 0.55],
+    [7, 0.25, 0.15],
+    [9, 0.0, 0.0],
+    [16.5, 0.0, 0.0],
+    [18.5, 0.45, 0.05],
+    [20, 0.30, 0.25],
+    [22.5, 0.15, 0.45],
+    [24, 0.10, 0.55],
+  ];
+  final h = t.hour + t.minute / 60.0;
+  for (var i = 0; i < keys.length - 1; i++) {
+    final a = keys[i], b = keys[i + 1];
+    if (h >= a[0] && h <= b[0]) {
+      final f = (h - a[0]) / (b[0] - a[0]);
+      return (a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f);
+    }
+  }
+  return (0.0, 0.0);
+}
+
 class Backdrop extends StatelessWidget {
   const Backdrop({super.key, required this.tint});
   final Color tint;
@@ -556,9 +598,16 @@ class Backdrop extends StatelessWidget {
       );
 
   @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<Color?>(
-      tween: ColorTween(end: tint),
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+        valueListenable: kDayTick,
+        builder: (_, __, ___) => _build(context),
+      );
+
+  Widget _build(BuildContext context) {
+    final (warmth, dim) = dayLight(DateTime.now());
+    final shown = Color.lerp(tint, _kSunset, warmth)!;
+    final body = TweenAnimationBuilder<Color?>(
+      tween: ColorTween(end: shown),
       duration: const Duration(milliseconds: 700),
       curve: Curves.easeInOut,
       builder: (_, c, __) {
@@ -582,6 +631,12 @@ class Backdrop extends StatelessWidget {
         );
       },
     );
+    if (dim <= 0.01) return body;
+    return Stack(fit: StackFit.expand, children: [
+      body,
+      // late at night the background dims down (text and tiles stay bright)
+      IgnorePointer(child: ColoredBox(color: Colors.black.withAlpha((dim * 255).round()))),
+    ]);
   }
 }
 
@@ -1800,6 +1855,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    _endZoom();
     WidgetsBinding.instance.removeObserver(this);
     _plexTimer?.cancel();
     _weatherTimer?.cancel();
@@ -1822,6 +1878,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (s == AppLifecycleState.resumed) {
       _loadWeather(force: true);
       _loadSports();
+      _endZoom();
       if (_leaving) setState(() => _leaving = false);
       _load();
       _loadPlex(force: true);
@@ -1946,13 +2003,79 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _openPkg(String pkg) async {
     if (_leaving) return;
+    final zoom = !SettingsScope.read(context).perfMode && _zoomFrom(pkg);
     setState(() => _leaving = true);
-    await Future.delayed(const Duration(milliseconds: 190));
+    await Future.delayed(Duration(milliseconds: zoom ? 300 : 190));
     final ok = await launchPackage(pkg);
+    if (!ok) _endZoom();
     if (!ok && mounted) setState(() => _leaving = false);
     Future.delayed(const Duration(milliseconds: 1500), () {
+      _endZoom();
       if (mounted && _leaving) setState(() => _leaving = false);
     });
+  }
+
+  OverlayEntry? _zoom;
+
+  void _endZoom() {
+    _zoom?.remove();
+    _zoom = null;
+  }
+
+  /// The app's tile grows to fill the screen, then the app opens: like stepping into it.
+  bool _zoomFrom(String pkg) {
+    _endZoom();
+    final node = FocusManager.instance.primaryFocus;
+    final overlay = Overlay.maybeOf(context);
+    final box = overlay?.context.findRenderObject() as RenderBox?;
+    if (node == null || overlay == null || box == null || !box.hasSize) return false;
+    final r = node.rect;
+    final from = Rect.fromPoints(box.globalToLocal(r.topLeft), box.globalToLocal(r.bottomRight));
+    if (from.width < 20 || from.height < 20) return false;
+    final to = Offset.zero & box.size;
+    final info = _cache[pkg];
+    final color = info?.glow ?? kDefaultTint;
+    _zoom = OverlayEntry(
+      builder: (_) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeInOutCubic,
+        builder: (_, t, __) {
+          final rr = Rect.lerp(from, to, t)!;
+          final iconW = info == null ? 0.0 : (info.wide ? 520.0 : 220.0) * (0.55 + 0.45 * t);
+          return Positioned.fromRect(
+            rect: rr,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28 * (1 - t)),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    radius: 1.1,
+                    colors: [Color.lerp(color, Colors.black, 0.15)!, Color.lerp(color, Colors.black, 0.75)!],
+                  ),
+                ),
+                child: info == null
+                    ? const SizedBox.expand()
+                    : Center(
+                        child: Opacity(
+                          opacity: (1 - (t - 0.6).clamp(0.0, 0.4) * 1.5).clamp(0.0, 1.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(info.wide ? 18 : 44),
+                            child: SizedBox(
+                              width: iconW.clamp(1.0, rr.width),
+                              child: Image.memory(info.image, gaplessPlayback: true, filterQuality: FilterQuality.medium),
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    overlay.insert(_zoom!);
+    return true;
   }
 
   void _openFireplace() {
@@ -2060,14 +2183,10 @@ class _HomeScreenState extends State<HomeScreen>
     final tileW = ((avail - 28.0 * (count - 1)) / count).clamp(120.0, 240.0).toDouble();
     return Stack(children: [
       Positioned(
-          left: 72,
-          top: 44,
+          left: 84,
+          top: 30,
           child: FadeTransition(
-              opacity: _fadeEarly,
-              child: Glass(
-                  radius: 40,
-                  child: SeasonGreeting(
-                      season: activeSeason(settings), fallback: 'Welcome to ${settings.name}')))),
+              opacity: _fadeEarly, child: _HomeHeader(season: activeSeason(settings), weather: _weather))),
       Positioned(
           right: 72,
           top: 132,
@@ -2126,17 +2245,13 @@ class _HomeScreenState extends State<HomeScreen>
                         : Padding(
                             padding: const EdgeInsets.only(right: 16), child: ScorePill(games: g))),
                 const SleepPill(),
-                if (_weather != null) ...[
-                  _WeatherPill(w: _weather!),
-                  const SizedBox(width: 16),
-                ],
-                const _ClockPill(),
+
               ]))),
       if (_plex != null)
         Positioned(
             left: 96,
             right: 96,
-            top: 190,
+            top: 232,
             child: FadeTransition(opacity: _fadeLate, child: _plexRow(_plex!))),
       Positioned(
           right: 96,
@@ -2231,22 +2346,6 @@ class _HomeScreenState extends State<HomeScreen>
       );
 }
 
-class _WeatherPill extends StatelessWidget {
-  const _WeatherPill({required this.w});
-  final WeatherNow w;
-  @override
-  Widget build(BuildContext context) => Glass(
-        radius: 40,
-        padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(w.icon, size: 32),
-          const SizedBox(width: 12),
-          Text('${w.temp.round()}°',
-              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w600)),
-        ]),
-      );
-}
-
 class _PlexCard extends StatelessWidget {
   const _PlexCard({required this.item, required this.onOpen});
   final PlexItem item;
@@ -2310,13 +2409,16 @@ class _PlexCard extends StatelessWidget {
       );
 }
 
-class _ClockPill extends StatefulWidget {
-  const _ClockPill();
+/// Top left of the home screen: a big, calm clock, and "Good evening · 4° Cloudy" under it.
+class _HomeHeader extends StatefulWidget {
+  const _HomeHeader({required this.season, required this.weather});
+  final Season season;
+  final WeatherNow? weather;
   @override
-  State<_ClockPill> createState() => _ClockPillState();
+  State<_HomeHeader> createState() => _HomeHeaderState();
 }
 
-class _ClockPillState extends State<_ClockPill> {
+class _HomeHeaderState extends State<_HomeHeader> {
   Timer? _t;
   DateTime _now = DateTime.now();
 
@@ -2338,16 +2440,49 @@ class _ClockPillState extends State<_ClockPill> {
     super.dispose();
   }
 
+  String get _hello {
+    final h = _now.hour;
+    if (h >= 5 && h < 12) return 'Good morning';
+    if (h >= 12 && h < 17) return 'Good afternoon';
+    if (h >= 17 && h < 22) return 'Good evening';
+    return 'Good night';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final h24 = SettingsScope.of(context).clock24;
+    final s = SettingsScope.of(context);
+    final h24 = s.clock24;
     final m = _now.minute.toString().padLeft(2, '0');
-    final text = h24
-        ? '${_now.hour.toString().padLeft(2, '0')}:$m'
-        : '${_now.hour % 12 == 0 ? 12 : _now.hour % 12}:$m ${_now.hour < 12 ? 'AM' : 'PM'}';
-    return Glass(
-        radius: 40,
-        child: Text(text, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w600)));
+    final time = h24 ? '${_now.hour.toString().padLeft(2, '0')}:$m' : '${_now.hour % 12 == 0 ? 12 : _now.hour % 12}:$m';
+    const shadow = [Shadow(color: Color(0x99000000), blurRadius: 24, offset: Offset(0, 4))];
+    final w = widget.weather;
+    const line = TextStyle(fontSize: 30, fontWeight: FontWeight.w500, color: Color(0xE6FFFFFF), shadows: shadow);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+      Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+        Text(time,
+            style: const TextStyle(
+                fontSize: 104, fontWeight: FontWeight.w200, letterSpacing: -3, height: 1.0, shadows: shadow)),
+        if (!h24) ...[
+          const SizedBox(width: 10),
+          Text(_now.hour < 12 ? 'AM' : 'PM',
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w400, color: Colors.white70, shadows: shadow)),
+        ],
+      ]),
+      const SizedBox(height: 6),
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        // holidays keep their own greeting (and the New Year's Eve countdown)
+        if (widget.season != Season.none)
+          DefaultTextStyle.merge(style: const TextStyle(shadows: shadow), child: SeasonGreeting(season: widget.season, fallback: _hello))
+        else
+          Text(_hello, style: line),
+        if (w != null) ...[
+          Text('   ·   ', style: line.copyWith(color: Colors.white38)),
+          Icon(w.icon, size: 32, color: Colors.white, shadows: shadow),
+          const SizedBox(width: 10),
+          Text('${w.temp.round()}°  ${w.label}', style: line),
+        ],
+      ]),
+    ]);
   }
 }
 
