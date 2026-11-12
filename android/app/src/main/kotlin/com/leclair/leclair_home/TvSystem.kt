@@ -127,7 +127,9 @@ class TvSystem(private val act: Activity, private val ch: MethodChannel) {
             "soundEffects" to (Settings.System.getInt(cr, Settings.System.SOUND_EFFECTS_ENABLED, 1) == 1),
             "screensaver" to (Settings.Secure.getInt(cr, "screensaver_enabled", 1) == 1),
             "screenOff" to Settings.System.getInt(cr, Settings.System.SCREEN_OFF_TIMEOUT, -1),
-            "sleep" to Settings.Secure.getInt(cr, "sleep_timeout", -1)
+            "sleep" to Settings.Secure.getInt(cr, "sleep_timeout", -1),
+            "devOptions" to (Settings.Global.getInt(cr, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1),
+            "adbOn" to (Settings.Global.getInt(cr, Settings.Global.ADB_ENABLED, 0) == 1)
         )
     }
 

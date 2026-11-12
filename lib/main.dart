@@ -9,6 +9,7 @@ import 'extras.dart';
 import 'plex.dart';
 import 'screens.dart';
 import 'seasons.dart';
+import 'setup.dart';
 import 'sounds.dart';
 import 'server.dart';
 import 'sports.dart';
@@ -22,9 +23,12 @@ const String kPlexPackage = 'com.plexapp.android';
 
 /// Pre-selected on first run if they're installed.
 const List<String> kSuggested = [
-  'com.apple.atve.amazon.appletv',
   'com.netflix.ninja',
+  'com.amazon.amazonvideo.livingroom',
+  'com.google.android.youtube.tv',
   kPlexPackage,
+  'ca.bell.fiberemote',
+  'com.apple.atve.amazon.appletv',
   'com.amazon.firetv.youtube',
   'com.disney.disneyplus',
   'ca.bellmedia.cravetv',
@@ -380,7 +384,7 @@ class _RootState extends State<Root> {
     if (!_ready) return const ColoredBox(color: Colors.black);
     // The step-by-step setup only runs once. After that each part lives in Settings.
     if (!s.setupDone) {
-      return SetupScreen(firstRun: true, onDone: () => setState(() => _mode = _Mode.home));
+      return FirstRunSetup(onDone: () => setState(() => _mode = _Mode.home));
     }
     if (_mode == _Mode.hub) {
       return SettingsHub(onClose: () => setState(() => _mode = _Mode.home));
@@ -1031,7 +1035,7 @@ class _SetupScreenState extends State<SetupScreen> {
   ];
   static const _subs = [
     'This shows in the welcome message on your home screen.',
-    'Liquid glass blurs the wallpaper behind each panel. It looks best, but can stutter on an older Fire Stick.',
+    'Liquid glass blurs the wallpaper behind each panel. It looks best, but can stutter on slower TV boxes.',
     'Pick up to $kMaxPinned apps for your home screen. They appear in the order you select them.',
     'Optional. Show Continue Watching from your Plex server on the home screen.',
     'Make the Home button on your remote open Foyer instead of the TV\'s own home screen.',

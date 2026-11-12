@@ -10,6 +10,7 @@ import 'sports.dart';
 import 'system.dart';
 import 'sounds.dart';
 import 'seasons.dart';
+import 'setup.dart';
 import 'remote.dart';
 import 'online.dart';
 import 'update.dart';
@@ -537,7 +538,7 @@ final List<_Group> _groups = [
             : 'Choose what the star, YouTube and Netflix buttons open',
         () => _push(c, const RemoteButtonsScreen())),
   ]),
-  _Group(Icons.system_update_rounded, 'Backup and updates', 'Updates, backup and restore', (c, s) => [
+  _Group(Icons.system_update_rounded, 'Backup and updates', 'Updates, backup, run setup again', (c, s) => [
     _HubItem(
         Icons.system_update_rounded,
         'Updates',
@@ -548,6 +549,9 @@ final List<_Group> _groups = [
     _HubItem(Icons.backup_rounded, 'Backup and restore',
         'Save your settings to a file, or load them back',
         () => _push(c, const BackupScreen())),
+    _HubItem(Icons.restart_alt_rounded, 'Run setup again',
+        'The guided setup from the first day. Your settings are kept',
+        () => _push(c, FirstRunSetup(onDone: () => Navigator.of(c).pop()))),
   ]),
 ];
 

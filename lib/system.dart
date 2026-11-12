@@ -1405,6 +1405,12 @@ const List<_BloatGroup> _gtvGroups = [
   ]),
 ];
 
+/// Every package the Google TV tune-up can switch off (used by first-run setup).
+List<String> get kGtvTuneUpPackages => [
+      for (final g in _gtvGroups)
+        for (final b in g.items) b.pkg
+    ];
+
 /// Never touched: things that break casting, the mic, the Play Store or the screensaver.
 const Map<String, String> _gtvKeep = {
   'com.google.android.apps.mediashell': 'Casting from your phone',

@@ -128,3 +128,18 @@ For the week around each holiday the home screen changes by itself: its own colo
 | Easter | Palm Sunday to Easter Monday | pastel lilac, drifting petals |
 
 Settings > Appearance > Seasonal themes turns it on or off and lets you try each one now. Your own photo wallpaper is kept; the particles still show over it. Performance mode uses fewer particles.
+
+### First-run setup
+
+The first time Foyer opens, a guided setup walks through everything with just the remote:
+
+1. **Welcome**
+2. **Home screen**: a checklist that ticks itself off. Foyer opens the right TV pages, notices when Developer options and debugging are on, then one press makes Foyer the home screen, switches off Google's ads (Tune-up) and turns on the remote helper. On a Fire TV this step turns on the Home button helper instead.
+3. **Wi-Fi**: only appears if the box is offline (the takeover can make it forget Wi-Fi once).
+4. **About your home**: name, clock, weather city.
+5. **Make it yours**: glass, wallpaper, holiday themes and sounds, with a live preview.
+6. **Your apps**: the usual ones (Netflix, Prime Video, YouTube, Plex, Fibe TV) are already picked.
+7. **Extras**: Plex, sports scores, Foyer Drop and remote buttons, all optional.
+8. **All set**: what's ready, plus tips for the moon, star and Menu buttons.
+
+Choices are saved as you go. **Settings > Backup and updates > Run setup again** opens it any time; your settings are kept.
