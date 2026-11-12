@@ -188,3 +188,11 @@ Foyer uses **Plus Jakarta Sans** (in `fonts/`, free under the SIL Open Font Lice
 ### Developer options
 
 Settings > Updates only shows the one **Check now / Download and install** button, so nobody changes where updates come from by accident. To get the rest, press the **Version** line on the Updates page 7 times (like Android's build number). **Developer options** then appears at the bottom of Settings with: where updates come from (Foyer Drop or GitHub), the GitHub repo, the access token, and loading the token from a file. **Turn off developer options** hides it again; **Reset for someone new** turns it off too.
+
+### VPN
+
+**Settings > TV settings > VPN** lists the popular VPNs (NordVPN, ExpressVPN, Surfshark, Proton VPN, CyberGhost, Private Internet Access, Mullvad, Tailscale, OpenVPN Connect, WireGuard) and shows whether the TV is connected through one right now. The ones already on the TV are at the top.
+
+On Android TV each VPN works through its own app, which also holds your login, so Foyer can't sign in for you. Picking one shows a **QR code** that opens that VPN's sign-in page on your phone (to sign in, check your plan or sign up), plus **Open** if the app is installed or **Get it from the Play Store** if it isn't. Most VPN apps then show their own short code or QR code to sign in on the TV.
+
+Some streaming apps block VPNs or show another country's catalogue while one is on.

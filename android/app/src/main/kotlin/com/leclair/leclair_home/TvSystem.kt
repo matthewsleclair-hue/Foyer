@@ -71,6 +71,11 @@ class TvSystem(private val act: Activity, private val ch: MethodChannel) {
                 "btPair" -> result.success(btPair(call.argument<String>("address") ?: ""))
                 "btForget" -> result.success(btForget(call.argument<String>("address") ?: ""))
                 "openPage" -> result.success(openPage(call.argument<String>("page") ?: ""))
+                "installed" -> result.success(
+                    (call.argument<List<String>>("packages") ?: emptyList()).filter {
+                        try { act.packageManager.getPackageInfo(it, 0); true } catch (e: Exception) { false }
+                    }
+                )
                 else -> result.notImplemented()
             }
         } catch (e: Exception) {
@@ -89,8 +94,10 @@ class TvSystem(private val act: Activity, private val ch: MethodChannel) {
         (act.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).getMemoryInfo(mem)
         val cm = act.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         var link = "none"
+        var vpn = false
         try {
             val caps = if (Build.VERSION.SDK_INT >= 23) cm.getNetworkCapabilities(cm.activeNetwork) else null
+            vpn = caps?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
             link = when {
                 caps == null -> "none"
                 caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ethernet"
@@ -129,7 +136,8 @@ class TvSystem(private val act: Activity, private val ch: MethodChannel) {
             "screenOff" to Settings.System.getInt(cr, Settings.System.SCREEN_OFF_TIMEOUT, -1),
             "sleep" to Settings.Secure.getInt(cr, "sleep_timeout", -1),
             "devOptions" to (Settings.Global.getInt(cr, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1),
-            "adbOn" to (Settings.Global.getInt(cr, Settings.Global.ADB_ENABLED, 0) == 1)
+            "adbOn" to (Settings.Global.getInt(cr, Settings.Global.ADB_ENABLED, 0) == 1),
+            "vpn" to vpn
         )
     }
 

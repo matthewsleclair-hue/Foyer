@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
 import 'screens.dart';
+import 'vpn.dart';
 
 const MethodChannel kSystem = MethodChannel('leclair/system');
 const String _me = 'com.leclair.leclair_home';
@@ -196,6 +197,12 @@ class _SystemScreenState extends State<SystemScreen> {
             value: net,
             autofocus: true,
             onSelect: () => _open(const WifiScreen())),
+        SysRow(
+            icon: Icons.vpn_lock_rounded,
+            title: 'VPN',
+            subtitle: 'NordVPN, ExpressVPN, Proton, Tailscale and more',
+            value: _i['vpn'] == true ? 'On' : '',
+            onSelect: () => _open(const VpnScreen())),
         SysRow(
             icon: Icons.bluetooth_rounded,
             title: 'Bluetooth and remotes',
