@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dashboard.dart';
 import 'extras.dart';
 import 'plex.dart';
 import 'screens.dart';
@@ -111,8 +110,6 @@ class Settings extends ChangeNotifier {
   bool perfMode = false;
   int soundLevel = 1; // 0 off, 1 quiet, 2 normal
   bool seasonal = true; // Halloween, Christmas, New Year and Easter looks
-  String homarrUrl = ''; // dashboard shown from the button above the fireplace
-  int homarrZoom = 75;
 
   /// Custom remote buttons: "313" = pressed, "313L" = held -> app package, "foyer" or "" (normal).
   Map<String, String> remoteKeys = {};
@@ -154,8 +151,6 @@ class Settings extends ChangeNotifier {
         'perfMode': perfMode,
         'soundLevel': soundLevel,
         'seasonal': seasonal,
-        'homarrUrl': homarrUrl,
-        'homarrZoom': homarrZoom,
         'remoteKeys': remoteKeys,
         'updateUrl': updateUrl,
         'sportsTeams': [for (final t in sportsTeams) t.toJson()],
@@ -208,9 +203,6 @@ class Settings extends ChangeNotifier {
     if (sl is num) soundLevel = sl.toInt().clamp(0, 2).toInt();
     kSoundLevel = soundLevel;
     seasonal = _b(j['seasonal'], seasonal);
-    homarrUrl = _s(j['homarrUrl'], homarrUrl);
-    final hz = j['homarrZoom'];
-    if (hz is num) homarrZoom = hz.toInt();
     final rk = j['remoteKeys'];
     if (rk is Map) remoteKeys = {for (final e in rk.entries) '${e.key}': '${e.value}'};
     updateUrl = _s(j['updateUrl'], updateUrl);
@@ -2131,7 +2123,6 @@ class _HomeScreenState extends State<HomeScreen>
         child: FadeTransition(
           opacity: _fadeEarly,
           child: HomeSideButtons(
-            onDashboard: settings.homarrUrl.isEmpty ? null : () => openDashboard(context),
             onFireplace: _openFireplace,
             onGoodnight: () => goodnightMenu(context),
           ),

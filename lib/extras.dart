@@ -8,25 +8,13 @@ import 'main.dart';
 // ───────────────────────── the two small buttons on the home screen ─────────────────────────
 
 class HomeSideButtons extends StatelessWidget {
-  const HomeSideButtons(
-      {super.key, required this.onFireplace, required this.onGoodnight, this.onDashboard});
+  const HomeSideButtons({super.key, required this.onFireplace, required this.onGoodnight});
   final VoidCallback onFireplace;
   final VoidCallback onGoodnight;
-
-  /// Only set once a dashboard is connected in Settings.
-  final VoidCallback? onDashboard;
 
   @override
   Widget build(BuildContext context) => FocusTraversalGroup(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          if (onDashboard != null) ...[
-            _RoundButton(
-                icon: Icons.space_dashboard_rounded,
-                tooltip: 'Dashboard',
-                color: const Color(0xFF63E6BE),
-                onSelect: onDashboard!),
-            const SizedBox(height: 18),
-          ],
           _RoundButton(
               icon: Icons.local_fire_department_rounded,
               tooltip: 'Fireplace',

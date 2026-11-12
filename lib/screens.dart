@@ -11,7 +11,6 @@ import 'system.dart';
 import 'sounds.dart';
 import 'seasons.dart';
 import 'setup.dart';
-import 'dashboard.dart';
 import 'remote.dart';
 import 'online.dart';
 import 'update.dart';
@@ -451,7 +450,7 @@ Future<void> openAmazonHome(BuildContext context) async {
 }
 
 final List<_Group> _groups = [
-  _Group(Icons.home_rounded, 'Home screen', 'Name, apps, weather, Plex, dashboard', (c, s) => [
+  _Group(Icons.home_rounded, 'Home screen', 'Name, apps, weather, Plex', (c, s) => [
     _HubItem(Icons.badge_rounded, 'Name and clock',
         '${s.name}, ${s.clock24 ? '24-hour' : '12-hour'} clock', () => _editStep(c, 0)),
     _HubItem(Icons.apps_rounded, 'Pinned apps', '${s.pinned.length} on your home screen',
@@ -470,9 +469,6 @@ final List<_Group> _groups = [
         'Sports scores',
         s.sportsTeams.isEmpty ? 'Off' : '${s.sportsTeams.length} followed',
         () => _editStep(c, 5)),
-    _HubItem(Icons.space_dashboard_rounded, 'Dashboard',
-        s.homarrUrl.isEmpty ? 'Show your Homarr dashboard on the TV' : 'Connected: ${s.homarrUrl}',
-        () => _push(c, const DashboardSettingsScreen())),
     _HubItem(Icons.cloud_sync_rounded, 'Foyer Drop',
         s.serverUrl.isEmpty || s.serverToken.isEmpty ? 'Not linked' : 'Linked to ${s.serverUrl}',
         () => _push(c, const ServerScreen())),
