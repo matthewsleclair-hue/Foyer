@@ -74,7 +74,7 @@ object Alerts {
         }
         removeNow()
         try {
-            val k = when ((a["size"] as? Number)?.toInt() ?: 1) { 0 -> 0.8f; 2 -> 1.3f; else -> 1f }
+            val k = when ((a["size"] as? Number)?.toInt() ?: 1) { 0 -> 0.65f; 2 -> 1f; else -> 0.8f }
             val dm = svc.resources.displayMetrics
             val dp = { v: Float -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v * k, dm) }
             val acc = accent(s(a, "color"))
