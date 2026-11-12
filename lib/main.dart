@@ -113,7 +113,7 @@ class Settings extends ChangeNotifier {
   int scoreAlerts = 2; // 0 off, 1 scores only, 2 scores + start + final
   bool dayLightOn = true; // background warms at sunset and dims at night
   bool devMode = false; // Developer options (press the version 7 times in Updates)
-  int fireVolume = 3; // fireplace crackle, 0 (silent) to 4
+  String fireplaceUrl = ''; // YouTube video for the flame button ('' = Foyer's pick)
   int scoreDelay = 0; // seconds, to stay behind a delayed stream
   int scoreSize = 1; // alert pop-up: 0 small, 1 medium, 2 large
 
@@ -162,7 +162,7 @@ class Settings extends ChangeNotifier {
         'scoreAlerts': scoreAlerts,
         'dayLight': dayLightOn,
         'devMode': devMode,
-        'fireVolume': fireVolume,
+        'fireplaceUrl': fireplaceUrl,
         'scoreDelay': scoreDelay,
         'alertSize': scoreSize,
         'remoteKeys': remoteKeys,
@@ -219,8 +219,7 @@ class Settings extends ChangeNotifier {
     seasonal = _b(j['seasonal'], seasonal);
     dayLightOn = _b(j['dayLight'], dayLightOn);
     devMode = _b(j['devMode'], devMode);
-    final fv = j['fireVolume'];
-    if (fv is num) fireVolume = fv.toInt().clamp(0, 4).toInt();
+    fireplaceUrl = _s(j['fireplaceUrl'], fireplaceUrl);
     kDayLight = dayLightOn;
     final sa = j['scoreAlerts'];
     if (sa is num) scoreAlerts = sa.toInt().clamp(0, 2).toInt();
@@ -2114,15 +2113,7 @@ class _HomeScreenState extends State<HomeScreen>
     return true;
   }
 
-  void _openFireplace() {
-    Navigator.of(context).push(PageRouteBuilder<void>(
-      opaque: true,
-      transitionDuration: const Duration(milliseconds: 700),
-      reverseTransitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (_, __, ___) => const FireplaceScreen(),
-      transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
-    ));
-  }
+  void _openFireplace() => openFireplace(context);
 
   void _openAllApps() {
     Navigator.of(context).push(PageRouteBuilder<void>(

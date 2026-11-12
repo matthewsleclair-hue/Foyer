@@ -199,8 +199,6 @@ Some streaming apps block VPNs or show another country's catalogue while one is 
 
 ### Fireplace
 
-The flame button on the home screen opens a wood fire: flames that tear into tongues, crossed logs with glowing cracks, a bed of coals, sparks, and light flickering on the brick behind. It's simulated live (a shader, `shaders/fire.frag`), not a video, so it never repeats exactly.
+The flame button on the home screen opens a fireplace video in the **YouTube app**, full screen, with its own sound. Back or Home returns to Foyer.
 
-It crackles too: a low roar, hiss and random pops. **Up and Down** change the crackle (four levels, or silent) and Foyer remembers your choice. OK or Back leaves. The sound stops whenever Foyer leaves the screen.
-
-Performance mode draws the fire a little softer. If a TV box can't run the shader, Foyer falls back to the simpler drawn fire.
+**Settings > Home screen > Fireplace video** lets you paste a different YouTube link (handy with the scan-to-type QR code); leave it empty for Foyer's pick. YouTube has to be installed on the TV.

@@ -485,6 +485,19 @@ final List<_Group> _groups = [
             ? 'Pick your teams for live scores and alerts'
             : '${s.sportsTeams.length} teams · alerts ${s.scoreAlerts == 0 ? 'off' : (s.scoreDelay > 0 ? 'on, ${s.scoreDelay} s delay' : 'on')}',
         () => _push(c, const SportsSettingsScreen())),
+    _HubItem(Icons.local_fire_department_rounded, 'Fireplace video',
+        s.fireplaceUrl.isEmpty ? 'The flame button opens Foyer\'s pick on YouTube' : 'Your own: ${s.fireplaceUrl}',
+        () async {
+      final v = await askText(c, 'YouTube link for the fireplace', s.fireplaceUrl,
+          hint: 'Leave empty for Foyer\'s pick', maxLength: 200);
+      if (v == null) return;
+      final t = v.trim();
+      if (t.isNotEmpty && !t.contains('youtu')) {
+        if (c.mounted) showInfo(c, 'That isn\'t a YouTube link', 'Paste a link like https://www.youtube.com/watch?v=…');
+        return;
+      }
+      s.change(() => s.fireplaceUrl = (t.isEmpty || t.startsWith('http')) ? t : 'https://$t');
+    }),
     _HubItem(Icons.cloud_sync_rounded, 'Foyer Drop',
         s.serverUrl.isEmpty || s.serverToken.isEmpty ? 'Not linked' : 'Linked to ${s.serverUrl}',
         () => _push(c, const ServerScreen())),

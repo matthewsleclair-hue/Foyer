@@ -98,5 +98,3 @@ migration guides (removes the kotlin-android plugin, kotlinOptions becomes kotli
 android.newDsl / android.builtInKotlin), and keeps a .bak of each file. Needs Flutter 3.44+; built-in Kotlin turns on with 3.47+.
 To undo: rename the .bak files back.
 
-## Fireplace shader and sound
-`shaders/fire.frag` is a Flutter fragment shader; `tools/patch_fonts.py` copies it into the project and adds it under `shaders:` in pubspec.yaml. `docs/fireplace-preview.png` is a frame of it. The crackle is `android/app/src/main/res/raw/foyer_fire.ogg` (generated, 48 s, tagged ANDROID_LOOP for gapless looping), played by `FireSound.kt`.

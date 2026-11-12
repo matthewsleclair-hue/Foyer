@@ -54,7 +54,6 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onPause() {
-        FireSound.cut() // never keep crackling behind another app
         DropRemote.activityResumed = false
         super.onPause()
     }
@@ -212,11 +211,6 @@ class MainActivity : FlutterActivity() {
                     } catch (e: Exception) {
                         result.success(null)
                     }
-                }
-                "fireSound" -> {
-                    val v = call.argument<Double>("volume") ?: 0.0
-                    if (v > 0.0) FireSound.play(this, v.toFloat()) else FireSound.stop()
-                    result.success(true)
                 }
                 "cancelLearn" -> { RemoteKeys.learn = null; result.success(true) }
                 "remoteKeysStatus" -> {
