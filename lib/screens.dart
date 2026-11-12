@@ -1953,7 +1953,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
         _found = r;
         _msg = r == null
             ? 'You\'re up to date.'
-            : 'Version ${r.version} is ready.${r.notes.trim().isEmpty ? '' : '\n${r.notes.trim()}'}';
+            : 'Version ${r.version} is ready.${r.notes.trim().isEmpty ? '' : '\n\n${plainNotes(r.notes)}'}';
       });
     } catch (e) {
       if (mounted) setState(() => _msg = 'Could not check: ${UpdateApi.friendly(e)}');
@@ -2051,7 +2051,12 @@ class _UpdateScreenState extends State<UpdateScreen> {
           if (_msg.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 16),
-              child: Text(_msg, style: const TextStyle(fontSize: 26, color: Colors.white70)),
+              child: SizedBox(
+                  width: 1400,
+                  child: Text(_msg,
+                      maxLines: 16,
+                      overflow: TextOverflow.fade,
+                      style: const TextStyle(fontSize: 24, height: 1.4, color: Colors.white70))),
             ),
         ]),
       ),

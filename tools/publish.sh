@@ -13,7 +13,15 @@ bash "$HERE/tools/release.sh" "$PROJ"
 NAME="$(cat "$HERE/VERSION" 2>/dev/null || echo 1.0.0)"
 BUILD="$(python3 -c "import json;print(json.load(open('$HERE/update.json'))['build'])")"
 TAG="v$NAME+$BUILD"
-[ -n "$NOTES" ] || NOTES="Foyer $NAME"
+if [ -z "$NOTES" ]; then
+  # what's new since the last release, from CHANGELOG.md (added, changed, removed, fixed)
+  PREV="$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null | sed 's/^v//; s/+.*//' || true)"
+  if [ -n "$PREV" ] && [ "$PREV" != "$NAME" ]; then
+    NOTES="$(python3 "$HERE/tools/release_notes.py" "$NAME" "$PREV")"
+  else
+    NOTES="$(python3 "$HERE/tools/release_notes.py" "$NAME")"
+  fi
+fi
 gh release create "$TAG" "$HERE/Foyer.apk" --repo "$REPO" --title "Foyer $NAME ($BUILD)" --notes "$NOTES"
 echo
 echo "Published $TAG to https://github.com/$REPO/releases"

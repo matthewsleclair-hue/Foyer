@@ -69,6 +69,11 @@ See [GUIDE.md](../GUIDE.md) for the step-by-step install and clean-up guide.
 Small update: last number +1 (1.0.1 -> 1.0.2). Medium: middle number +1 and the last goes back to 0 (1.5.10 -> 1.6.0). Large: first number +1 and the rest go back to 0 (1.5.10 -> 2.0.0).
 `bash tools/bump.sh small|medium|large` does it; `bash tools/publish.sh` then builds and releases.
 
+**Release notes come from [CHANGELOG.md](../CHANGELOG.md).** Add a `## x.y.z` section with **Added**, **Changed**,
+**Removed** and **Fixed** lists for each version. `publish.sh` puts everything since the last GitHub release into the
+release's description (and the TV's Updates screen shows the same list). To rewrite every past release's description
+from the changelog: `bash tools/fix-release-notes.sh`.
+
 ## Live scores and Foyer Drop
 
 Settings → Home screen → **Sports scores** (also a step in first-run setup) lets you follow NHL, MLB, NBA, NFL teams and Formula 1.

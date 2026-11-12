@@ -186,3 +186,21 @@ class UpdateApi {
     return m.replaceAll('FormatException: ', '').replaceAll('Exception: ', '');
   }
 }
+
+
+/// Release notes (Markdown from CHANGELOG.md) as plain text for the TV:
+/// "**Added**" -> "Added", "- **Now playing:** ..." -> "•  Now playing: ...".
+String plainNotes(String md) {
+  final out = <String>[];
+  for (var line in md.split('\n')) {
+    line = line.trimRight();
+    if (line.startsWith('### ')) {
+      out.add('');
+      line = 'In ${line.substring(4)}';
+    } else if (line.startsWith('- ')) {
+      line = '•  ${line.substring(2)}';
+    }
+    out.add(line.replaceAll('**', ''));
+  }
+  return out.join('\n').replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
+}
