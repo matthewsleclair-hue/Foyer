@@ -31,7 +31,5 @@ shot sleep       "The moon button menu (Goodnight / Sleep timer / Screen off / F
 shot setup       "The welcome setup's \"Make it yours\" step (Settings > Backup and updates > Run setup again)"
 shot holiday     "A holiday theme on the home screen (Appearance > Seasonal themes > Try one)"
 echo
-echo "For the companion app picture: take a screenshot on your phone of the Foyer Drop page,"
-echo "save it as docs/screenshots/companion.png (portrait is fine)."
 echo "Done. Check them, then: git add docs/screenshots && git commit -m 'Screenshots' && git push"
 echo "(Tip: if the scores or a person's name shouldn't be in the pictures, switch them off first.)"
