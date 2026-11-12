@@ -85,3 +85,15 @@ Builds the signed APK (adds the font to the project if needed), publishes the Gi
 
 ## Android libraries
 `tools/patch_deps.py` (run by `update.sh` and `release.sh`) adds ZXing core to `android/app/build.gradle(.kts)` once. Foyer uses it to draw QR codes on the TV (`qrPng` in MainActivity, `QrCode` widget in screens.dart).
+
+## Upgrading Gradle / Android Gradle Plugin / Kotlin
+When Flutter warns that support for the project's Gradle, AGP or Kotlin version will be dropped:
+
+    flutter upgrade
+    python3 tools/upgrade_gradle.py ~/Downloads/leclair_home
+    cd ~/Downloads/leclair_home && flutter clean
+
+It moves the project to Gradle 9.3.1, AGP 9.0.1 and Kotlin 2.3.20 following Flutter's AGP 9 / built-in Kotlin
+migration guides (removes the kotlin-android plugin, kotlinOptions becomes kotlin.compilerOptions, sets
+android.newDsl / android.builtInKotlin), and keeps a .bak of each file. Needs Flutter 3.44+; built-in Kotlin turns on with 3.47+.
+To undo: rename the .bak files back.
