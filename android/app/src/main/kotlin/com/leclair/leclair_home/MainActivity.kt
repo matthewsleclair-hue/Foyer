@@ -176,10 +176,8 @@ class MainActivity : FlutterActivity() {
                     result.success(SleepTimer.endAt)
                 }
                 "alert" -> {
-                    Alerts.show(
-                        this, call.argument<String>("title") ?: "", call.argument<String>("line") ?: "",
-                        size = call.argument<Int>("size") ?: 2
-                    )
+                    @Suppress("UNCHECKED_CAST")
+                    Alerts.show(this, (call.arguments as? Map<String, Any?>) ?: emptyMap())
                     result.success(true)
                 }
                 "cancelLearn" -> { RemoteKeys.learn = null; result.success(true) }

@@ -54,12 +54,15 @@ class GameLine {
     this.homeScore = '',
     this.detail = '',
     this.title = '',
+    this.awayColor = '',
+    this.homeColor = '',
   });
   final String league; // key
   final String state; // pre | in | post
   final String awayAbbr, awayScore, homeAbbr, homeScore;
   final String detail;
   final String title; // race name for F1
+  final String awayColor, homeColor; // team colours from ESPN, hex without '#'
 }
 
 String _clockText(DateTime utc, bool h24) {
@@ -159,7 +162,7 @@ class SportsApi {
     if (comps is! List || comps.isEmpty) return null;
     final cs = comps[0]['competitors'];
     if (cs is! List || cs.length < 2) return null;
-    String ab = '', as_ = '', hb = '', hs = '';
+    String ab = '', as_ = '', hb = '', hs = '', ac = '', hc = '';
     var mine = false;
     for (final c in cs) {
       if (c is! Map) continue;
@@ -167,12 +170,15 @@ class SportsApi {
       final id = tm is Map ? '${tm['id']}' : '';
       final abbr = tm is Map ? '${tm['abbreviation'] ?? tm['shortDisplayName'] ?? ''}' : '';
       if (ids.contains(id)) mine = true;
+      final col = tm is Map ? '${tm['color'] ?? ''}' : '';
       if (c['homeAway'] == 'home') {
         hb = abbr;
         hs = _scoreOf(c['score']);
+        hc = col;
       } else {
         ab = abbr;
         as_ = _scoreOf(c['score']);
+        ac = col;
       }
     }
     if (!mine) return null;
@@ -195,7 +201,9 @@ class SportsApi {
         awayScore: as_,
         homeAbbr: hb,
         homeScore: hs,
-        detail: detail);
+        detail: detail,
+        awayColor: ac == 'null' ? '' : ac,
+        homeColor: hc == 'null' ? '' : hc);
   }
 
   /// F1 has no home or away: show a live session, or the next race weekend if it is close.
@@ -446,12 +454,50 @@ int kScoreAlertLevel = 2;
 int kScoreAlertDelay = 0;
 const List<int> kScoreDelays = [0, 15, 30, 45, 60];
 
-/// Pop-up size: 0 small, 1 medium, 2 large (default).
-int kScoreAlertSize = 2;
+/// Pop-up size: 0 small, 1 medium (default), 2 large.
+int kScoreAlertSize = 1;
 const List<String> kScoreSizeNames = ['Small', 'Medium', 'Large'];
 
-void showScoreAlert(String title, String line) =>
-    kChannel.invokeMethod('alert', {'title': title, 'line': line, 'size': kScoreAlertSize}).catchError((_) => null);
+const Map<String, String> _leagueEmoji = {'nhl': '🏒', 'mlb': '⚾', 'nba': '🏀', 'nfl': '🏈', 'f1': '🏁'};
+
+/// Sends one alert to the pop-up drawn over other apps.
+///   event: "GOAL", "FINAL"…   side: which team's number to light up ('away', 'home' or '').
+void showScoreAlert({
+  required String league,
+  required String event,
+  String away = '',
+  String awayScore = '',
+  String home = '',
+  String homeScore = '',
+  String detail = '',
+  String side = '',
+  String color = '',
+  String line = '',
+}) =>
+    kChannel.invokeMethod('alert', {
+      'emoji': _leagueEmoji[league] ?? '🏆',
+      'event': event,
+      'away': away,
+      'awayScore': awayScore,
+      'home': home,
+      'homeScore': homeScore,
+      'detail': detail,
+      'side': side,
+      'color': color,
+      'line': line,
+      'size': kScoreAlertSize,
+    }).catchError((_) => null);
+
+void showSampleAlert() => showScoreAlert(
+    league: 'nhl',
+    event: 'GOAL · TOR',
+    away: 'TOR',
+    awayScore: '2',
+    home: 'MTL',
+    homeScore: '1',
+    detail: '2nd period · 12:34',
+    side: 'away',
+    color: '00205b');
 const List<String> kScoreAlertNames = ['Off', 'Scores only', 'Scores, start and final'];
 
 /// Watches the games of the teams you follow and pops a note over whatever is playing
@@ -477,30 +523,40 @@ class ScoreAlerts {
 
   static int _n(String v) => int.tryParse(v.trim()) ?? 0;
 
-  static String _what(String league, int pts, String team) {
+  static String _what(String league, int pts) {
     switch (league) {
       case 'nhl':
-        return '🚨 $team goal!';
+        return 'GOAL';
       case 'mlb':
-        return pts == 1 ? '⚾ $team scores' : '⚾ $team scores $pts runs';
+        return pts == 1 ? 'RUN' : '$pts RUNS';
       case 'nfl':
-        if (pts >= 6) return '🏈 $team touchdown!';
-        if (pts == 3) return '🏈 $team field goal';
-        if (pts == 2) return '🏈 $team, 2 points';
-        return '🏈 $team scores';
+        if (pts >= 6) return 'TOUCHDOWN';
+        if (pts == 3) return 'FIELD GOAL';
+        if (pts == 2) return 'SAFETY';
+        return 'SCORE';
       default:
-        return '$team scores';
+        return 'SCORE';
     }
   }
 
-  void _alert(String title, String line) {
-    void send() => showScoreAlert(title, line);
+  void _later(void Function() send) {
     if (kScoreAlertDelay > 0) {
       Timer(Duration(seconds: kScoreAlertDelay), send);
     } else {
       send();
     }
   }
+
+  void _game(GameLine g, String event, {String side = ''}) => _later(() => showScoreAlert(
+      league: g.league,
+      event: event,
+      away: g.awayAbbr,
+      awayScore: g.awayScore,
+      home: g.homeAbbr,
+      homeScore: g.homeScore,
+      detail: g.detail,
+      side: side,
+      color: side == 'home' ? g.homeColor : (side == 'away' ? g.awayColor : '')));
 
   void _onGames() {
     final now = {for (final g in kSports.games.value) _key(g): g};
@@ -514,13 +570,14 @@ class ScoreAlerts {
       for (final e in now.entries) {
         final g = e.value, old = _last[e.key];
         if (old == null) continue;
-        final line = g.league == 'f1'
-            ? g.title
-            : '${g.awayAbbr} ${g.awayScore} – ${g.homeScore} ${g.homeAbbr}   ·   ${g.detail}';
         final starting = old.state == 'pre' && g.state == 'in';
         final ended = old.state == 'in' && g.state == 'post';
         if (starting && kScoreAlertLevel >= 2) {
-          _alert(g.league == 'f1' ? '🏁 Formula 1 is live' : 'Starting now', g.league == 'f1' ? g.title : '${g.awayAbbr} at ${g.homeAbbr}');
+          if (g.league == 'f1') {
+            _later(() => showScoreAlert(league: 'f1', event: 'FORMULA 1 · LIVE', line: g.title));
+          } else {
+            _game(g, 'STARTING NOW');
+          }
           continue;
         }
         if (g.league != 'f1' && g.league != 'nba' && (g.state == 'in' || ended)) {
@@ -528,11 +585,15 @@ class ScoreAlerts {
           // NFL extra points on their own aren't worth a pop-up
           final pts = da > dh ? da : dh;
           if (pts > 0 && !(g.league == 'nfl' && pts == 1)) {
-            _alert(_what(g.league, pts, da > dh ? g.awayAbbr : g.homeAbbr), line);
+            final away = da > dh;
+            _game(g, '${_what(g.league, pts)} · ${away ? g.awayAbbr : g.homeAbbr}', side: away ? 'away' : 'home');
             continue;
           }
         }
-        if (ended && kScoreAlertLevel >= 2) _alert('Final', line.split('   ·   ').first);
+        if (ended && kScoreAlertLevel >= 2) {
+          final a = _n(g.awayScore), h = _n(g.homeScore);
+          _game(g, 'FINAL', side: a == h ? '' : (a > h ? 'away' : 'home'));
+        }
       }
     }
     _last = now;

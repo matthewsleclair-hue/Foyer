@@ -1757,18 +1757,18 @@ class SportsSettingsScreen extends StatelessWidget {
                 });
               }),
             if (s.scoreAlerts > 0)
-              chip('Show a sample', false, () => showScoreAlert('🚨 TOR goal!', 'TOR 2 – 1 MTL   ·   2nd 12:34')),
+              chip('Show a sample', false, showSampleAlert),
           ]),
           if (s.scoreAlerts > 0) ...[
             heading('Alert size', 'Selecting a size shows a sample'),
             Wrap(children: [
-              for (var i = kScoreSizeNames.length - 1; i >= 0; i--)
+              for (var i = 0; i < kScoreSizeNames.length; i++)
                 chip(kScoreSizeNames[i], s.scoreSize == i, () {
                   s.change(() {
                     s.scoreSize = i;
                     kScoreAlertSize = i;
                   });
-                  showScoreAlert('🚨 TOR goal!', 'TOR 2 – 1 MTL   ·   2nd 12:34');
+                  showSampleAlert();
                 }),
             ]),
             heading('Alert delay',
