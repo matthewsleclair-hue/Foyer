@@ -65,7 +65,10 @@ class MainActivity : FlutterActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent.getBooleanExtra("goHome", false)) navChannel?.invokeMethod("goHome", null)
+        // Home pressed while Foyer is already open (Google TV sends it straight here,
+        // the Fire TV helper adds "goHome"): close settings and menus, show the home screen.
+        val homeKey = intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)
+        if (homeKey || intent.getBooleanExtra("goHome", false)) navChannel?.invokeMethod("goHome", null)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
