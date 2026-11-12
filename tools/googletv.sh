@@ -27,6 +27,9 @@ if ! adb -s "$T" shell true 2>/dev/null; then
   exit 1
 fi
 PKG=com.leclair.leclair_home
+# Google's setup app has to go with the home screen: left on, its recovery screen can
+# grab Home and crash-loop the Streamer. It also holds the saved Wi-Fi, so you may
+# have to pick your Wi-Fi again once afterwards.
 STOCK="com.google.android.apps.tv.launcherx com.google.android.tungsten.setupwraith"
 
 if [ "$MODE" = "undo" ]; then
@@ -51,6 +54,7 @@ for p in $STOCK; do
     *) echo "  off      $p" ;;
   esac
 done
+adb -s "$T" shell cmd package set-home-activity "$PKG/.MainActivity" >/dev/null 2>&1
 # Show Foyer now; from here on the Home button lands on it.
 adb -s "$T" shell am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1
 home=$(adb -s "$T" shell cmd package resolve-activity --brief -c android.intent.category.HOME 2>/dev/null | tail -1)

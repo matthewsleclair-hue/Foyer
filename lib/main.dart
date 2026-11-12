@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'extras.dart';
 import 'plex.dart';
 import 'screens.dart';
+import 'sounds.dart';
 import 'server.dart';
 import 'sports.dart';
 import 'update.dart';
@@ -102,6 +103,10 @@ class Settings extends ChangeNotifier {
   String ssSource = 'colors'; // colors | mine | online | drop
   bool autoStart = true;
   bool perfMode = false;
+  int soundLevel = 1; // 0 off, 1 quiet, 2 normal
+
+  /// Custom remote buttons: "313" = pressed, "313L" = held -> app package, "foyer" or "" (normal).
+  Map<String, String> remoteKeys = {};
   String updateUrl = 'matthewsleclair-hue/Foyer';
   String updateToken = '';
   List<FollowedTeam> sportsTeams = [];
@@ -138,6 +143,8 @@ class Settings extends ChangeNotifier {
         'ssSource': ssSource,
         'autoStart': autoStart,
         'perfMode': perfMode,
+        'soundLevel': soundLevel,
+        'remoteKeys': remoteKeys,
         'updateUrl': updateUrl,
         'sportsTeams': [for (final t in sportsTeams) t.toJson()],
         'serverUrl': serverUrl,
@@ -185,6 +192,11 @@ class Settings extends ChangeNotifier {
     }
     autoStart = _b(j['autoStart'], autoStart);
     perfMode = _b(j['perfMode'], perfMode);
+    final sl = j['soundLevel'];
+    if (sl is num) soundLevel = sl.toInt().clamp(0, 2).toInt();
+    kSoundLevel = soundLevel;
+    final rk = j['remoteKeys'];
+    if (rk is Map) remoteKeys = {for (final e in rk.entries) '${e.key}': '${e.value}'};
     updateUrl = _s(j['updateUrl'], updateUrl);
     final st = j['sportsTeams'];
     if (st is List) {
@@ -308,6 +320,7 @@ const MethodChannel kNavChannel = MethodChannel('leclair/nav');
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  installUiSounds();
   runApp(SettingsScope(settings: Settings(), child: const LauncherApp()));
 }
 
@@ -1310,6 +1323,9 @@ class _SetupScreenState extends State<SetupScreen> {
   String _gMsg = '';
   bool _gBusy = false;
 
+  /// Google's home, and Google's setup app. The setup app must go too: with Google's
+  /// home off, its recovery screen can grab Home and crash-loop the Streamer.
+  /// (It also holds the saved Wi-Fi, so the TV may need Wi-Fi picked again once.)
   static const _stockHome = [
     'com.google.android.apps.tv.launcherx',
     'com.google.android.tungsten.setupwraith',
@@ -1334,7 +1350,15 @@ class _SetupScreenState extends State<SetupScreen> {
       if (!undo) 'pm grant com.leclair.leclair_home android.permission.BLUETOOTH_SCAN',
       if (!undo) 'pm grant com.leclair.leclair_home android.permission.BLUETOOTH_CONNECT',
       for (final p in _stockHome) undo ? 'pm enable $p' : 'pm disable-user --user 0 $p',
+      // make Foyer the chosen home app
+      if (!undo) 'cmd package set-home-activity com.leclair.leclair_home/.MainActivity',
     ]);
+    // the remote helper brings back the YouTube button, which only Google's home answered
+    if (err == null && !undo) {
+      try {
+        await kChannel.invokeMethod<bool>('setHomeKey', {'enabled': true});
+      } catch (_) {}
+    }
     final home = await loadDevice();
     if (!mounted) return;
     setState(() {

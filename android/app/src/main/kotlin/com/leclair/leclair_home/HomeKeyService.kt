@@ -24,6 +24,32 @@ class HomeKeyService : AccessibilityService() {
         const val AMAZON_HOME = "com.amazon.tv.launcher"
         /** Google TV's own home screen (Streamer, Chromecast with Google TV...). */
         const val GOOGLE_HOME = "com.google.android.apps.tv.launcherx"
+        @Volatile var instance: HomeKeyService? = null
+    }
+
+    private val fireTv by lazy {
+        packageManager.hasSystemFeature("amazon.hardware.fire_tv") ||
+            (android.os.Build.MANUFACTURER ?: "").equals("Amazon", ignoreCase = true)
+    }
+
+    /** Home redirect is only needed while a stock home screen is still around. */
+    private fun needHome() = fireTv || !RemoteKeys.googleHomeOff
+
+    /**
+     * Listening to every key adds a tiny delay to each press, so on Google TV
+     * it's only switched on when custom buttons or the Home redirect need it.
+     */
+    fun refreshFilter() {
+        try {
+            val info = serviceInfo ?: return
+            val want = needHome() || RemoteKeys.wanted() || RemoteKeys.learn != null
+            val f = if (want) info.flags or AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
+            else info.flags and AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS.inv()
+            if (f != info.flags) {
+                info.flags = f
+                serviceInfo = info
+            }
+        } catch (e: Exception) { }
     }
 
     private var lastUp = 0L
@@ -43,6 +69,9 @@ class HomeKeyService : AccessibilityService() {
         info.flags = info.flags or AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
         serviceInfo = info
         running = true
+        instance = this
+        RemoteKeys.reload(this)
+        refreshFilter()
         DropRemote.service = this
         DropRemote.ensure(this)
         Log.d(TAG, "service connected")
@@ -64,10 +93,11 @@ class HomeKeyService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_HOME) {
-            Log.d(TAG, "HOME key action=${event.action}")
-        }
+        if (RemoteKeys.onKey(this, event)) return true
         if (event.keyCode != KeyEvent.KEYCODE_HOME) return false
+        // Foyer is the real home screen: Android already sends Home here.
+        if (!needHome()) return false
+        Log.d(TAG, "HOME key action=${event.action}")
         if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
             val now = System.currentTimeMillis()
             val double = now - lastUp < 450
@@ -114,12 +144,14 @@ class HomeKeyService : AccessibilityService() {
 
     override fun onDestroy() {
         running = false
+        if (instance === this) instance = null
         if (DropRemote.service === this) DropRemote.service = null
         super.onDestroy()
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
         running = false
+        if (instance === this) instance = null
         if (DropRemote.service === this) DropRemote.service = null
         return super.onUnbind(intent)
     }

@@ -8,6 +8,8 @@ import 'main.dart';
 import 'server.dart';
 import 'sports.dart';
 import 'system.dart';
+import 'sounds.dart';
+import 'remote.dart';
 import 'online.dart';
 import 'update.dart';
 import 'weather.dart';
@@ -414,7 +416,7 @@ class _Group {
 
   // "Fire TV tools" only makes sense on a Fire TV.
   String get title => (!kIsFireTv && _title == 'Fire TV tools') ? 'TV tools' : _title;
-  String get subtitle => (!kIsFireTv && _title == 'Fire TV tools') ? 'Home button' : _subtitle;
+  String get subtitle => (!kIsFireTv && _title == 'Fire TV tools') ? 'Home button, tune-up, remote buttons' : _subtitle;
   final IconData icon;
   final String _title;
   final String _subtitle;
@@ -466,7 +468,7 @@ final List<_Group> _groups = [
         s.serverUrl.isEmpty || s.serverToken.isEmpty ? 'Not linked' : 'Linked to ${s.serverUrl}',
         () => _push(c, const ServerScreen())),
   ]),
-  _Group(Icons.palette_rounded, 'Appearance', 'Glass style, wallpaper, performance', (c, s) => [
+  _Group(Icons.palette_rounded, 'Appearance', 'Glass style, wallpaper, sounds, performance', (c, s) => [
     _HubItem(
         Icons.blur_on_rounded,
         'Glass style',
@@ -484,6 +486,13 @@ final List<_Group> _groups = [
     _HubItem(Icons.speed_rounded, 'Performance mode',
         s.perfMode ? 'On: no blur, lighter animations' : 'Off',
         () => s.change(() => s.perfMode = !s.perfMode)),
+    _HubItem(Icons.music_note_rounded, 'Sounds',
+        '${kSoundNames[s.soundLevel]}: a soft tick when you move around', () {
+      s.change(() {
+        s.soundLevel = (s.soundLevel + 1) % 3;
+        kSoundLevel = s.soundLevel;
+      });
+    }),
   ]),
   _Group(Icons.bedtime_rounded, 'Screensaver and power', 'Screensaver, start on boot, restart', (c, s) => [
     _HubItem(Icons.bedtime_rounded, 'Screensaver',
@@ -500,7 +509,7 @@ final List<_Group> _groups = [
           'Restart the TV box, or put it to sleep', () => _push(c, const PowerScreen())),
   ]),
   // The title stays "Fire TV tools" on a Fire TV; on other boxes the page shows only what applies.
-  _Group(Icons.build_rounded, 'Fire TV tools', 'Home button, tune-up and cleanup', (c, s) => [
+  _Group(Icons.build_rounded, 'Fire TV tools', 'Home button, tune-up, remote buttons', (c, s) => [
     _HubItem(
         Icons.keyboard_return_rounded,
         'Home button',
@@ -512,6 +521,14 @@ final List<_Group> _groups = [
     if (kIsFireTv)
       _HubItem(Icons.build_rounded, 'Tune-up',
           'Debug report and how to remove Amazon ads', () => _push(c, const TuneUpScreen())),
+    if (!kIsFireTv)
+      _HubItem(Icons.cleaning_services_rounded, 'Tune-up',
+          'Switch off Google\'s ads, tracking and extra apps', () => _push(c, const GoogleTuneUpScreen())),
+    _HubItem(Icons.settings_remote_rounded, 'Remote buttons',
+        s.remoteKeys.values.any((v) => v.isNotEmpty)
+            ? 'Custom buttons are set'
+            : 'Choose what the star, YouTube and Netflix buttons open',
+        () => _push(c, const RemoteButtonsScreen())),
   ]),
   _Group(Icons.system_update_rounded, 'Backup and updates', 'Updates, backup and restore', (c, s) => [
     _HubItem(

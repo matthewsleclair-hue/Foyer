@@ -89,3 +89,21 @@ Once Foyer is the home screen (the step above), **Settings > TV settings** cover
 - **More:** Google account, privacy, date and time, language, keyboard, accessibility and system update. Google locks these to its own pages, so they open on top of Foyer; Back returns.
 
 Most of these use the same debugging link as "Make Foyer the home screen". If one says debugging isn't on, run that step again. If a TV update blocks one of them, the screen offers the matching stock page instead.
+
+### Tune-up on Google TV
+
+**Settings > TV tools > Tune-up** switches off Google's leftover ads, tracking and apps you don't use: feedback and remote logging, Privacy Sandbox ad services, Play Games, the Google TV movie store, TalkBack and printing. Only things found on your TV are listed. Nothing is deleted, each item can be turned back on, and **Turn everything back on** undoes it all. Casting, the mic and Assistant, the Play Store, Google Play services and Google's screensaver are never touched.
+
+The list follows CleanYourTV's tested lists for the Google TV Streamer and Chromecast with Google TV.
+
+About Google's setup app: on the Streamer it has to stay off while Foyer is the home screen (left on, it can take over Home and crash the TV). It also holds the saved Wi-Fi and the casting keys, so after the takeover you may have to pick your Wi-Fi again once, and casting from a phone can say "untrusted device".
+
+### Remote buttons
+
+**Settings > TV tools > Remote buttons** picks what the star, YouTube and Netflix buttons open, on a press and on a hold. **Add another button** learns any other extra button (press it when asked). Up, down, OK, Back, Home and volume are never changed.
+
+With Google's home switched off, the YouTube and Netflix buttons would do nothing, so Foyer answers them itself. This uses Foyer's remote helper (the same accessibility helper as the Fire TV Home button), which Foyer turns on during "Make Foyer the home screen". It only listens to every key while a custom button is set, since that adds a tiny delay to each press.
+
+### Sounds
+
+**Settings > Appearance > Sounds** cycles Off, Quiet and Normal: a soft tick when you move, a pop on OK and a drop on Back.

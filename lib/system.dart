@@ -1364,3 +1364,223 @@ class MoreTvScreen extends StatelessWidget {
     );
   }
 }
+
+// ───────────────────────── Google TV tune-up ─────────────────────────
+
+class _Bloat {
+  const _Bloat(this.pkg, this.name, this.what);
+  final String pkg;
+  final String name;
+  final String what;
+}
+
+class _BloatGroup {
+  const _BloatGroup(this.title, this.note, this.items);
+  final String title;
+  final String note;
+  final List<_Bloat> items;
+}
+
+/// Based on the Google TV Streamer (kirkwood) and Chromecast with Google TV lists
+/// from the CleanYourTV project. Only packages found on this TV are shown, and
+/// everything is switched off (not removed), so each one can come back.
+const List<_BloatGroup> _gtvGroups = [
+  _BloatGroup('Ads, tracking and feedback', 'Safe to switch off.', [
+    _Bloat('com.google.android.feedback', 'Google feedback', 'Sends reports and usage to Google'),
+    _Bloat('com.android.tv.feedbackconsent', 'Feedback consent', 'Asks to share usage data'),
+    _Bloat('com.google.android.tv.remotecontrol.logging', 'Remote logging', 'Logs how you use the remote'),
+    _Bloat('com.google.android.apps.tv.netoscope', 'Network reporting', 'Sends network diagnostics'),
+  ]),
+  _BloatGroup('Ad personalization', 'Google\'s ad and learning services. If the Play Store or Assistant act up, turn these back on.', [
+    _Bloat('com.google.android.adservices.api', 'Ad services', 'Privacy Sandbox ads'),
+    _Bloat('com.google.android.ext.adservices.api', 'Ad services (extra)', 'Privacy Sandbox ads'),
+    _Bloat('com.google.android.ondevicepersonalization.services', 'Ad personalization', 'Builds an ad profile on the TV'),
+    _Bloat('com.google.android.federatedcompute', 'Federated learning', 'Trains Google models on your usage'),
+  ]),
+  _BloatGroup('Apps you might not use', 'Turn back on any time.', [
+    _Bloat('com.google.android.play.games', 'Google Play Games', ''),
+    _Bloat('com.google.android.videos', 'Google TV (movies store)', 'Needed only to watch movies you bought from Google'),
+    _Bloat('com.google.android.marvin.talkback', 'TalkBack', 'Screen reader. Keep it if anyone needs it'),
+    _Bloat('com.android.printspooler', 'Printing', 'Nobody prints from a TV'),
+  ]),
+];
+
+/// Never touched: things that break casting, the mic, the Play Store or the screensaver.
+const Map<String, String> _gtvKeep = {
+  'com.google.android.apps.mediashell': 'Casting from your phone',
+  'com.google.android.katniss': 'Google Assistant (mic button)',
+  'com.google.android.tv.remote.service': 'The remote\'s microphone',
+  'com.android.vending': 'Play Store and app updates',
+  'com.google.android.gms': 'Google Play services (sign-in, Netflix, Prime)',
+  'com.google.android.apps.tv.dreamx': 'Google screensaver and Google Home panel',
+};
+
+class GoogleTuneUpScreen extends StatefulWidget {
+  const GoogleTuneUpScreen({super.key});
+  @override
+  State<GoogleTuneUpScreen> createState() => _GoogleTuneUpScreenState();
+}
+
+class _GoogleTuneUpScreenState extends State<GoogleTuneUpScreen> {
+  /// package -> 1 on, 2 off. Missing = not on this TV.
+  Map<String, int> _state = {};
+  bool _busy = false;
+  bool _scanned = false;
+  String _msg = '';
+  final List<String> _log = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _scan();
+  }
+
+  Future<void> _scan() async {
+    final r = await adbOut(['pm list packages', 'pm list packages -d']);
+    if (!mounted) return;
+    if (!r.ok) {
+      setState(() {
+        _msg = r.error!;
+        _scanned = true;
+      });
+      return;
+    }
+    Set<String> parse(String o) => {
+          for (final l in o.split('\n'))
+            if (l.trim().startsWith('package:')) l.trim().substring(8)
+        };
+    final all = parse(r.at(0));
+    final off = parse(r.at(1));
+    setState(() {
+      _state = {for (final p in all) p: off.contains(p) ? 2 : 1};
+      _scanned = true;
+    });
+  }
+
+  List<_Bloat> _present(_BloatGroup g) => [for (final b in g.items) if (_state.containsKey(b.pkg)) b];
+
+  Future<void> _run(String title, List<String> cmds) async {
+    if (_busy || cmds.isEmpty) return;
+    setState(() {
+      _busy = true;
+      _msg = '$title…';
+    });
+    final r = await adbOut(cmds);
+    for (var i = 0; i < cmds.length; i++) {
+      final o = r.at(i).trim();
+      _log.add('${cmds[i]}${o.isEmpty ? '' : '  →  ${o.split('\n').first}'}');
+    }
+    await _scan();
+    if (mounted) setState(() {
+      _busy = false;
+      _msg = r.ok ? '$title: done.' : r.error!;
+    });
+  }
+
+  String _off(String p) => 'pm disable-user --user 0 $p';
+  String _on(String p) => 'pm enable $p';
+
+  void _itemMenu(_Bloat b) {
+    final off = _state[b.pkg] == 2;
+    showMenu2(context, b.name, [
+      if (b.what.isNotEmpty) MenuChoice(b.what, null),
+      off
+          ? MenuChoice('Turn back on', () => _run('Turning ${b.name} back on', [_on(b.pkg)]))
+          : MenuChoice('Switch off', () => _run('Switching off ${b.name}', [_off(b.pkg)])),
+      MenuChoice('Cancel', () {}),
+    ]);
+  }
+
+  void _groupMenu(_BloatGroup g) {
+    final items = _present(g);
+    final anyOn = items.any((b) => _state[b.pkg] == 1);
+    final anyOff = items.any((b) => _state[b.pkg] == 2);
+    showMenu2(context, g.title, [
+      MenuChoice(g.note, null),
+      if (anyOn)
+        MenuChoice('Switch all off', () => _run('Switching off ${g.title.toLowerCase()}',
+            [for (final b in items) if (_state[b.pkg] == 1) _off(b.pkg)])),
+      if (anyOff)
+        MenuChoice('Turn all back on', () => _run('Turning ${g.title.toLowerCase()} back on',
+            [for (final b in items) if (_state[b.pkg] == 2) _on(b.pkg)])),
+      MenuChoice('Cancel', () {}),
+    ]);
+  }
+
+  void _undoAll() {
+    final cmds = [
+      for (final g in _gtvGroups)
+        for (final b in g.items)
+          if (_state[b.pkg] == 2) _on(b.pkg)
+    ];
+    if (cmds.isEmpty) {
+      setState(() => _msg = 'Nothing is switched off.');
+      return;
+    }
+    showMenu2(context, 'Turn everything back on?', [
+      MenuChoice('Everything this page switched off comes back, like a new TV.', null),
+      MenuChoice('Turn all back on', () => _run('Turning everything back on', cmds)),
+      MenuChoice('Cancel', () {}),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[];
+    var first = true;
+    for (final g in _gtvGroups) {
+      final items = _present(g);
+      if (items.isEmpty) continue;
+      final off = items.where((b) => _state[b.pkg] == 2).length;
+      rows.add(SysRow(
+          icon: Icons.cleaning_services_rounded,
+          title: g.title,
+          subtitle: g.note,
+          value: off == items.length ? 'All off' : (off == 0 ? 'On' : '$off of ${items.length} off'),
+          autofocus: first,
+          onSelect: () => _groupMenu(g)));
+      first = false;
+      for (final b in items) {
+        rows.add(Padding(
+          padding: const EdgeInsets.only(left: 60),
+          child: SysRow(
+              icon: _state[b.pkg] == 2 ? Icons.block_rounded : Icons.circle_outlined,
+              title: b.name,
+              subtitle: b.what.isEmpty ? b.pkg : b.what,
+              value: _state[b.pkg] == 2 ? 'Off' : 'On',
+              chevron: false,
+              onSelect: () => _itemMenu(b)),
+        ));
+      }
+    }
+    final home = _state['com.google.android.apps.tv.launcherx'];
+    return SettingsPage(
+      title: 'Tune-up',
+      subtitle: 'Switch off Google\'s ads, tracking and apps you don\'t use. Nothing is deleted; every item can come back.',
+      actions: [PillButton(label: 'Turn everything back on', onSelect: _undoAll)],
+      child: _list([
+        if (_msg.isNotEmpty) _note(_msg),
+        if (!_scanned) _note('Checking what\'s on this TV…'),
+        if (home != null)
+          _note(home == 2
+              ? 'Google\'s home screen and its ads are already off: Foyer is the home screen.'
+              : 'Google\'s home screen (where most ads live) is still on. Switch it off in TV tools › Home button.',
+              color: home == 2 ? _good : Colors.white70),
+        ...rows,
+        if (_scanned) ...[
+          _heading('Foyer leaves these alone'),
+          for (final e in _gtvKeep.entries)
+            if (_state.containsKey(e.key)) _note('•  ${e.value}', color: Colors.white54),
+          _note(
+              'Casting says "untrusted device"? That\'s Google\'s setup app, which has to stay off while Foyer is the home screen on the Streamer. Switching Foyer off in TV tools › Home button brings it back.',
+              color: Colors.white54),
+        ],
+        if (_log.isNotEmpty) ...[
+          _heading('What changed'),
+          for (final l in _log.reversed.take(12))
+            _note(l, color: Colors.white38),
+        ],
+      ]),
+    );
+  }
+}

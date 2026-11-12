@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.provider.Settings
+import android.view.KeyEvent
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -35,6 +36,7 @@ class MainActivity : FlutterActivity() {
     }
     private var pendingStorage: MethodChannel.Result? = null
     private var tvSystem: TvSystem? = null
+    private var sounds: UiSounds? = null
 
     private val backupName = "Foyer-backup.json"
     private val imageExt = setOf("jpg", "jpeg", "png", "webp")
@@ -42,6 +44,8 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         phoneInput.stop()
         tvSystem?.stop()
+        sounds?.release()
+        sounds = null
         if (DropRemote.activity === this) {
             DropRemote.activity = null
             DropRemote.activityResumed = false
@@ -69,6 +73,17 @@ class MainActivity : FlutterActivity() {
         val ch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/launcher")
         channel = ch
         navChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/nav")
+        // load the sounds now so the first one plays on time
+        try { if (sounds == null) sounds = UiSounds(this) } catch (e: Exception) { }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/sound").setMethodCallHandler { call, result ->
+            if (call.method == "play") {
+                try {
+                    val s = sounds ?: UiSounds(this).also { sounds = it }
+                    s.play(call.argument<String>("name") ?: "", call.argument<Double>("volume") ?: 0.5)
+                } catch (e: Exception) { }
+            }
+            result.success(null)
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/system").also { sc ->
             val sys = TvSystem(this, sc)
             tvSystem = sys
@@ -123,7 +138,36 @@ class MainActivity : FlutterActivity() {
                 )
                 "saveSettings" -> {
                     prefs.edit().putString("json", call.argument<String>("json") ?: "").apply()
+                    RemoteKeys.reload(this)
                     result.success(true)
+                }
+                "learnKey" -> {
+                    if (!HomeKeyService.running) {
+                        result.success(mapOf("error" to "helper"))
+                    } else {
+                        var done = false
+                        val timeout = Runnable {
+                            if (!done) {
+                                done = true
+                                RemoteKeys.learn = null
+                                result.success(mapOf("error" to "timeout"))
+                            }
+                        }
+                        val h = android.os.Handler(mainLooper)
+                        RemoteKeys.learn = { code ->
+                            if (!done) {
+                                done = true
+                                h.removeCallbacks(timeout)
+                                result.success(mapOf("code" to code, "name" to (KeyEvent.keyCodeToString(code) ?: "")))
+                            }
+                        }
+                        h.postDelayed(timeout, 15000)
+                    }
+                }
+                "cancelLearn" -> { RemoteKeys.learn = null; result.success(true) }
+                "remoteKeysStatus" -> {
+                    RemoteKeys.reload(this)
+                    result.success(mapOf("helper" to HomeKeyService.running, "googleHomeOff" to RemoteKeys.googleHomeOff))
                 }
                 "homeKeyStatus" -> result.success(
                     mapOf("enabled" to homeKeyEnabled(), "canEnable" to canWriteSecure())
