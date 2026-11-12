@@ -175,6 +175,17 @@ class MainActivity : FlutterActivity() {
                     SleepTimer.restore(this)
                     result.success(SleepTimer.endAt)
                 }
+                "openDashboard" -> {
+                    val ok = try {
+                        startActivity(
+                            Intent(this, DashboardActivity::class.java)
+                                .putExtra("url", call.argument<String>("url") ?: "")
+                                .putExtra("zoom", call.argument<Int>("zoom") ?: 75)
+                        )
+                        true
+                    } catch (e: Exception) { false }
+                    result.success(ok)
+                }
                 "cancelLearn" -> { RemoteKeys.learn = null; result.success(true) }
                 "remoteKeysStatus" -> {
                     RemoteKeys.reload(this)

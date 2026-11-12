@@ -84,6 +84,11 @@
 
         <meta-data android:name="flutterEmbedding" android:value="2" />
         <receiver android:name=".InstallReceiver" android:exported="false" />
+        <activity
+            android:name=".DashboardActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|navigation" />
     </application>
 
     <queries>
