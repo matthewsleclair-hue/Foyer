@@ -777,8 +777,10 @@ class _DisplayScreenState extends State<DisplayScreen> {
     final printed = r.at(0).toLowerCase();
     if (printed.contains('unknown') || printed.contains('exception') || printed.contains('error')) {
       if (!mounted) return;
+      final said = r.at(0).trim().split('\n').first;
       return showMenu2(context, 'Resolution', [
-        MenuChoice('This TV keeps the resolution on its own page.', null),
+        MenuChoice('The TV didn\'t accept the change from Foyer.', null),
+        if (said.isNotEmpty) MenuChoice('TV said: ${said.length > 140 ? '${said.substring(0, 140)}…' : said}', null),
         MenuChoice('Open display page', () => openStockPage('display')),
         MenuChoice('Cancel', () {}),
       ]);
