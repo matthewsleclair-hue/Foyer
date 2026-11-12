@@ -397,3 +397,93 @@ class _GoodnightScreenState extends State<GoodnightScreen> {
     );
   }
 }
+
+// ───────────────────────── sleep timer ─────────────────────────
+
+/// When the TV goes to sleep (ms since 1970), 0 = off. Kept by the native side.
+final ValueNotifier<int> kSleepAt = ValueNotifier(0);
+
+Future<void> refreshSleep() async {
+  try {
+    kSleepAt.value = (await kChannel.invokeMethod<int>('sleepStatus')) ?? 0;
+  } catch (_) {}
+}
+
+Future<void> setSleep(int minutes) async {
+  try {
+    kSleepAt.value = (await kChannel.invokeMethod<int>('sleepTimer', {'minutes': minutes})) ?? 0;
+  } catch (_) {}
+}
+
+String sleepLeft(int at) {
+  final m = ((at - DateTime.now().millisecondsSinceEpoch) / 60000).ceil();
+  if (m <= 1) return '1 min';
+  if (m < 60) return '$m min';
+  final h = m ~/ 60, r = m % 60;
+  return r == 0 ? '$h h' : '$h h $r min';
+}
+
+/// The moon button: goodnight now, or a sleep timer.
+Future<void> goodnightMenu(BuildContext context) async {
+  await refreshSleep();
+  if (!context.mounted) return;
+  final on = kSleepAt.value > DateTime.now().millisecondsSinceEpoch;
+  showMenu2(context, on ? 'Sleep in ${sleepLeft(kSleepAt.value)}' : 'Goodnight', [
+    MenuChoice('Goodnight now', () => startGoodnight(context)),
+    MenuChoice(on ? 'Change the sleep timer…' : 'Sleep timer…', () => _sleepChoices(context)),
+    if (on) MenuChoice('Turn off the sleep timer', () => setSleep(0)),
+    MenuChoice('Cancel', () {}),
+  ]);
+}
+
+void _sleepChoices(BuildContext context) => showMenu2(context, 'Turn the TV off in', [
+      MenuChoice('Keeps playing until then. A minute before, a note lets you keep watching.', null),
+      for (final m in const [15, 30, 45, 60, 90, 120])
+        MenuChoice(m < 60 ? '$m minutes' : (m == 60 ? '1 hour' : '${m / 60} hours'.replaceAll('.0', '')),
+            () => setSleep(m)),
+      MenuChoice('Cancel', () {}),
+    ]);
+
+/// Small "Sleep in 42 min" pill on the home screen while a timer runs.
+class SleepPill extends StatefulWidget {
+  const SleepPill({super.key});
+  @override
+  State<SleepPill> createState() => _SleepPillState();
+}
+
+class _SleepPillState extends State<SleepPill> {
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    refreshSleep();
+    _t = Timer.periodic(const Duration(seconds: 20), (_) => refreshSleep());
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+        valueListenable: kSleepAt,
+        builder: (_, at, __) {
+          if (at <= DateTime.now().millisecondsSinceEpoch) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Glass(
+              radius: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.bedtime_rounded, size: 28, color: Color(0xFFB8C4FF)),
+                const SizedBox(width: 10),
+                Text(sleepLeft(at), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          );
+        },
+      );
+}

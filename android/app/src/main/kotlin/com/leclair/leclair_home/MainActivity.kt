@@ -164,6 +164,14 @@ class MainActivity : FlutterActivity() {
                         h.postDelayed(timeout, 15000)
                     }
                 }
+                "sleepTimer" -> {
+                    SleepTimer.start(this, call.argument<Int>("minutes") ?: 0)
+                    result.success(SleepTimer.endAt)
+                }
+                "sleepStatus" -> {
+                    SleepTimer.restore(this)
+                    result.success(SleepTimer.endAt)
+                }
                 "cancelLearn" -> { RemoteKeys.learn = null; result.success(true) }
                 "remoteKeysStatus" -> {
                     RemoteKeys.reload(this)

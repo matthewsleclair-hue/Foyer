@@ -2084,6 +2084,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ? const SizedBox.shrink()
                         : Padding(
                             padding: const EdgeInsets.only(right: 16), child: ScorePill(games: g))),
+                const SleepPill(),
                 if (_weather != null) ...[
                   _WeatherPill(w: _weather!),
                   const SizedBox(width: 16),
@@ -2113,7 +2114,7 @@ class _HomeScreenState extends State<HomeScreen>
           opacity: _fadeEarly,
           child: HomeSideButtons(
             onFireplace: _openFireplace,
-            onGoodnight: () => startGoodnight(context),
+            onGoodnight: () => goodnightMenu(context),
           ),
         ),
       ),

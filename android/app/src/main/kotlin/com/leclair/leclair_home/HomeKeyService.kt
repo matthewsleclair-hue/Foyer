@@ -73,6 +73,7 @@ class HomeKeyService : AccessibilityService() {
         // remember that it's wanted, so Foyer can switch it back on after an update
         getSharedPreferences("leclair_home", MODE_PRIVATE).edit().putBoolean("homeKeyWanted", true).apply()
         RemoteKeys.reload(this)
+        SleepTimer.restore(this)
         refreshFilter()
         DropRemote.service = this
         DropRemote.ensure(this)

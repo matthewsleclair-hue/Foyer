@@ -107,3 +107,11 @@ With Google's home switched off, the YouTube and Netflix buttons would do nothin
 ### Sounds
 
 **Settings > Appearance > Sounds** cycles Off, Quiet and Normal: a soft tick when you move, a pop on OK and a drop on Back.
+
+### Sleep timer
+
+Press the **moon** button on the home screen: **Goodnight now**, or **Sleep timer** (15 minutes to 2 hours). The TV keeps playing whatever app you're in. A minute before the end, a note appears at the bottom of the screen; press any button to keep watching. At the end the TV box goes to sleep, and most TVs turn off with it over HDMI. A small moon pill on the home screen shows the time left.
+
+You can also set a remote button to **Sleep timer: 30 more minutes each press** in Settings > TV tools > Remote buttons.
+
+The timer runs in Foyer's remote helper, so keep that helper on.
