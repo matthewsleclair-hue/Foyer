@@ -770,8 +770,10 @@ class _DisplayScreenState extends State<DisplayScreen> {
     final before = _cur;
     final r = await adbOut([
       m == null
-          ? 'cmd display clear-user-preferred-display-mode'
-          : 'cmd display set-user-preferred-display-mode ${m.w} ${m.h} ${m.hz}'
+          ? 'cmd display clear-user-preferred-display-mode 0'
+          // "0" = this screen. Without it Android 14 tries to save the choice as a system-wide
+          // setting under the shell's identity and refuses its own write (SecurityException).
+          : 'cmd display set-user-preferred-display-mode ${m.w} ${m.h} ${m.hz} 0'
     ]);
     if (!r.ok) return setState(() => _msg = r.error!);
     final printed = r.at(0).toLowerCase();
@@ -788,13 +790,17 @@ class _DisplayScreenState extends State<DisplayScreen> {
     await Future<void>.delayed(const Duration(seconds: 3));
     await _load();
     if (m == null || !mounted) return;
+    if (_cur != null && _cur!.key != m.key) {
+      setState(() => _msg = 'The TV kept ${_cur!.label}. Your TV may not accept ${m.label} over this cable or input.');
+      return;
+    }
     final keep = await showDialog<bool>(
         context: context, barrierDismissible: false, builder: (_) => const _KeepDialog());
     if (keep != true) {
       await adbOut([
         before == null
-            ? 'cmd display clear-user-preferred-display-mode'
-            : 'cmd display set-user-preferred-display-mode ${before.w} ${before.h} ${before.hz}'
+            ? 'cmd display clear-user-preferred-display-mode 0'
+            : 'cmd display set-user-preferred-display-mode ${before.w} ${before.h} ${before.hz} 0'
       ]);
       await Future<void>.delayed(const Duration(seconds: 3));
       await _load();
@@ -804,9 +810,24 @@ class _DisplayScreenState extends State<DisplayScreen> {
     }
   }
 
+  /// The useful choices: 4K, 1080p and 720p at 60 and 50 Hz (59.94 only when 60 isn't there).
+  /// Film rates like 24 Hz are left to the TV's "match frame rate".
+  List<_Mode> get _menuModes {
+    final out = <_Mode>[];
+    for (final h in const [2160, 1080, 720]) {
+      for (final target in const [60.0, 50.0]) {
+        final near = _modes.where((m) => m.h == h && (m.hz - target).abs() < 0.2).toList();
+        final alt = target == 60.0 ? _modes.where((m) => m.h == h && (m.hz - 59.94).abs() < 0.05).toList() : <_Mode>[];
+        final pick = near.isNotEmpty ? near.first : (alt.isNotEmpty ? alt.first : null);
+        if (pick != null) out.add(pick);
+      }
+    }
+    return out.isEmpty ? _modes.take(8).toList() : out;
+  }
+
   void _pickMode() => showMenu2(context, 'Resolution', [
         MenuChoice('Automatic (best for this TV)', () => _apply(null)),
-        for (final m in _modes.take(8)) MenuChoice(m.label + (m.key == _cur?.key ? '  ✓' : ''), () => _apply(m)),
+        for (final m in _menuModes) MenuChoice(m.label + (m.key == _cur?.key ? '  ✓' : ''), () => _apply(m)),
         MenuChoice('Cancel', () {}),
       ]);
 
