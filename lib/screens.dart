@@ -466,35 +466,11 @@ final List<_Group> _groups = [
         s.plexToken.isEmpty ? 'Not linked' : 'Linked to ${s.plexName}', () => _editStep(c, 3)),
     _HubItem(
         Icons.sports_score_rounded,
-        'Sports scores',
-        s.sportsTeams.isEmpty ? 'Off' : '${s.sportsTeams.length} followed',
-        () => _editStep(c, 5)),
-    _HubItem(Icons.notifications_active_rounded, 'Score alerts',
-        '${kScoreAlertNames[s.scoreAlerts]}: pops up over whatever you\'re watching', () {
-      s.change(() {
-        s.scoreAlerts = (s.scoreAlerts + 2) % 3; // Scores, start and final > Scores only > Off
-        kScoreAlertLevel = s.scoreAlerts;
-      });
-      if (s.scoreAlerts > 0) {
-        kChannel.invokeMethod('alert', {
-          'title': '🚨 Score alerts are on',
-          'line': 'Like this, when one of your teams scores',
-        }).catchError((_) => null);
-      }
-    }),
-    if (s.scoreAlerts > 0)
-      _HubItem(
-          Icons.timer_rounded,
-          'Score alert delay',
-          s.scoreDelay == 0
-              ? 'None: as fast as possible (about 10 s). Raise it if alerts beat your stream'
-              : '${s.scoreDelay} s: waits so the goal shows on your TV first', () {
-        final i = kScoreDelays.indexOf(s.scoreDelay);
-        s.change(() {
-          s.scoreDelay = kScoreDelays[(i + 1) % kScoreDelays.length];
-          kScoreAlertDelay = s.scoreDelay;
-        });
-      }),
+        'Sports',
+        s.sportsTeams.isEmpty
+            ? 'Pick your teams for live scores and alerts'
+            : '${s.sportsTeams.length} teams · alerts ${s.scoreAlerts == 0 ? 'off' : (s.scoreDelay > 0 ? 'on, ${s.scoreDelay} s delay' : 'on')}',
+        () => _push(c, const SportsSettingsScreen())),
     _HubItem(Icons.cloud_sync_rounded, 'Foyer Drop',
         s.serverUrl.isEmpty || s.serverToken.isEmpty ? 'Not linked' : 'Linked to ${s.serverUrl}',
         () => _push(c, const ServerScreen())),
@@ -1718,6 +1694,89 @@ class _UpdateScreenState extends State<UpdateScreen> {
               padding: const EdgeInsets.only(top: 16),
               child: Text(_msg, style: const TextStyle(fontSize: 26, color: Colors.white70)),
             ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── sports: teams, alerts, delay ─────────────────────────
+
+class SportsSettingsScreen extends StatelessWidget {
+  const SportsSettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SettingsScope.of(context);
+    Widget heading(String t, [String sub = '']) => Padding(
+          padding: const EdgeInsets.fromLTRB(8, 18, 0, 14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(t, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w700)),
+            if (sub.isNotEmpty) Text(sub, style: const TextStyle(fontSize: 23, color: Colors.white54)),
+          ]),
+        );
+    Widget chip(String label, bool selected, VoidCallback onSelect, {bool first = false}) => Padding(
+          padding: const EdgeInsets.only(right: 16, bottom: 16),
+          child: Opt(label: label, selected: selected, onSelect: onSelect, autofocus: first),
+        );
+    return SettingsPage(
+      title: 'Sports',
+      subtitle: 'Live scores on the home screen, and alerts over whatever you\'re watching.',
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          heading('Your teams',
+              s.sportsTeams.isEmpty ? 'None yet' : s.sportsTeams.map((t) => t.league == 'f1' ? 'Formula 1' : t.name).join(', ')),
+          Wrap(children: [
+            for (var i = 0; i < kLeagues.length; i++)
+              Builder(builder: (_) {
+                final l = kLeagues[i];
+                final n = s.countIn(l.key);
+                final on = l.key == 'f1' ? s.follows(FollowedTeam.f1) : n > 0;
+                return chip(
+                    l.key == 'f1' ? (on ? 'Formula 1: on' : 'Formula 1') : (n > 0 ? '${l.label} · $n' : l.label),
+                    on,
+                    () {
+                      if (l.key == 'f1') {
+                        s.change(() => s.toggleTeam(FollowedTeam.f1));
+                      } else {
+                        Navigator.of(context)
+                            .push(MaterialPageRoute<void>(builder: (_) => SportsTeamsScreen(league: l)));
+                      }
+                    },
+                    first: i == 0);
+              }),
+          ]),
+          heading('Score alerts', 'A note in the top corner when your teams score, even during Netflix or Plex'),
+          Wrap(children: [
+            for (var i = 0; i < kScoreAlertNames.length; i++)
+              chip(kScoreAlertNames[i], s.scoreAlerts == i, () {
+                s.change(() {
+                  s.scoreAlerts = i;
+                  kScoreAlertLevel = i;
+                });
+              }),
+            if (s.scoreAlerts > 0)
+              chip('Show a sample', false, () {
+                kChannel.invokeMethod('alert', {
+                  'title': '🚨 TOR goal!',
+                  'line': 'TOR 2 – 1 MTL   ·   2nd 12:34',
+                }).catchError((_) => null);
+              }),
+          ]),
+          if (s.scoreAlerts > 0) ...[
+            heading('Alert delay',
+                'Streams run 20 to 60 seconds behind live. If alerts show up before the goal does, hold them back.'),
+            Wrap(children: [
+              for (final d in kScoreDelays)
+                chip(d == 0 ? 'None (fastest)' : '$d seconds', s.scoreDelay == d, () {
+                  s.change(() {
+                    s.scoreDelay = d;
+                    kScoreAlertDelay = d;
+                  });
+                }),
+            ]),
+          ],
         ]),
       ),
     );

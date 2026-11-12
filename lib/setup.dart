@@ -698,10 +698,9 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
             SysRow(
                 icon: Icons.sports_hockey_rounded,
                 title: 'Sports scores',
-                subtitle: 'Live scores for your teams: NHL, MLB, NBA, NFL, F1',
+                subtitle: 'Live scores and goal alerts for your teams: NHL, MLB, NBA, NFL, F1',
                 value: teams > 0 ? '✓ $teams' : '',
-                onSelect: () => _open(SetupScreen(
-                    firstRun: false, only: 5, onDone: () => Navigator.of(context).pop()))),
+                onSelect: () => _open(const SportsSettingsScreen())),
             SysRow(
                 icon: Icons.cloud_sync_rounded,
                 title: 'Foyer Drop',
