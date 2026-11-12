@@ -433,3 +433,91 @@ class _TeamChip extends StatelessWidget {
         ),
       );
 }
+
+// ───────────────────────── score alerts ─────────────────────────
+
+/// 0 off, 1 scores only, 2 scores plus game start and final (Settings > Home screen > Score alerts).
+int kScoreAlertLevel = 2;
+const List<String> kScoreAlertNames = ['Off', 'Scores only', 'Scores, start and final'];
+
+/// Watches the games of the teams you follow and pops a note over whatever is playing
+/// when someone scores. Runs while Foyer is in the background too.
+class ScoreAlerts {
+  Map<String, GameLine> _last = {};
+  bool _primed = false;
+  Timer? _t;
+
+  void start(Settings Function() read) {
+    if (_t != null) return;
+    kSports.games.addListener(_onGames);
+    _t = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (kScoreAlertLevel == 0) return;
+      try {
+        final s = read();
+        if (s.sportsTeams.isNotEmpty) kSports.refresh(s.sportsTeams, s.clock24);
+      } catch (_) {}
+    });
+  }
+
+  String _key(GameLine g) => '${g.league}|${g.awayAbbr}|${g.homeAbbr}|${g.title}';
+
+  static int _n(String v) => int.tryParse(v.trim()) ?? 0;
+
+  static String _what(String league, int pts, String team) {
+    switch (league) {
+      case 'nhl':
+        return '🚨 $team goal!';
+      case 'mlb':
+        return pts == 1 ? '⚾ $team scores' : '⚾ $team scores $pts runs';
+      case 'nfl':
+        if (pts >= 6) return '🏈 $team touchdown!';
+        if (pts == 3) return '🏈 $team field goal';
+        if (pts == 2) return '🏈 $team, 2 points';
+        return '🏈 $team scores';
+      default:
+        return '$team scores';
+    }
+  }
+
+  void _alert(String title, String line) {
+    kChannel.invokeMethod('alert', {'title': title, 'line': line}).catchError((_) => null);
+  }
+
+  void _onGames() {
+    final now = {for (final g in kSports.games.value) _key(g): g};
+    if (!_primed) {
+      // first look: remember where things stand, don't announce old goals
+      _last = now;
+      _primed = now.isNotEmpty;
+      return;
+    }
+    if (kScoreAlertLevel > 0) {
+      for (final e in now.entries) {
+        final g = e.value, old = _last[e.key];
+        if (old == null) continue;
+        final line = g.league == 'f1'
+            ? g.title
+            : '${g.awayAbbr} ${g.awayScore} – ${g.homeScore} ${g.homeAbbr}   ·   ${g.detail}';
+        final starting = old.state == 'pre' && g.state == 'in';
+        final ended = old.state == 'in' && g.state == 'post';
+        if (starting && kScoreAlertLevel >= 2) {
+          _alert(g.league == 'f1' ? '🏁 Formula 1 is live' : 'Starting now', g.league == 'f1' ? g.title : '${g.awayAbbr} at ${g.homeAbbr}');
+          continue;
+        }
+        if (g.league != 'f1' && g.league != 'nba' && (g.state == 'in' || ended)) {
+          final da = _n(g.awayScore) - _n(old.awayScore), dh = _n(g.homeScore) - _n(old.homeScore);
+          // NFL extra points on their own aren't worth a pop-up
+          final pts = da > dh ? da : dh;
+          if (pts > 0 && !(g.league == 'nfl' && pts == 1)) {
+            _alert(_what(g.league, pts, da > dh ? g.awayAbbr : g.homeAbbr), line);
+            continue;
+          }
+        }
+        if (ended && kScoreAlertLevel >= 2) _alert('Final', line.split('   ·   ').first);
+      }
+    }
+    _last = now;
+  }
+}
+
+final ScoreAlerts kScoreAlerts = ScoreAlerts();

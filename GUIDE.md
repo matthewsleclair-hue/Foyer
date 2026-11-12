@@ -143,3 +143,9 @@ The first time Foyer opens, a guided setup walks through everything with just th
 8. **All set**: what's ready, plus tips for the moon, star and Menu buttons.
 
 Choices are saved as you go. **Settings > Backup and updates > Run setup again** opens it any time; your settings are kept.
+
+### Score alerts
+
+When one of the teams you follow scores, a small note pops up in the top corner for a few seconds, over whatever you're watching (Netflix, Plex, anything): "🚨 TOR goal!  TOR 2 – 1 MTL · 2nd 12:34". NHL goals, MLB runs and NFL touchdowns, field goals and safeties are announced; NBA only gets start and final (a pop-up for every basket would never stop). F1 gets a note when the race goes live.
+
+**Settings > Home screen > Score alerts** cycles **Scores, start and final** (the default), **Scores only** and **Off**. Turning it on shows a sample. Alerts need the remote helper; scores refresh about every 45 seconds during a live game, so a note can arrive up to a minute after the goal.

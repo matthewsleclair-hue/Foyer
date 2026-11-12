@@ -110,6 +110,7 @@ class Settings extends ChangeNotifier {
   bool perfMode = false;
   int soundLevel = 1; // 0 off, 1 quiet, 2 normal
   bool seasonal = true; // Halloween, Christmas, New Year and Easter looks
+  int scoreAlerts = 2; // 0 off, 1 scores only, 2 scores + start + final
 
   /// Custom remote buttons: "313" = pressed, "313L" = held -> app package, "foyer" or "" (normal).
   Map<String, String> remoteKeys = {};
@@ -151,6 +152,7 @@ class Settings extends ChangeNotifier {
         'perfMode': perfMode,
         'soundLevel': soundLevel,
         'seasonal': seasonal,
+        'scoreAlerts': scoreAlerts,
         'remoteKeys': remoteKeys,
         'updateUrl': updateUrl,
         'sportsTeams': [for (final t in sportsTeams) t.toJson()],
@@ -203,6 +205,9 @@ class Settings extends ChangeNotifier {
     if (sl is num) soundLevel = sl.toInt().clamp(0, 2).toInt();
     kSoundLevel = soundLevel;
     seasonal = _b(j['seasonal'], seasonal);
+    final sa = j['scoreAlerts'];
+    if (sa is num) scoreAlerts = sa.toInt().clamp(0, 2).toInt();
+    kScoreAlertLevel = scoreAlerts;
     final rk = j['remoteKeys'];
     if (rk is Map) remoteKeys = {for (final e in rk.entries) '${e.key}': '${e.value}'};
     updateUrl = _s(j['updateUrl'], updateUrl);
@@ -375,6 +380,8 @@ class _RootState extends State<Root> {
     });
     Future.wait([SettingsScope.read(context).load(), loadDevice()]).then((_) {
       if (mounted) setState(() => _ready = true);
+      // goal pop-ups, also while another app is playing
+      if (mounted) kScoreAlerts.start(() => SettingsScope.read(context));
     });
   }
 

@@ -469,6 +469,19 @@ final List<_Group> _groups = [
         'Sports scores',
         s.sportsTeams.isEmpty ? 'Off' : '${s.sportsTeams.length} followed',
         () => _editStep(c, 5)),
+    _HubItem(Icons.notifications_active_rounded, 'Score alerts',
+        '${kScoreAlertNames[s.scoreAlerts]}: pops up over whatever you\'re watching', () {
+      s.change(() {
+        s.scoreAlerts = (s.scoreAlerts + 2) % 3; // Scores, start and final > Scores only > Off
+        kScoreAlertLevel = s.scoreAlerts;
+      });
+      if (s.scoreAlerts > 0) {
+        kChannel.invokeMethod('alert', {
+          'title': '🚨 Score alerts are on',
+          'line': 'Like this, when one of your teams scores',
+        }).catchError((_) => null);
+      }
+    }),
     _HubItem(Icons.cloud_sync_rounded, 'Foyer Drop',
         s.serverUrl.isEmpty || s.serverToken.isEmpty ? 'Not linked' : 'Linked to ${s.serverUrl}',
         () => _push(c, const ServerScreen())),

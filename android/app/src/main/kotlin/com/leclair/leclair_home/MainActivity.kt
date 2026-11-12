@@ -175,6 +175,10 @@ class MainActivity : FlutterActivity() {
                     SleepTimer.restore(this)
                     result.success(SleepTimer.endAt)
                 }
+                "alert" -> {
+                    Alerts.show(this, call.argument<String>("title") ?: "", call.argument<String>("line") ?: "")
+                    result.success(true)
+                }
                 "cancelLearn" -> { RemoteKeys.learn = null; result.success(true) }
                 "remoteKeysStatus" -> {
                     RemoteKeys.reload(this)
