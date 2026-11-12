@@ -112,6 +112,7 @@ class Settings extends ChangeNotifier {
   bool seasonal = true; // Halloween, Christmas, New Year and Easter looks
   int scoreAlerts = 2; // 0 off, 1 scores only, 2 scores + start + final
   bool dayLightOn = true; // background warms at sunset and dims at night
+  bool devMode = false; // Developer options (press the version 7 times in Updates)
   int scoreDelay = 0; // seconds, to stay behind a delayed stream
   int scoreSize = 1; // alert pop-up: 0 small, 1 medium, 2 large
 
@@ -159,6 +160,7 @@ class Settings extends ChangeNotifier {
         'seasonal': seasonal,
         'scoreAlerts': scoreAlerts,
         'dayLight': dayLightOn,
+        'devMode': devMode,
         'scoreDelay': scoreDelay,
         'alertSize': scoreSize,
         'remoteKeys': remoteKeys,
@@ -214,6 +216,7 @@ class Settings extends ChangeNotifier {
     kSoundLevel = soundLevel;
     seasonal = _b(j['seasonal'], seasonal);
     dayLightOn = _b(j['dayLight'], dayLightOn);
+    devMode = _b(j['devMode'], devMode);
     kDayLight = dayLightOn;
     final sa = j['scoreAlerts'];
     if (sa is num) scoreAlerts = sa.toInt().clamp(0, 2).toInt();

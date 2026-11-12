@@ -604,6 +604,9 @@ class SettingsHub extends StatelessWidget {
       if (kIsFireTv)
         _HubItem(Icons.settings_rounded, 'Fire TV settings',
             'Open the stock Wi-Fi, display and sound settings', () => openFireSettings(context)),
+      if (SettingsScope.of(context).devMode)
+        _HubItem(Icons.developer_mode_rounded, 'Developer options',
+            'Where updates come from, GitHub repo and access token', () => _push(context, const DeveloperScreen())),
     ];
     return PopScope(
       canPop: false,
@@ -1547,6 +1550,22 @@ class _UpdateScreenState extends State<UpdateScreen> {
   double? _prog;
   bool _busy = false;
   UpdateInfo? _found = kUpdate.value;
+  int _taps = 0;
+
+  void _tapVersion() {
+    final s = SettingsScope.read(context);
+    if (s.devMode) {
+      setState(() => _msg = 'Developer options are already on (Settings › Developer options).');
+      return;
+    }
+    _taps++;
+    if (_taps >= 7) {
+      s.change(() => s.devMode = true);
+      setState(() => _msg = 'You\'re now a developer. Developer options are at the bottom of Settings.');
+    } else if (_taps >= 3) {
+      setState(() => _msg = '${7 - _taps} more to turn on developer options.');
+    }
+  }
 
   @override
   void initState() {
@@ -1647,78 +1666,35 @@ class _UpdateScreenState extends State<UpdateScreen> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          kv('Installed', _ver),
-          kv('Source',
+          // press the version 7 times for Developer options (like Android's build number)
+          FocusButton(
+            scale: 1.0,
+            onSelect: _tapVersion,
+            builder: (_, f) => AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                color: f ? Colors.white.withAlpha(30) : Colors.transparent,
+              ),
+              child: kv('Version', _ver),
+            ),
+          ),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: kv('Updates from',
               s.updateUrl.trim() == UpdateApi.dropSource
-                  ? (s.serverUrl.isEmpty ? 'Your Foyer Drop server (not linked yet)' : 'Your Foyer Drop server')
-                  : (s.updateUrl.isEmpty ? 'Not set' : 'GitHub: ${s.updateUrl}')),
-          if (s.updateUrl.trim() != UpdateApi.dropSource)
-            kv('Access token', s.updateToken.isEmpty ? 'None (public repos only)' : 'Set'),
+                  ? (s.serverUrl.isEmpty ? 'Foyer Drop (link it in Settings › Foyer Drop)' : 'Foyer Drop')
+                  : 'GitHub')),
           const SizedBox(height: 18),
-          Wrap(spacing: 18, runSpacing: 18, children: [
-            PillButton(
-                key: const ValueKey('update-main'),
-                label: _prog != null
-                    ? 'Downloading… ${((_prog ?? 0) * 100).round()}%'
-                    : (_busy
-                        ? 'Checking…'
-                        : (_found != null ? 'Download and install ${_found!.version}' : 'Check now')),
-                primary: true,
-                autofocus: true,
-                onSelect: () => _found != null ? _install() : _check()),
-            PillButton(
-                label: s.updateUrl.trim() == UpdateApi.dropSource ? 'Use GitHub instead' : 'Use Foyer Drop',
-                onSelect: () {
-                  s.change(() => s.updateUrl = s.updateUrl.trim() == UpdateApi.dropSource
-                      ? 'matthewsleclair-hue/Foyer'
-                      : UpdateApi.dropSource);
-                  kUpdate.value = null;
-                  setState(() => _found = null);
-                }),
-            PillButton(
-                label: 'Change repo',
-                onSelect: () async {
-                  final v = await askText(context, 'GitHub repo', s.updateUrl,
-                      hint: 'owner/repo', maxLength: 120);
-                  if (v != null) {
-                    s.change(() => s.updateUrl = v);
-                    kUpdate.value = null;
-                    setState(() => _found = null);
-                  }
-                }),
-            PillButton(
-                label: 'Load token from file',
-                onSelect: () async {
-                  try {
-                    await kChannel.invokeMethod<bool>('requestStorage');
-                    final t = await kChannel.invokeMethod<String>('readTokenFile');
-                    if (t == null || t.isEmpty) {
-                      setState(() => _msg = 'No foyer-token.txt found. Send it from your computer first (see the README).');
-                    } else {
-                      final clean = UpdateApi.cleanToken(t);
-                      s.change(() => s.updateToken = clean);
-                      kUpdate.value = null;
-                      setState(() {
-                        _found = null;
-                        _msg = 'Token loaded (${clean.length} characters) and the file was deleted from the stick.';
-                      });
-                    }
-                  } catch (_) {
-                    setState(() => _msg = 'Could not read the token file.');
-                  }
-                }),
-            PillButton(
-                label: s.updateToken.isEmpty ? 'Type access token' : 'Change access token',
-                onSelect: () async {
-                  final v = await askText(context, 'GitHub access token', '',
-                      hint: 'github_pat_…', maxLength: 200);
-                  if (v != null) {
-                    s.change(() => s.updateToken = UpdateApi.cleanToken(v));
-                    kUpdate.value = null;
-                    setState(() => _found = null);
-                  }
-                }),
-          ]),
+          PillButton(
+              key: const ValueKey('update-main'),
+              label: _prog != null
+                  ? 'Downloading… ${((_prog ?? 0) * 100).round()}%'
+                  : (_busy
+                      ? 'Checking…'
+                      : (_found != null ? 'Download and install ${_found!.version}' : 'Check now')),
+              primary: true,
+              autofocus: true,
+              onSelect: () => _found != null ? _install() : _check()),
           const SizedBox(height: 26),
           if (_prog != null)
             SizedBox(
@@ -1818,6 +1794,107 @@ class SportsSettingsScreen extends StatelessWidget {
                 }),
             ]),
           ],
+        ]),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── developer options ─────────────────────────
+
+/// Hidden until the version on the Updates page is pressed 7 times.
+class DeveloperScreen extends StatefulWidget {
+  const DeveloperScreen({super.key});
+  @override
+  State<DeveloperScreen> createState() => _DeveloperScreenState();
+}
+
+class _DeveloperScreenState extends State<DeveloperScreen> {
+  String _msg = '';
+
+  void _changed() => kUpdate.value = null;
+
+  Future<void> _loadTokenFile(Settings s) async {
+    try {
+      await kChannel.invokeMethod<bool>('requestStorage');
+      final t = await kChannel.invokeMethod<String>('readTokenFile');
+      if (t == null || t.isEmpty) {
+        setState(() => _msg = 'No foyer-token.txt found. Send it from your computer first (see the README).');
+      } else {
+        final clean = UpdateApi.cleanToken(t);
+        s.change(() => s.updateToken = clean);
+        _changed();
+        setState(() => _msg = 'Token loaded (${clean.length} characters) and the file was deleted from the TV.');
+      }
+    } catch (_) {
+      setState(() => _msg = 'Could not read the token file.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SettingsScope.of(context);
+    final drop = s.updateUrl.trim() == UpdateApi.dropSource;
+    return SettingsPage(
+      title: 'Developer options',
+      subtitle: 'For whoever looks after this TV. Changing these can stop updates from arriving.',
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (_msg.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 0, 18),
+              child: SizedBox(width: 1300, child: Text(_msg, style: const TextStyle(fontSize: 26, color: Colors.white70))),
+            ),
+          SysRow(
+              icon: Icons.cloud_download_rounded,
+              title: 'Updates come from',
+              subtitle: drop ? 'Your Foyer Drop server: only signed-in TVs can download' : 'A GitHub repo',
+              value: drop ? 'Foyer Drop' : 'GitHub',
+              autofocus: true,
+              onSelect: () {
+                s.change(() => s.updateUrl = drop ? 'matthewsleclair-hue/Foyer' : UpdateApi.dropSource);
+                _changed();
+              }),
+          if (!drop) ...[
+            SysRow(
+                icon: Icons.source_rounded,
+                title: 'GitHub repo',
+                subtitle: 'owner/repo with the releases',
+                value: s.updateUrl,
+                onSelect: () async {
+                  final v = await askText(context, 'GitHub repo', s.updateUrl, hint: 'owner/repo', maxLength: 120);
+                  if (v != null && v.trim().isNotEmpty) {
+                    s.change(() => s.updateUrl = v.trim());
+                    _changed();
+                  }
+                }),
+            SysRow(
+                icon: Icons.key_rounded,
+                title: s.updateToken.isEmpty ? 'Type access token' : 'Change access token',
+                subtitle: 'A read-only token, needed for a private repo',
+                value: s.updateToken.isEmpty ? 'None' : 'Set',
+                onSelect: () async {
+                  final v = await askText(context, 'GitHub access token', '', hint: 'github_pat_…', maxLength: 200);
+                  if (v != null) {
+                    s.change(() => s.updateToken = UpdateApi.cleanToken(v));
+                    _changed();
+                  }
+                }),
+            SysRow(
+                icon: Icons.file_open_rounded,
+                title: 'Load token from file',
+                subtitle: 'Reads foyer-token.txt sent from a computer, then deletes it',
+                onSelect: () => _loadTokenFile(s)),
+          ],
+          SysRow(
+              icon: Icons.developer_mode_rounded,
+              title: 'Turn off developer options',
+              subtitle: 'Hides this page again',
+              onSelect: () {
+                s.change(() => s.devMode = false);
+                Navigator.of(context).pop();
+              }),
         ]),
       ),
     );

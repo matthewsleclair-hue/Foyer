@@ -184,3 +184,7 @@ Foyer is never public. Friends' boxes get updates from **your Foyer Drop server*
 ### Font
 
 Foyer uses **Plus Jakarta Sans** (in `fonts/`, free under the SIL Open Font License, see `fonts/OFL.txt`). `update.sh`, `tools/release.sh` and `tools/publish.sh` copy it into the Flutter project and add it to `pubspec.yaml` automatically (`tools/patch_fonts.py`, safe to run again). Score alert pop-ups use it too.
+
+### Developer options
+
+Settings > Updates only shows the one **Check now / Download and install** button, so nobody changes where updates come from by accident. To get the rest, press the **Version** line on the Updates page 7 times (like Android's build number). **Developer options** then appears at the bottom of Settings with: where updates come from (Foyer Drop or GitHub), the GitHub repo, the access token, and loading the token from a file. **Turn off developer options** hides it again; **Reset for someone new** turns it off too.
