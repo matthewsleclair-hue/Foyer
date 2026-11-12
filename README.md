@@ -30,7 +30,7 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - Rain, snow or fog drifting over the background when that's the weather outside
 - Press Down on your apps to see all of them, and Up to go back
 - **Keep watching:** the shows you're part way through in Netflix, Disney+, Prime Video, YouTube and more, with how far in you are. One press picks up right where you left off
-- **People:** everyone in the house gets their own apps and teams; switch at the top right of the home screen
+- **People:** everyone in the house gets their own apps and teams; switch at the top left of the home screen
 
 **No ads, no clutter**
 - Google's ad-filled home screen is switched off

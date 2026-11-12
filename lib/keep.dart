@@ -5,7 +5,7 @@
 // you are. OK opens the show right where you were.
 //
 // People: each person who watches this TV has their own apps and teams. The names sit
-// at the top right of the home screen; pick one to switch.
+// at the top left of the home screen; pick one to switch.
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -228,7 +228,7 @@ class _KeepCard extends StatelessWidget {
 
 // ───────────────────────── who's watching ─────────────────────────
 
-/// "Matthew | Sarah" at the top of the home screen. Only shown with two or more people.
+/// "Matthew | Sarah" under the greeting on the home screen. Only shown with two or more people.
 class ProfilePills extends StatelessWidget {
   const ProfilePills({super.key});
 
@@ -313,7 +313,7 @@ class PeopleScreen extends StatelessWidget {
     return SettingsPage(
       title: 'People',
       subtitle: 'Everyone who watches gets their own apps along the bottom and their own sports teams. '
-          'Their names sit at the top right of the home screen: pick one to switch.',
+          'Their names sit at the top left of the home screen, under the greeting: pick one to switch.',
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

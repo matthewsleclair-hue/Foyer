@@ -2383,8 +2383,14 @@ class _HomeScreenState extends State<HomeScreen>
           top: 30,
           child: FadeTransition(
               opacity: _fadeEarly,
-              child: _HomeHeader(
-                  season: activeSeason(settings), weather: _weather, clock: settings.wallMode != 'scenes'))),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                _HomeHeader(season: activeSeason(settings), weather: _weather, clock: settings.wallMode != 'scenes'),
+                // who's watching: under the greeting, clear of the scene's date in the middle
+                if (settings.profiles.length > 1) ...[
+                  const SizedBox(height: 18),
+                  const ProfilePills(),
+                ],
+              ]))),
       Positioned(
           right: 72,
           top: 132,
@@ -2407,8 +2413,6 @@ class _HomeScreenState extends State<HomeScreen>
           child: FadeTransition(
               opacity: _fadeEarly,
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const ProfilePills(),
-                const SizedBox(width: 16),
                 ValueListenableBuilder<List<GameLine>>(
                     valueListenable: kSports.games,
                     builder: (_, g, __) => g.isEmpty
