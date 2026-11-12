@@ -275,59 +275,44 @@ class _AskTextDialogState extends State<_AskTextDialog> {
   @override
   Widget build(BuildContext context) {
     final ctx = context;
+    final showQr = _url != null && !_got;
+    // Sits at the top of the screen, with the QR code beside the field, so the TV's
+    // keyboard (which rises from the bottom) never covers either.
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      child: Center(
-        child: Glass(
-          radius: 40,
-          padding: const EdgeInsets.all(40),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(widget.title, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 24),
+      alignment: Alignment.topCenter,
+      insetPadding: const EdgeInsets.only(top: 48, left: 40, right: 40),
+      child: Glass(
+        radius: 40,
+        padding: const EdgeInsets.fromLTRB(40, 32, 40, 32),
+        child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(widget.title, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 18),
             SizedBox(
-              width: 820,
+              width: 760,
               child: TextField(
                 controller: _c,
                 autofocus: true,
                 maxLength: widget.maxLength,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
-                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w600),
                 decoration: _fieldDeco().copyWith(hintText: widget.hint),
               ),
             ),
-            const SizedBox(height: 18),
-            if (_url != null && !_got)
-              // scan to type on the phone instead of letter by letter with the remote
+            if (!showQr) ...[
+              const SizedBox(height: 4),
               SizedBox(
-                width: 820,
-                child: Row(children: [
-                  QrCode(text: _url!, size: 210),
-                  const SizedBox(width: 30),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('Easier: type on your phone',
-                          style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 8),
-                      const Text('Point your phone camera at the code (same Wi-Fi as the TV).',
-                          style: TextStyle(fontSize: 24, color: Colors.white70)),
-                      const SizedBox(height: 10),
-                      Text(_url!, style: const TextStyle(fontSize: 20, color: Colors.white38)),
-                    ]),
-                  ),
-                ]),
-              )
-            else
-              SizedBox(
-                width: 820,
+                width: 760,
                 child: Text(
                   _got ? 'Got it from your phone. Choose Done.' : 'Typing is easier on your phone, when the TV is on Wi-Fi.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 24, color: _got ? const Color(0xFF8CE99A) : Colors.white70),
+                  style: TextStyle(fontSize: 22, color: _got ? const Color(0xFF8CE99A) : Colors.white60),
                 ),
               ),
-            const SizedBox(height: 24),
+            ],
+            const SizedBox(height: 16),
             Row(mainAxisSize: MainAxisSize.min, children: [
               PillButton(label: 'Cancel', onSelect: () => Navigator.of(ctx).pop()),
               const SizedBox(width: 20),
@@ -338,7 +323,24 @@ class _AskTextDialogState extends State<_AskTextDialog> {
                   onSelect: () => Navigator.of(ctx).pop(_c.text.trim())),
             ]),
           ]),
-        ),
+          if (showQr) ...[
+            const SizedBox(width: 40),
+            Container(width: 1.5, height: 250, color: Colors.white24),
+            const SizedBox(width: 40),
+            SizedBox(
+              width: 250,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                QrCode(text: _url!, size: 210),
+                const SizedBox(height: 12),
+                const Text('Scan to type on your phone',
+                    textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                const Text('Same Wi-Fi as the TV',
+                    textAlign: TextAlign.center, style: TextStyle(fontSize: 19, color: Colors.white54)),
+              ]),
+            ),
+          ],
+        ]),
       ),
     );
   }
