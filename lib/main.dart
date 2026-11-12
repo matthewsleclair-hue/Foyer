@@ -1068,7 +1068,7 @@ class _SetupScreenState extends State<SetupScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(children: [
+        body: Stack(fit: StackFit.expand, children: [
           const Positioned.fill(child: RepaintBoundary(child: Backdrop(tint: kDefaultTint))),
           Padding(
             padding: const EdgeInsets.fromLTRB(160, 90, 160, 70),
@@ -1546,7 +1546,7 @@ class _AllAppsScreenState extends State<AllAppsScreen> {
     final pinned = SettingsScope.of(context).pinned;
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(children: [
+      body: Stack(fit: StackFit.expand, children: [
         const Positioned.fill(child: RepaintBoundary(child: Backdrop(tint: kDefaultTint))),
         Padding(
           padding: const EdgeInsets.fromLTRB(120, 80, 120, 60),
@@ -2020,7 +2020,7 @@ class _HomeScreenState extends State<HomeScreen>
         },
         child: Scaffold(
           backgroundColor: Colors.black,
-          body: Stack(children: [
+          body: Stack(fit: StackFit.expand, children: [
             Positioned.fill(
               child: RepaintBoundary(
                 child: ValueListenableBuilder<int>(

@@ -245,7 +245,7 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(children: [
+        body: Stack(fit: StackFit.expand, children: [
           const Positioned.fill(child: RepaintBoundary(child: Backdrop(tint: kDefaultTint))),
           Padding(
             padding: const EdgeInsets.fromLTRB(90, 80, 120, 64),

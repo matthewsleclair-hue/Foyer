@@ -181,7 +181,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(children: [
+        body: Stack(fit: StackFit.expand, children: [
           const Positioned.fill(child: RepaintBoundary(child: Backdrop(tint: kDefaultTint))),
           Padding(
             padding: const EdgeInsets.fromLTRB(140, 80, 140, 60),
@@ -592,7 +592,7 @@ class SettingsHub extends StatelessWidget {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(children: [
+        body: Stack(fit: StackFit.expand, children: [
           const Positioned.fill(child: RepaintBoundary(child: Backdrop(tint: kDefaultTint))),
           Padding(
             padding: const EdgeInsets.fromLTRB(140, 80, 140, 60),
