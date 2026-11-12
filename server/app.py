@@ -968,4 +968,31 @@ def delete_drawing(drawing_id: str, w: Who = Depends(who)):
     return _remove(w, drawing_id, "drawing", DRAWINGS, "png")
 
 
+
+# ── Foyer updates for your people ──
+# tools/publish.sh copies Foyer.apk and update.json into DATA/releases. Only TVs and people
+# signed in to this server can see or download them, so Foyer is never public.
+REL = DATA / "releases"
+
+
+@app.get("/api/update")
+def update_info(w: Who = Depends(who)):
+    f = REL / "update.json"
+    if not f.exists() or not (REL / "Foyer.apk").exists():
+        raise HTTPException(404, "No Foyer release on this server yet")
+    try:
+        j = json.loads(f.read_text())
+    except Exception:
+        raise HTTPException(500, "update.json is not readable")
+    return {"version": str(j.get("version", "")), "build": int(j.get("build", 0) or 0), "notes": str(j.get("notes", ""))}
+
+
+@app.get("/api/update/apk")
+def update_apk(w: Who = Depends(who)):
+    f = REL / "Foyer.apk"
+    if not f.exists():
+        raise HTTPException(404, "No Foyer release on this server yet")
+    return FileResponse(f, media_type="application/vnd.android.package-archive", filename="Foyer.apk")
+
+
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")

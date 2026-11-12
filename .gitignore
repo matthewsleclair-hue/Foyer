@@ -4,3 +4,4 @@ key.properties
 *.apk
 update.json
 .DS_Store
+update-drop.json

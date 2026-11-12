@@ -158,22 +158,25 @@ When one of the teams you follow scores, a small note pops up in the top corner 
 
 ## Setting up a box for a friend (Onn 4K Pro, Chromecast, any Google TV)
 
-**One time, on your Mac:** create the public releases-only repo, so friends' boxes update without a token:
-```bash
-gh repo create matthewsleclair-hue/foyer-releases --public --description "Foyer TV launcher downloads"
-```
-From then on `tools/publish.sh` puts every release there too, and
-`https://github.com/matthewsleclair-hue/foyer-releases/releases/latest/download/Foyer.apk` is always the newest Foyer (handy with the Downloader app). Only the APK goes there, never the code.
+Foyer is never public. Friends' boxes get updates from **your Foyer Drop server**, and only TVs signed in to it (people you invited) can download Foyer.
+
+**One time:**
+1. Update the Foyer Drop server (it has the new update endpoints): copy `server/` to the VM and `docker compose up -d --build`.
+2. On the VM, make the releases folder yours so publishing can copy into it:
+   ```bash
+   sudo mkdir -p ~/foyer-drop/data/releases && sudo chown $USER ~/foyer-drop/data/releases
+   ```
+3. Publish as usual with `tools/publish.sh`. It now also copies Foyer.apk to the server. (`FOYER_DROP_SSH` changes the address if the VM moves; default `cardtracker@192.168.2.24`.)
 
 **Preparing the box:**
-1. Unbox it and go through Google's setup **with your friend's Google account** (see below), on your Wi-Fi.
+1. Unbox it and do Google's setup **with your friend's Google account** (see below).
 2. Settings > System > About > press **Android TV OS build** 7 times; Developer options > **USB debugging** on.
-3. Install Foyer: `adb connect <box IP>:5555` then `adb -s <box IP>:5555 install Foyer.apk` (or use Downloader with the link above).
-4. Open Foyer. In the setup, do only the **Home screen** step (choose **Always allow** when asked), then skip to the end.
-5. Optional: install his apps from the Play Store (Netflix, Prime, Crave...).
+3. From your Mac: `adb connect <box IP>:5555` then `adb -s <box IP>:5555 install Foyer.apk`.
+4. Open Foyer. In the setup, do the **Home screen** step (choose **Always allow**), then skip to the end.
+5. Optional: install his apps from the Play Store.
 6. Restart the box once and check it starts in Foyer.
-7. Foyer > Settings > Backup and updates > **Reset for someone new**. The welcome setup appears. Unplug and wrap it up.
+7. Foyer > Settings > Backup and updates > **Reset for someone new**. The welcome setup appears. Unplug.
 
-At his place it starts in Foyer's welcome setup: Wi-Fi, name, look, apps, extras. Foyer stays the home screen with Google's ads off, and updates come from the public repo with no token.
+**At his place:** Foyer's welcome setup asks for his Wi-Fi, name, look and apps. In **Extras > Foyer Drop** he links the TV with the account you invited him to (Foyer Drop page > TVs > Add a person, or an invite code). That link is also where his updates come from: Settings > Updates works with one press, no token. Until he links Foyer Drop, he gets no updates (and nobody else can either).
 
-**The Google account:** the box needs his account for the Play Store and his apps. Easiest is to do Google's setup while he's there or on a call: when Google TV asks to sign in, choose to sign in **with your phone or computer** and send him the code on screen to enter on his phone. Or make a new Gmail for the box and give him the password. Don't use your own account; your purchases, YouTube history and payment details would come with it.
+**The Google account:** the box needs his account for the Play Store and his apps. Do Google's setup while he's there or on a call; if Google TV offers to sign in with a phone and a code, send him the code. Or make a new Gmail for the box and give him the password. Don't use your own: your purchases, YouTube history and payment details would come with it.

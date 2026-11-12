@@ -61,9 +61,36 @@ class UpdateApi {
     return false;
   }
 
+  /// "drop" = your own Foyer Drop server: only TVs signed in to it can update.
+  static const String dropSource = 'drop';
+
+  static Future<UpdateInfo?> _checkDrop(String dropUrl, String dropToken, int currentBuild) async {
+    if (dropUrl.isEmpty || dropToken.isEmpty) {
+      throw const FormatException('Link Foyer Drop first (Settings › Home screen › Foyer Drop). Updates come from there.');
+    }
+    final base = dropUrl.endsWith('/') ? dropUrl.substring(0, dropUrl.length - 1) : dropUrl;
+    final c = _client();
+    try {
+      final req = await c.getUrl(Uri.parse('$base/api/update'));
+      req.headers.set('Authorization', 'Bearer $dropToken');
+      final res = await req.close().timeout(const Duration(seconds: 12));
+      final body = await res.transform(utf8.decoder).join();
+      if (res.statusCode == 404) return null; // nothing published there yet
+      if (res.statusCode >= 400) throw HttpException('Foyer Drop HTTP ${res.statusCode}');
+      final j = jsonDecode(body);
+      if (j is! Map) throw const FormatException('Unexpected reply from Foyer Drop');
+      final build = (j['build'] as num?)?.toInt() ?? 0;
+      if (build <= currentBuild) return null;
+      return UpdateInfo('${j['version'] ?? ''}', build, '$base/api/update/apk', '${j['notes'] ?? ''}');
+    } finally {
+      c.close(force: true);
+    }
+  }
+
   /// Returns null if you're up to date. Throws if the source can't be read.
-  static Future<UpdateInfo?> check(
-      String source, String token, int currentBuild, String currentName) async {
+  static Future<UpdateInfo?> check(String source, String token, int currentBuild, String currentName,
+      {String dropUrl = '', String dropToken = ''}) async {
+    if (source.trim() == dropSource) return _checkDrop(dropUrl, dropToken, currentBuild);
     final repo = githubRepo(source);
     if (repo != null) {
       final j = await _getJson(Uri.https('api.github.com', '/repos/$repo/releases/latest'), token);
@@ -111,6 +138,9 @@ class UpdateApi {
         if (uri.host == 'api.github.com') {
           req.headers.set('Accept', 'application/octet-stream');
           if (token.isNotEmpty) req.headers.set('Authorization', 'Bearer $token');
+        } else if (uri.path.endsWith('/api/update/apk') && hop == 0 && token.isNotEmpty) {
+          // Foyer Drop: the TV's own sign-in (only on the first hop, never to a redirect)
+          req.headers.set('Authorization', 'Bearer $token');
         }
         final res = await req.close();
         if (res.isRedirect) {
@@ -143,6 +173,7 @@ class UpdateApi {
 
   static String friendly(Object e) {
     final m = '$e';
+    if (m.contains('Foyer Drop HTTP 401')) return 'Foyer Drop doesn\'t recognise this TV any more. Link it again in Settings › Foyer Drop.';
     if (m.contains('404')) {
       return 'Not found. Check the repo name and that a release exists. A private repo needs an access token.';
     }

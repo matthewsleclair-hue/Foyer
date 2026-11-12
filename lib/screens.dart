@@ -1578,7 +1578,8 @@ class _UpdateScreenState extends State<UpdateScreen> {
     });
     UpdateInfo? r;
     try {
-      r = await UpdateApi.check(cfg.updateUrl, cfg.updateToken, _build, _name);
+      r = await UpdateApi.check(cfg.updateUrl, cfg.updateToken, _build, _name,
+          dropUrl: cfg.serverUrl, dropToken: cfg.serverToken);
       kUpdate.value = r;
       if (!mounted) return;
       setState(() {
@@ -1605,7 +1606,8 @@ class _UpdateScreenState extends State<UpdateScreen> {
     });
     try {
       final path = (await kChannel.invokeMethod<String>('updatePath')) ?? '';
-      await UpdateApi.download(u.url, path, cfg.updateToken, (p) {
+      final viaDrop = cfg.updateUrl.trim() == UpdateApi.dropSource;
+      await UpdateApi.download(u.url, path, viaDrop ? cfg.serverToken : cfg.updateToken, (p) {
         if (mounted) setState(() => _prog = p);
       });
       final r = await kChannel.invokeMethod<String>('installApk', {'path': path});
@@ -1641,13 +1643,17 @@ class _UpdateScreenState extends State<UpdateScreen> {
     return SettingsPage(
       title: 'Updates',
       subtitle:
-          'Gets new versions from the latest GitHub release of your repo. A private repo needs a read-only access token.',
+          'New versions come from your Foyer Drop server (only signed-in TVs can get them), or from a GitHub repo.',
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           kv('Installed', _ver),
-          kv('Source', s.updateUrl.isEmpty ? 'Not set' : s.updateUrl),
-          kv('Access token', s.updateToken.isEmpty ? 'None (public repos only)' : 'Set'),
+          kv('Source',
+              s.updateUrl.trim() == UpdateApi.dropSource
+                  ? (s.serverUrl.isEmpty ? 'Your Foyer Drop server (not linked yet)' : 'Your Foyer Drop server')
+                  : (s.updateUrl.isEmpty ? 'Not set' : 'GitHub: ${s.updateUrl}')),
+          if (s.updateUrl.trim() != UpdateApi.dropSource)
+            kv('Access token', s.updateToken.isEmpty ? 'None (public repos only)' : 'Set'),
           const SizedBox(height: 18),
           Wrap(spacing: 18, runSpacing: 18, children: [
             PillButton(
@@ -1660,6 +1666,15 @@ class _UpdateScreenState extends State<UpdateScreen> {
                 primary: true,
                 autofocus: true,
                 onSelect: () => _found != null ? _install() : _check()),
+            PillButton(
+                label: s.updateUrl.trim() == UpdateApi.dropSource ? 'Use GitHub instead' : 'Use Foyer Drop',
+                onSelect: () {
+                  s.change(() => s.updateUrl = s.updateUrl.trim() == UpdateApi.dropSource
+                      ? 'matthewsleclair-hue/Foyer'
+                      : UpdateApi.dropSource);
+                  kUpdate.value = null;
+                  setState(() => _found = null);
+                }),
             PillButton(
                 label: 'Change repo',
                 onSelect: () async {

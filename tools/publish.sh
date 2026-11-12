@@ -18,17 +18,21 @@ gh release create "$TAG" "$HERE/Foyer.apk" --repo "$REPO" --title "Foyer $NAME (
 echo
 echo "Published $TAG to https://github.com/$REPO/releases"
 
-# Also publish to the public, releases-only repo, so friends' boxes update without a token
-# and https://github.com/$PUBLIC/releases/latest/download/Foyer.apk always gets the newest.
-# One-time: gh repo create matthewsleclair-hue/foyer-releases --public --description "Foyer TV launcher downloads"
-PUBLIC="${FOYER_PUBLIC_REPO:-matthewsleclair-hue/foyer-releases}"
-if gh repo view "$PUBLIC" >/dev/null 2>&1; then
-  gh release create "$TAG" "$HERE/Foyer.apk" --repo "$PUBLIC" --title "Foyer $NAME" --notes "$NOTES" --latest
-  echo "Also published to https://github.com/$PUBLIC/releases"
-  echo "Download link for friends: https://github.com/$PUBLIC/releases/latest/download/Foyer.apk"
+# Also put it on your Foyer Drop server: friends' TVs linked to it update from there
+# (only signed-in TVs can download it; nothing is public).
+DROP_SSH="${FOYER_DROP_SSH:-cardtracker@192.168.2.24}"
+DROP_DIR="${FOYER_DROP_DIR:-foyer-drop/data/releases}"
+python3 - "$HERE/update.json" "$NOTES" > "$HERE/update-drop.json" <<'PY'
+import json, sys
+j = json.load(open(sys.argv[1])); j["notes"] = sys.argv[2]; j.pop("url", None)
+print(json.dumps(j))
+PY
+if ssh -o ConnectTimeout=5 "$DROP_SSH" "mkdir -p $DROP_DIR" 2>/dev/null; then
+  scp -q "$HERE/Foyer.apk" "$DROP_SSH:$DROP_DIR/Foyer.apk.new"
+  scp -q "$HERE/update-drop.json" "$DROP_SSH:$DROP_DIR/update.json.new"
+  # swap both in at once, so a TV never sees the new version number with the old file
+  ssh "$DROP_SSH" "cd $DROP_DIR && mv Foyer.apk.new Foyer.apk && mv update.json.new update.json"
+  echo "Also on Foyer Drop ($DROP_SSH:$DROP_DIR): linked TVs can update now."
 else
-  echo "(No public releases repo yet. Create it once with:"
-  echo "   gh repo create $PUBLIC --public --description \"Foyer TV launcher downloads\""
-  echo " so friends' boxes can update without a token.)"
+  echo "(Could not reach $DROP_SSH, so Foyer Drop didn't get this version. Set FOYER_DROP_SSH if it moved.)"
 fi
-echo "On the stick: Settings > Updates > Check now."

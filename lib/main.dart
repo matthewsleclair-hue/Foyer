@@ -19,7 +19,6 @@ import 'weather.dart';
 const MethodChannel kChannel = MethodChannel('leclair/launcher');
 const int kMaxPinned = 8;
 const Color kDefaultTint = Color(0xFF3B5BDB);
-const String kPublicReleases = 'matthewsleclair-hue/foyer-releases';
 const String kPlexPackage = 'com.plexapp.android';
 
 /// Pre-selected on first run if they're installed.
@@ -118,9 +117,9 @@ class Settings extends ChangeNotifier {
 
   /// Custom remote buttons: "313" = pressed, "313L" = held -> app package, "foyer" or "" (normal).
   Map<String, String> remoteKeys = {};
-  /// Public, releases-only repo: anyone's Foyer can update from it without a token.
-  /// (The code repo is private; tools/publish.sh puts each release in both.)
-  String updateUrl = kPublicReleases;
+  /// Where updates come from. New boxes use your Foyer Drop server ("drop"): only TVs
+  /// signed in to it can download Foyer, and no GitHub token is needed.
+  String updateUrl = UpdateApi.dropSource;
   String updateToken = '';
   List<FollowedTeam> sportsTeams = [];
 
@@ -324,7 +323,7 @@ class Settings extends ChangeNotifier {
     dropHidden = [];
     serverUrl = '';
     serverToken = '';
-    updateUrl = kPublicReleases;
+    updateUrl = UpdateApi.dropSource;
     updateToken = '';
     final r = Random.secure();
     clientId = List.generate(16, (_) => r.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
@@ -2008,7 +2007,8 @@ class _HomeScreenState extends State<HomeScreen>
     _updateSig = url;
     try {
       kUpdate.value =
-          await UpdateApi.check(url, s.updateToken, await appBuild(), await appName());
+          await UpdateApi.check(url, s.updateToken, await appBuild(), await appName(),
+              dropUrl: s.serverUrl, dropToken: s.serverToken);
     } catch (_) {}
   }
 
