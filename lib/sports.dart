@@ -445,6 +445,13 @@ int kScoreAlertLevel = 2;
 /// Seconds to hold an alert so it doesn't beat your stream (which runs behind live).
 int kScoreAlertDelay = 0;
 const List<int> kScoreDelays = [0, 15, 30, 45, 60];
+
+/// Pop-up size: 0 small, 1 medium, 2 large (default).
+int kScoreAlertSize = 2;
+const List<String> kScoreSizeNames = ['Small', 'Medium', 'Large'];
+
+void showScoreAlert(String title, String line) =>
+    kChannel.invokeMethod('alert', {'title': title, 'line': line, 'size': kScoreAlertSize}).catchError((_) => null);
 const List<String> kScoreAlertNames = ['Off', 'Scores only', 'Scores, start and final'];
 
 /// Watches the games of the teams you follow and pops a note over whatever is playing
@@ -487,7 +494,7 @@ class ScoreAlerts {
   }
 
   void _alert(String title, String line) {
-    void send() => kChannel.invokeMethod('alert', {'title': title, 'line': line}).catchError((_) => null);
+    void send() => showScoreAlert(title, line);
     if (kScoreAlertDelay > 0) {
       Timer(Duration(seconds: kScoreAlertDelay), send);
     } else {

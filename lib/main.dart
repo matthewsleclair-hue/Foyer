@@ -112,6 +112,7 @@ class Settings extends ChangeNotifier {
   bool seasonal = true; // Halloween, Christmas, New Year and Easter looks
   int scoreAlerts = 2; // 0 off, 1 scores only, 2 scores + start + final
   int scoreDelay = 0; // seconds, to stay behind a delayed stream
+  int scoreSize = 2; // alert pop-up: 0 small, 1 medium, 2 large
 
   /// Custom remote buttons: "313" = pressed, "313L" = held -> app package, "foyer" or "" (normal).
   Map<String, String> remoteKeys = {};
@@ -155,6 +156,7 @@ class Settings extends ChangeNotifier {
         'seasonal': seasonal,
         'scoreAlerts': scoreAlerts,
         'scoreDelay': scoreDelay,
+        'scoreSize': scoreSize,
         'remoteKeys': remoteKeys,
         'updateUrl': updateUrl,
         'sportsTeams': [for (final t in sportsTeams) t.toJson()],
@@ -213,6 +215,9 @@ class Settings extends ChangeNotifier {
     final sd = j['scoreDelay'];
     if (sd is num) scoreDelay = sd.toInt().clamp(0, 120).toInt();
     kScoreAlertDelay = scoreDelay;
+    final ss2 = j['scoreSize'];
+    if (ss2 is num) scoreSize = ss2.toInt().clamp(0, 2).toInt();
+    kScoreAlertSize = scoreSize;
     final rk = j['remoteKeys'];
     if (rk is Map) remoteKeys = {for (final e in rk.entries) '${e.key}': '${e.value}'};
     updateUrl = _s(j['updateUrl'], updateUrl);

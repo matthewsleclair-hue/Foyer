@@ -24,7 +24,8 @@ object Alerts {
     private var view: View? = null
     private val hide = Runnable { remove() }
 
-    fun show(c: Context, title: String, line: String, seconds: Int = 8) {
+    /** size: 0 small, 1 medium, 2 large. */
+    fun show(c: Context, title: String, line: String, seconds: Int = 8, size: Int = 2) {
         handler.post {
             val svc = HomeKeyService.instance
             if (svc == null) {
@@ -33,7 +34,8 @@ object Alerts {
             }
             remove()
             try {
-                val dp = { v: Float -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, svc.resources.displayMetrics) }
+                val k = when (size) { 0 -> 0.75f; 1 -> 1f; else -> 1.4f }
+                val dp = { v: Float -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v * k, svc.resources.displayMetrics) }
                 val box = LinearLayout(svc).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(dp(22f).toInt(), dp(14f).toInt(), dp(26f).toInt(), dp(16f).toInt())
@@ -46,13 +48,13 @@ object Alerts {
                 box.addView(TextView(svc).apply {
                     text = title
                     setTextColor(Color.rgb(255, 212, 59))
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f * k)
                     typeface = Typeface.DEFAULT_BOLD
                 })
                 box.addView(TextView(svc).apply {
                     text = line
                     setTextColor(Color.WHITE)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 21f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 21f * k)
                     typeface = Typeface.DEFAULT_BOLD
                 })
                 val lp = WindowManager.LayoutParams(

@@ -1757,14 +1757,20 @@ class SportsSettingsScreen extends StatelessWidget {
                 });
               }),
             if (s.scoreAlerts > 0)
-              chip('Show a sample', false, () {
-                kChannel.invokeMethod('alert', {
-                  'title': '🚨 TOR goal!',
-                  'line': 'TOR 2 – 1 MTL   ·   2nd 12:34',
-                }).catchError((_) => null);
-              }),
+              chip('Show a sample', false, () => showScoreAlert('🚨 TOR goal!', 'TOR 2 – 1 MTL   ·   2nd 12:34')),
           ]),
           if (s.scoreAlerts > 0) ...[
+            heading('Alert size', 'Selecting a size shows a sample'),
+            Wrap(children: [
+              for (var i = kScoreSizeNames.length - 1; i >= 0; i--)
+                chip(kScoreSizeNames[i], s.scoreSize == i, () {
+                  s.change(() {
+                    s.scoreSize = i;
+                    kScoreAlertSize = i;
+                  });
+                  showScoreAlert('🚨 TOR goal!', 'TOR 2 – 1 MTL   ·   2nd 12:34');
+                }),
+            ]),
             heading('Alert delay',
                 'Streams run 20 to 60 seconds behind live. If alerts show up before the goal does, hold them back.'),
             Wrap(children: [
