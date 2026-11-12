@@ -45,10 +45,8 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - Wi-Fi, Bluetooth headphones, picture, sound, apps and storage, all inside Foyer
 - Updates install with one press
 
-**Foyer Drop (optional): your phone, on the TV**
-- Send photos, notes and drawings from your phone to the TV
-- Use your phone as a remote, and type with your phone's keyboard
-- Share the TV with your household: everyone uses their own login
+**The Foyer companion app on your phone**
+- A remote with a real keyboard, plus photos, notes and drawings sent to the TV. [More below](#the-foyer-companion-app).
 
 <table>
   <tr>
@@ -84,6 +82,25 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
     <td align="center">Holiday themes switch on by themselves</td>
   </tr>
 </table>
+
+## The Foyer companion app
+
+Your phone becomes Foyer's best friend. The companion app works on **iPhone and Android**, and there's nothing to download from an app store: you open a link once and add it to your home screen, where it gets its own Foyer icon.
+
+<p align="center">
+  <img src="docs/screenshots/companion.png" width="300" alt="The Foyer companion app on a phone">
+</p>
+
+- 🎮 **Remote:** arrows, OK, Back, Home and play/pause, from your phone. Handy when the real remote is lost in the couch.
+- ⌨️ **Type with your phone:** passwords, searches and Wi-Fi names, typed on your phone's keyboard instead of letter by letter with the remote.
+- 📺 **Open on TV:** tap Netflix, Plex or any app on your phone and it opens on the TV.
+- 📸 **Photos:** send pictures to the TV, where they show up in the corner of the home screen and in the screensaver.
+- 📝 **Notes and drawings:** leave a note ("Pizza's in the fridge") or a doodle, and it pops up on the TV for everyone to see.
+- 👨‍👩‍👧 **Everyone in the house:** each person gets their own login for the same TV, and notes show who sent them.
+
+**Getting it:** whoever set up Foyer for you sends you an invite. Open the link, make an account, and on the TV go to **Settings → Home screen → Foyer Drop** and enter the short code it shows. On iPhone, tap **Share → Add to Home Screen**; on Android, **⋮ → Add to Home screen**.
+
+The companion app runs on a small server that belongs to whoever set up Foyer for you (that's what *Foyer Drop* is). Your photos and notes go there, not to some company.
 
 ## What TV do I need?
 
