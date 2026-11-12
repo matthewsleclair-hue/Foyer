@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'extras.dart';
 import 'plex.dart';
 import 'screens.dart';
+import 'seasons.dart';
 import 'sounds.dart';
 import 'server.dart';
 import 'sports.dart';
@@ -104,6 +105,7 @@ class Settings extends ChangeNotifier {
   bool autoStart = true;
   bool perfMode = false;
   int soundLevel = 1; // 0 off, 1 quiet, 2 normal
+  bool seasonal = true; // Halloween, Christmas, New Year and Easter looks
 
   /// Custom remote buttons: "313" = pressed, "313L" = held -> app package, "foyer" or "" (normal).
   Map<String, String> remoteKeys = {};
@@ -144,6 +146,7 @@ class Settings extends ChangeNotifier {
         'autoStart': autoStart,
         'perfMode': perfMode,
         'soundLevel': soundLevel,
+        'seasonal': seasonal,
         'remoteKeys': remoteKeys,
         'updateUrl': updateUrl,
         'sportsTeams': [for (final t in sportsTeams) t.toJson()],
@@ -195,6 +198,7 @@ class Settings extends ChangeNotifier {
     final sl = j['soundLevel'];
     if (sl is num) soundLevel = sl.toInt().clamp(0, 2).toInt();
     kSoundLevel = soundLevel;
+    seasonal = _b(j['seasonal'], seasonal);
     final rk = j['remoteKeys'];
     if (rk is Map) remoteKeys = {for (final e in rk.entries) '${e.key}': '${e.value}'};
     updateUrl = _s(j['updateUrl'], updateUrl);
@@ -1993,6 +1997,9 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ),
+            // holiday leaves, bats, snow, confetti or petals
+            Positioned.fill(
+                child: SeasonLayer(season: activeSeason(settings), light: settings.perfMode)),
             Positioned.fill(
               child: AnimatedScale(
                 scale: _leaving ? 1.05 : 1.0,
@@ -2024,9 +2031,8 @@ class _HomeScreenState extends State<HomeScreen>
               opacity: _fadeEarly,
               child: Glass(
                   radius: 40,
-                  child: Text('Welcome to ${settings.name}',
-                      style: const TextStyle(
-                          fontSize: 30, fontWeight: FontWeight.w600, letterSpacing: 0.2))))),
+                  child: SeasonGreeting(
+                      season: activeSeason(settings), fallback: 'Welcome to ${settings.name}')))),
       Positioned(
           right: 72,
           top: 132,

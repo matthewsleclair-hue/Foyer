@@ -115,3 +115,16 @@ Press the **moon** button on the home screen: **Goodnight now**, or **Sleep time
 You can also set a remote button to **Sleep timer: 30 more minutes each press** in Settings > TV tools > Remote buttons.
 
 The timer runs in Foyer's remote helper, so keep that helper on.
+
+### Seasonal themes
+
+For the week around each holiday the home screen changes by itself: its own colours, a greeting, and gently falling particles.
+
+| Holiday | When | Looks like |
+|---|---|---|
+| Halloween | Oct 25 to 31 | orange, falling autumn leaves and bats flying across |
+| Christmas | Dec 19 to 26 | red, falling snow |
+| New Year | Dec 27 to Jan 2 | gold, confetti and twinkling stars; on Dec 31 a countdown to midnight |
+| Easter | Palm Sunday to Easter Monday | pastel lilac, drifting petals |
+
+Settings > Appearance > Seasonal themes turns it on or off and lets you try each one now. Your own photo wallpaper is kept; the particles still show over it. Performance mode uses fewer particles.

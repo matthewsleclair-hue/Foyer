@@ -9,6 +9,7 @@ import 'server.dart';
 import 'sports.dart';
 import 'system.dart';
 import 'sounds.dart';
+import 'seasons.dart';
 import 'remote.dart';
 import 'online.dart';
 import 'update.dart';
@@ -71,6 +72,9 @@ class Wallpaper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = SettingsScope.of(context);
+    // holidays tint the wallpaper (your own photo stays as it is)
+    final look = kSeasonLooks[activeSeason(s)];
+    if (look != null && s.wallMode != 'photo') return Backdrop(tint: look.tint);
     if (s.wallMode == 'photo' && s.wallValue.isNotEmpty) {
       return Stack(fit: StackFit.expand, children: [
         Image.file(File(s.wallValue),
@@ -468,7 +472,7 @@ final List<_Group> _groups = [
         s.serverUrl.isEmpty || s.serverToken.isEmpty ? 'Not linked' : 'Linked to ${s.serverUrl}',
         () => _push(c, const ServerScreen())),
   ]),
-  _Group(Icons.palette_rounded, 'Appearance', 'Glass style, wallpaper, sounds, performance', (c, s) => [
+  _Group(Icons.palette_rounded, 'Appearance', 'Glass style, wallpaper, holidays, sounds', (c, s) => [
     _HubItem(
         Icons.blur_on_rounded,
         'Glass style',
@@ -486,6 +490,9 @@ final List<_Group> _groups = [
     _HubItem(Icons.speed_rounded, 'Performance mode',
         s.perfMode ? 'On: no blur, lighter animations' : 'Off',
         () => s.change(() => s.perfMode = !s.perfMode)),
+    _HubItem(Icons.celebration_rounded, 'Seasonal themes',
+        s.seasonal ? 'On: Halloween, Christmas, New Year and Easter' : 'Off',
+        () => _push(c, const SeasonsScreen())),
     _HubItem(Icons.music_note_rounded, 'Sounds',
         '${kSoundNames[s.soundLevel]}: a soft tick when you move around', () {
       s.change(() {
