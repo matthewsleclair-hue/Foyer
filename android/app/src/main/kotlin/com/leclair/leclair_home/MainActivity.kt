@@ -190,6 +190,28 @@ class MainActivity : FlutterActivity() {
                     Alerts.show(this, (call.arguments as? Map<String, Any?>) ?: emptyMap())
                     result.success(true)
                 }
+                "qrPng" -> {
+                    // a crisp black-on-white QR code as PNG bytes (ZXing)
+                    val text = call.argument<String>("text") ?: ""
+                    val px = call.argument<Int>("size") ?: 360
+                    try {
+                        val m = com.google.zxing.qrcode.QRCodeWriter().encode(
+                            text, com.google.zxing.BarcodeFormat.QR_CODE, px, px,
+                            mapOf(
+                                com.google.zxing.EncodeHintType.MARGIN to 1,
+                                com.google.zxing.EncodeHintType.ERROR_CORRECTION to
+                                    com.google.zxing.qrcode.decoder.ErrorCorrectionLevel.M
+                            )
+                        )
+                        val bmp = Bitmap.createBitmap(m.width, m.height, Bitmap.Config.ARGB_8888)
+                        for (y in 0 until m.height) for (x in 0 until m.width) {
+                            bmp.setPixel(x, y, if (m.get(x, y)) Color.BLACK else Color.WHITE)
+                        }
+                        result.success(png(bmp))
+                    } catch (e: Exception) {
+                        result.success(null)
+                    }
+                }
                 "cancelLearn" -> { RemoteKeys.learn = null; result.success(true) }
                 "remoteKeysStatus" -> {
                     RemoteKeys.reload(this)

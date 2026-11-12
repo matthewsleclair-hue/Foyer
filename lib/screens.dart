@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show File, NetworkInterface, InternetAddressType;
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
@@ -297,24 +298,35 @@ class _AskTextDialogState extends State<_AskTextDialog> {
               ),
             ),
             const SizedBox(height: 18),
-            SizedBox(
-              width: 820,
-              child: Text(
-                _got
-                    ? 'Got it from your phone. Choose Done.'
-                    : (_url == null
-                        ? 'Typing is easier on your phone, when the stick is on Wi-Fi.'
-                        : 'Or type on your phone (same Wi-Fi). Open this address:'),
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, color: _got ? const Color(0xFF8CE99A) : Colors.white70),
+            if (_url != null && !_got)
+              // scan to type on the phone instead of letter by letter with the remote
+              SizedBox(
+                width: 820,
+                child: Row(children: [
+                  QrCode(text: _url!, size: 210),
+                  const SizedBox(width: 30),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Easier: type on your phone',
+                          style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 8),
+                      const Text('Point your phone camera at the code (same Wi-Fi as the TV).',
+                          style: TextStyle(fontSize: 24, color: Colors.white70)),
+                      const SizedBox(height: 10),
+                      Text(_url!, style: const TextStyle(fontSize: 20, color: Colors.white38)),
+                    ]),
+                  ),
+                ]),
+              )
+            else
+              SizedBox(
+                width: 820,
+                child: Text(
+                  _got ? 'Got it from your phone. Choose Done.' : 'Typing is easier on your phone, when the TV is on Wi-Fi.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 24, color: _got ? const Color(0xFF8CE99A) : Colors.white70),
+                ),
               ),
-            ),
-            if (_url != null && !_got) ...[
-              const SizedBox(height: 8),
-              Text(_url!,
-                  style: const TextStyle(
-                      fontSize: 34, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
-            ],
             const SizedBox(height: 24),
             Row(mainAxisSize: MainAxisSize.min, children: [
               PillButton(label: 'Cancel', onSelect: () => Navigator.of(ctx).pop()),
@@ -1899,4 +1911,49 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
       ),
     );
   }
+}
+
+// ───────────────────────── QR code ─────────────────────────
+
+/// A QR code drawn on the TV (ZXing, on the Android side), on a white card so any phone reads it.
+class QrCode extends StatefulWidget {
+  const QrCode({super.key, required this.text, this.size = 240});
+  final String text;
+  final double size;
+  @override
+  State<QrCode> createState() => _QrCodeState();
+}
+
+class _QrCodeState extends State<QrCode> {
+  Uint8List? _png;
+
+  @override
+  void initState() {
+    super.initState();
+    _make();
+  }
+
+  @override
+  void didUpdateWidget(QrCode old) {
+    super.didUpdateWidget(old);
+    if (old.text != widget.text) _make();
+  }
+
+  Future<void> _make() async {
+    try {
+      final b = await kChannel.invokeMethod<Uint8List>('qrPng', {'text': widget.text, 'size': 480});
+      if (mounted) setState(() => _png = b);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: widget.size,
+        height: widget.size,
+        padding: EdgeInsets.all(widget.size * 0.05),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+        child: _png == null
+            ? const Center(child: CircularProgressIndicator(strokeWidth: 3, color: Colors.black26))
+            : Image.memory(_png!, filterQuality: FilterQuality.none, gaplessPlayback: true),
+      );
 }

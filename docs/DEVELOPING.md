@@ -82,3 +82,6 @@ Settings > **TV settings** puts Wi-Fi, Bluetooth, picture, sound, apps, storage,
 ## Publishing (current)
     cd ~/Foyer && git pull && bash tools/publish.sh
 Builds the signed APK (adds the font to the project if needed), publishes the GitHub release, and copies the APK to your Foyer Drop server so linked friends' TVs can update.
+
+## Android libraries
+`tools/patch_deps.py` (run by `update.sh` and `release.sh`) adds ZXing core to `android/app/build.gradle(.kts)` once. Foyer uses it to draw QR codes on the TV (`qrPng` in MainActivity, `QrCode` widget in screens.dart).

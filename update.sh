@@ -17,6 +17,7 @@ SIGN="$HOME/.leclair-signing"
 cp "$HERE"/lib/*.dart "$PROJ/lib/"
 cp -R "$HERE/android/." "$PROJ/android/"
 python3 "$HERE/tools/patch_fonts.py" "$PROJ"
+python3 "$HERE/tools/patch_deps.py" "$PROJ"
 if [ -f "$SIGN/key.properties" ]; then
   cp "$SIGN/key.properties" "$PROJ/android/key.properties"
   python3 "$HERE/tools/patch_signing.py" "$PROJ"
