@@ -612,6 +612,20 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
 
   Future<void> _toggle() async {
     final on = _s['on'] == true;
+    if (on) {
+      // the remote itself uses Bluetooth: never switch it off from one stray press
+      return showMenu2(context, 'Turn Bluetooth off?', [
+        MenuChoice('Your remote uses Bluetooth and will stop working. To turn it back on you\'d need '
+            'the companion app\'s remote, a computer, or to unplug the TV box for 10 seconds.', null),
+        MenuChoice('Keep Bluetooth on', () {}),
+        MenuChoice('Turn off anyway', _switchBt),
+      ]);
+    }
+    return _switchBt();
+  }
+
+  Future<void> _switchBt() async {
+    final on = _s['on'] == true;
     setState(() => _msg = on ? 'Turning Bluetooth off…' : 'Turning Bluetooth on…');
     final cmd = on ? 'disable' : 'enable';
     final r = await adbOut(['cmd bluetooth_manager $cmd || svc bluetooth $cmd']);
