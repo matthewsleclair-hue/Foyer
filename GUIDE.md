@@ -193,6 +193,6 @@ Settings > Updates only shows the one **Check now / Download and install** butto
 
 **Settings > TV settings > VPN** lists the popular VPNs (NordVPN, ExpressVPN, Surfshark, Proton VPN, CyberGhost, Private Internet Access, Mullvad, Tailscale, OpenVPN Connect, WireGuard) and shows whether the TV is connected through one right now. The ones already on the TV are at the top.
 
-On Android TV each VPN works through its own app, which also holds your login, so Foyer can't sign in for you. Picking one shows a **QR code** that opens that VPN's sign-in page on your phone (to sign in, check your plan or sign up), plus **Open** if the app is installed or **Get it from the Play Store** if it isn't. Most VPN apps then show their own short code or QR code to sign in on the TV.
+On Android TV each VPN signs in and connects in its own app, so Foyer can't sign in for you. Picking one **opens the app** if it's installed, or its **Play Store page** if it isn't.
 
 Some streaming apps block VPNs or show another country's catalogue while one is on.

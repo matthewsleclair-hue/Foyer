@@ -1,11 +1,29 @@
 // Settings > TV settings > VPN. On Android TV every VPN works through its own app, which
-// also holds the login. Foyer shows whether a VPN is on, opens or installs the app, and
-// shows a QR code that takes your phone to that VPN's sign-in page.
+// also holds the login. Foyer shows whether a VPN is on, and opens the app (or its Play Store page).
 import 'package:flutter/material.dart';
 import 'main.dart';
 import 'screens.dart';
 import 'system.dart';
-import 'vpn_qr.dart';
+
+class VpnInfo {
+  const VpnInfo(this.name, this.package, this.blurb);
+  final String name;
+  final String package;
+  final String blurb;
+}
+
+const List<VpnInfo> kVpns = [
+  VpnInfo('NordVPN', 'com.nordvpn.android', 'Popular and fast. Sign in with your Nord Account.'),
+  VpnInfo('ExpressVPN', 'com.expressvpn.vpn', 'Simple and reliable. The TV app signs in with your email.'),
+  VpnInfo('Surfshark', 'com.surfshark.vpnclient.android', 'One account covers every device in the house.'),
+  VpnInfo('Proton VPN', 'ch.protonvpn.android', 'From the makers of Proton Mail. Has a free plan.'),
+  VpnInfo('CyberGhost', 'de.mobileconcepts.cyberghost', 'Has servers set up for streaming.'),
+  VpnInfo('Private Internet Access', 'com.privateinternetaccess.android', 'Budget friendly with lots of settings.'),
+  VpnInfo('Mullvad', 'net.mullvad.mullvadvpn', 'Private by design: no email needed, just an account number.'),
+  VpnInfo('Tailscale', 'com.tailscale.ipn', 'Reach your home network (Plex, servers) from anywhere.'),
+  VpnInfo('OpenVPN Connect', 'net.openvpn.openvpn', 'For a VPN your work or your own server gives you as a .ovpn file.'),
+  VpnInfo('WireGuard', 'com.wireguard.android', 'For WireGuard configs from your router or server.'),
+];
 
 class VpnScreen extends StatefulWidget {
   const VpnScreen({super.key});
@@ -49,11 +67,19 @@ class _VpnScreenState extends State<VpnScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _open(VpnInfo v) => showDialog<void>(
-        context: context,
-        barrierColor: Colors.black54,
-        builder: (_) => _VpnDialog(vpn: v, installed: _installed.contains(v.package)),
-      ).then((_) => _load());
+  /// Installed: open it (sign in and connect there). Not installed: its Play Store page.
+  Future<void> _open(VpnInfo v) async {
+    if (_installed.contains(v.package)) {
+      await launchPackage(v.package);
+      return;
+    }
+    try {
+      await kChannel.invokeMethod<bool>('openLink', {
+        'url': 'market://details?id=${v.package}',
+        'package': 'com.android.vending',
+      });
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,14 +89,14 @@ class _VpnScreenState extends State<VpnScreen> with WidgetsBindingObserver {
         icon: Icons.vpn_lock_rounded,
         title: v.name,
         subtitle: v.blurb,
-        value: _installed.contains(v.package) ? 'Installed' : '',
+        value: _installed.contains(v.package) ? 'Open' : 'Get',
         autofocus: first,
         onSelect: () => _open(v));
     return SettingsPage(
       title: 'VPN',
       subtitle: _vpnOn
           ? '🔒 This TV is connected through a VPN right now.'
-          : 'No VPN is on. Each VPN works through its own app; pick one to open it or get it.',
+          : 'No VPN is on. Each VPN signs in and connects in its own app: pick one to open it, or to get it from the Play Store.',
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -94,80 +120,6 @@ class _VpnScreenState extends State<VpnScreen> with WidgetsBindingObserver {
                 style: TextStyle(fontSize: 22, color: Colors.white38)),
           ),
         ]),
-      ),
-    );
-  }
-}
-
-class _VpnDialog extends StatelessWidget {
-  const _VpnDialog({required this.vpn, required this.installed});
-  final VpnInfo vpn;
-  final bool installed;
-
-  @override
-  Widget build(BuildContext context) {
-    void close() => Navigator.of(context).pop();
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      child: Center(
-        child: Glass(
-          radius: 40,
-          padding: const EdgeInsets.all(44),
-          child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
-            // white card behind the code so any phone camera reads it
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-              child: Image.memory(vpn.qrPng, width: 300, height: 300, filterQuality: FilterQuality.none),
-            ),
-            const SizedBox(width: 44),
-            SizedBox(
-              width: 620,
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(vpn.name, style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Text(vpn.blurb, style: const TextStyle(fontSize: 24, color: Colors.white70)),
-                const SizedBox(height: 22),
-                const Text('Scan with your phone to sign in, check your plan or sign up.',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                Text(vpn.url.replaceFirst('https://', ''), style: const TextStyle(fontSize: 21, color: Colors.white54)),
-                const SizedBox(height: 10),
-                Text(
-                    installed
-                        ? 'Then open the app on the TV and sign in there too; most show a short code or their own QR code to make it easy.'
-                        : 'Then get the app on the TV and sign in there; most show a short code or their own QR code to make it easy.',
-                    style: const TextStyle(fontSize: 22, color: Colors.white54)),
-                const SizedBox(height: 28),
-                Wrap(spacing: 18, runSpacing: 18, children: [
-                  if (installed)
-                    PillButton(
-                        label: 'Open ${vpn.name}',
-                        primary: true,
-                        autofocus: true,
-                        onSelect: () {
-                          close();
-                          launchPackage(vpn.package);
-                        })
-                  else
-                    PillButton(
-                        label: 'Get it from the Play Store',
-                        primary: true,
-                        autofocus: true,
-                        onSelect: () {
-                          close();
-                          kChannel.invokeMethod<bool>('openLink', {
-                            'url': 'market://details?id=${vpn.package}',
-                            'package': 'com.android.vending',
-                          }).catchError((_) => false);
-                        }),
-                  PillButton(label: 'Close', onSelect: close),
-                ]),
-              ]),
-            ),
-          ]),
-        ),
       ),
     );
   }
