@@ -202,3 +202,15 @@ Some streaming apps block VPNs or show another country's catalogue while one is 
 The flame button on the home screen opens a fireplace video in the **YouTube app**, full screen, with its own sound. Back or Home returns to Foyer.
 
 **Settings > Home screen > Fireplace video** lets you paste a different YouTube link (handy with the scan-to-type QR code); leave it empty for Foyer's pick. YouTube has to be installed on the TV.
+
+### Scenes (home backgrounds)
+
+**Settings > Appearance > Wallpaper > Scenes** turns the home screen into a landscape with a big glass clock and the date in the sky. The clock sits *behind* the front of the scenery, so peaks and ridges overlap the bottom of the digits.
+
+Five scenes are built in, painted by Foyer itself (no image files): **Night** (stars, a moon and a lake), **Golden hour** (a volcano at sunset), **Waterline** (snowy peaks over a lake), **Fog** (misty forested hills) and **Dawn**. Choose:
+
+- **Take turns**: a new scene fades in every 20 seconds.
+- **Match the time of day**: dawn in the early morning, fog mid-morning, waterline through the day, golden hour in the evening, night after dark.
+- or one scene to keep.
+
+With a scene on, the small clock in the corner goes away (the scene has the big one) and the greeting and weather stay. The Plex "Continue Watching" row is no longer on the home screen.

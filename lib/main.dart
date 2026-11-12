@@ -201,7 +201,7 @@ class Settings extends ChangeNotifier {
     weatherLon = lo is num ? lo.toDouble() : (j.containsKey('weatherLon') ? null : weatherLon);
     weatherF = _b(j['weatherF'], weatherF);
     final wm = _s(j['wallMode'], wallMode);
-    wallMode = (wm == 'preset' || wm == 'photo') ? wm : 'glow';
+    wallMode = (wm == 'preset' || wm == 'photo' || wm == 'scenes') ? wm : 'glow';
     wallValue = _s(j['wallValue'], wallValue);
     final ss = j['ssMinutes'];
     if (ss is num) ssMinutes = ss.toInt();
@@ -2175,7 +2175,9 @@ class _HomeScreenState extends State<HomeScreen>
           left: 84,
           top: 30,
           child: FadeTransition(
-              opacity: _fadeEarly, child: _HomeHeader(season: activeSeason(settings), weather: _weather))),
+              opacity: _fadeEarly,
+              child: _HomeHeader(
+                  season: activeSeason(settings), weather: _weather, clock: settings.wallMode != 'scenes'))),
       Positioned(
           right: 72,
           top: 132,
@@ -2312,9 +2314,12 @@ class _HomeScreenState extends State<HomeScreen>
 
 /// Top left of the home screen: a big, calm clock, and "Good evening · 4° Cloudy" under it.
 class _HomeHeader extends StatefulWidget {
-  const _HomeHeader({required this.season, required this.weather});
+  const _HomeHeader({required this.season, required this.weather, this.clock = true});
   final Season season;
   final WeatherNow? weather;
+
+  /// false when the wallpaper is a scene, which has its own big clock
+  final bool clock;
   @override
   State<_HomeHeader> createState() => _HomeHeaderState();
 }
@@ -2359,6 +2364,8 @@ class _HomeHeaderState extends State<_HomeHeader> {
     final w = widget.weather;
     const line = TextStyle(fontSize: 30, fontWeight: FontWeight.w500, color: Color(0xE6FFFFFF), shadows: shadow);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+      if (!widget.clock) const SizedBox(height: 22),
+      if (widget.clock)
       Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
         Text(time,
             style: const TextStyle(

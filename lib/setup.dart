@@ -589,6 +589,13 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
                 ]),
                 row('Wallpaper', [
                   Opt(
+                      label: 'Scenes with a big clock',
+                      selected: s.wallMode == 'scenes',
+                      onSelect: () => s.change(() {
+                            s.wallMode = 'scenes';
+                            s.wallValue = '';
+                          })),
+                  Opt(
                       label: 'Follows the app',
                       selected: s.wallMode == 'glow',
                       onSelect: () => s.change(() {

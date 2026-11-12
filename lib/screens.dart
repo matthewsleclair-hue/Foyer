@@ -11,6 +11,7 @@ import 'sports.dart';
 import 'system.dart';
 import 'sounds.dart';
 import 'seasons.dart';
+import 'scenes.dart';
 import 'setup.dart';
 import 'remote.dart';
 import 'online.dart';
@@ -74,6 +75,8 @@ class Wallpaper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = SettingsScope.of(context);
+    // painted scenes with the big clock behind the scenery
+    if (s.wallMode == 'scenes') return SceneView(which: s.wallValue);
     // holidays tint the wallpaper (your own photo stays as it is)
     final look = kSeasonLooks[activeSeason(s)];
     if (look != null && s.wallMode != 'photo') return Backdrop(tint: look.tint);
@@ -509,7 +512,11 @@ final List<_Group> _groups = [
     _HubItem(
         Icons.wallpaper_rounded,
         'Wallpaper',
-        s.wallMode == 'photo'
+        s.wallMode == 'scenes'
+            ? (s.wallValue.isEmpty
+                ? 'Scenes, taking turns'
+                : (s.wallValue == 'auto' ? 'Scenes, matching the time of day' : 'Scene: ${kScenes[s.wallValue]?['name'] ?? ''}'))
+            : s.wallMode == 'photo'
             ? 'Your photo'
             : (s.wallMode == 'preset'
                 ? kWallPresets[clampIdx(int.tryParse(s.wallValue) ?? 0, kWallPresets.length - 1)].name
@@ -906,13 +913,79 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
     final glow = s.wallMode == 'glow';
     return SettingsPage(
       title: 'Wallpaper',
-      subtitle: 'Pick a color style or one of your photos.',
+      subtitle: 'Scenes with a big clock, a colour style, or one of your photos.',
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Scenes', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          const Text('Painted landscapes with a big clock tucked behind the scenery.',
+              style: TextStyle(fontSize: 22, color: Colors.white60)),
+          const SizedBox(height: 18),
           Wrap(spacing: 16, runSpacing: 16, children: [
             Opt(
-                autofocus: true,
+                autofocus: s.wallMode == 'scenes',
+                label: 'Take turns (every 20 s)',
+                selected: s.wallMode == 'scenes' && s.wallValue.isEmpty,
+                onSelect: () => s.change(() {
+                      s.wallMode = 'scenes';
+                      s.wallValue = '';
+                    })),
+            Opt(
+                label: 'Match the time of day',
+                selected: s.wallMode == 'scenes' && s.wallValue == 'auto',
+                onSelect: () => s.change(() {
+                      s.wallMode = 'scenes';
+                      s.wallValue = 'auto';
+                    })),
+          ]),
+          const SizedBox(height: 20),
+          Wrap(spacing: 20, runSpacing: 20, children: [
+            for (final k in kSceneOrder)
+              FocusButton(
+                scrollIntoView: true,
+                onSelect: () => s.change(() {
+                  s.wallMode = 'scenes';
+                  s.wallValue = k;
+                }),
+                builder: (_, focused) {
+                  final sel = s.wallMode == 'scenes' && s.wallValue == k;
+                  return Column(mainAxisSize: MainAxisSize.min, children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 140),
+                      width: 320,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                            color: focused ? Colors.white : (sel ? Colors.white70 : Colors.white24),
+                            width: focused ? 3.5 : 2),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Stack(fit: StackFit.expand, children: [
+                          // a small live copy of the scene, clock and all
+                          FittedBox(
+                              fit: BoxFit.cover,
+                              child: SizedBox(width: 1920, height: 1080, child: SceneView(which: k))),
+                          if (sel)
+                            const Positioned(
+                                top: 8, right: 8, child: Icon(Icons.check_circle, size: 36, color: Colors.white)),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('${kScenes[k]!['name']}', style: const TextStyle(fontSize: 22, color: Colors.white70)),
+                  ]);
+                },
+              ),
+          ]),
+          const SizedBox(height: 36),
+          const Text('Colours', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 18),
+          Wrap(spacing: 16, runSpacing: 16, children: [
+            Opt(
+                autofocus: s.wallMode != 'scenes',
                 label: 'Follow the selected app',
                 selected: glow,
                 onSelect: () => s.change(() => s.wallMode = 'glow')),
