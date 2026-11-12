@@ -372,6 +372,22 @@ class _WifiScreenState extends State<WifiScreen> {
   }
 
   Future<void> _toggle() async {
+    if (_on) {
+      // never switch Wi-Fi off from a single stray OK press
+      return showMenu2(context, 'Turn Wi-Fi off?', [
+        MenuChoice(
+            _link == 'ethernet'
+                ? 'The TV stays online through its network cable.'
+                : 'The TV will have no internet until you turn it back on here.',
+            null),
+        MenuChoice('Keep Wi-Fi on', () {}),
+        MenuChoice('Turn off', _switchWifi),
+      ]);
+    }
+    return _switchWifi();
+  }
+
+  Future<void> _switchWifi() async {
     final r = await adbOut(['cmd wifi set-wifi-enabled ${_on ? 'disabled' : 'enabled'}']);
     if (!r.ok) return _say(r.error!, const Color(0xFFFFB4A9));
     _say(_on ? 'Turning Wi-Fi off…' : 'Turning Wi-Fi on…');
