@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -62,70 +63,195 @@ class _RoundButton extends StatelessWidget {
 
 // ───────────────────────── fireplace ─────────────────────────
 
-/// A calm, animated fireplace drawn in code (no video file, so Foyer stays small).
+/// A wood fire: flames, glowing logs, sparks and light flickering on brick, simulated live by a
+/// shader (shaders/fire.frag), with a crackling loop for sound. No video file.
+/// Up and Down change the sound; OK or Back leaves.
 class FireplaceScreen extends StatefulWidget {
   const FireplaceScreen({super.key});
   @override
   State<FireplaceScreen> createState() => _FireplaceScreenState();
 }
 
-class _FireplaceScreenState extends State<FireplaceScreen> with SingleTickerProviderStateMixin {
+/// Crackle loudness for each step of [Settings.fireVolume] (0 = silent).
+const List<double> kFireVolumes = [0.0, 0.2, 0.42, 0.7, 1.0];
+
+class _FireplaceScreenState extends State<FireplaceScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _t =
       AnimationController(vsync: this, duration: const Duration(seconds: 120))..repeat();
+  final Stopwatch _clock = Stopwatch()..start();
+  ui.FragmentShader? _shader;
   bool _hint = true;
   Timer? _hintTimer;
+  bool _volShown = false;
+  Timer? _volTimer;
 
   @override
   void initState() {
     super.initState();
-    _hintTimer = Timer(const Duration(seconds: 5), () {
+    WidgetsBinding.instance.addObserver(this);
+    _hintTimer = Timer(const Duration(seconds: 6), () {
       if (mounted) setState(() => _hint = false);
     });
+    _loadShader();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _sound());
+  }
+
+  Future<void> _loadShader() async {
+    try {
+      final program = await ui.FragmentProgram.fromAsset('shaders/fire.frag');
+      if (mounted) setState(() => _shader = program.fragmentShader());
+    } catch (_) {
+      // shader missing or not supported on this box: the drawn fire below is used instead
+    }
+  }
+
+  int get _vol => SettingsScope.read(context).fireVolume.clamp(0, kFireVolumes.length - 1).toInt();
+
+  void _sound([double? volume]) {
+    kChannel.invokeMethod('fireSound', {'volume': volume ?? kFireVolumes[_vol]}).catchError((_) => null);
+  }
+
+  void _changeVolume(int by) {
+    final s = SettingsScope.read(context);
+    final v = (_vol + by).clamp(0, kFireVolumes.length - 1).toInt();
+    if (v != s.fireVolume) s.change(() => s.fireVolume = v);
+    _sound();
+    _volTimer?.cancel();
+    setState(() => _volShown = true);
+    _volTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _volShown = false);
+    });
+  }
+
+  // the TV side stops the crackle whenever Foyer leaves the screen; pick it up again on return
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _sound();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _sound(0); // fades out
     _hintTimer?.cancel();
+    _volTimer?.cancel();
     _t.dispose();
+    _shader?.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Colors.black,
-        body: Focus(
-          autofocus: true,
-          onKeyEvent: (_, e) {
-            if (e is KeyDownEvent &&
-                (e.logicalKey == LogicalKeyboardKey.select ||
-                    e.logicalKey == LogicalKeyboardKey.enter ||
-                    e.logicalKey == LogicalKeyboardKey.gameButtonA)) {
-              Navigator.of(context).maybePop();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          child: Stack(children: [
-            Positioned.fill(
-              child: RepaintBoundary(
-                child: CustomPaint(painter: _FirePainter(_t), isComplex: true, willChange: true),
+  Widget build(BuildContext context) {
+    final perf = SettingsScope.of(context).perfMode;
+    final vol = _vol;
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Focus(
+        autofocus: true,
+        onKeyEvent: (_, e) {
+          if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+          final k = e.logicalKey;
+          if (k == LogicalKeyboardKey.arrowUp) {
+            _changeVolume(1);
+            return KeyEventResult.handled;
+          }
+          if (k == LogicalKeyboardKey.arrowDown) {
+            _changeVolume(-1);
+            return KeyEventResult.handled;
+          }
+          if (e is KeyDownEvent &&
+              (k == LogicalKeyboardKey.select || k == LogicalKeyboardKey.enter || k == LogicalKeyboardKey.gameButtonA)) {
+            Navigator.of(context).maybePop();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: Stack(fit: StackFit.expand, children: [
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _shader != null
+                    // drawn small and scaled up: fire is soft anyway, and it stays smooth
+                    ? _ShaderFirePainter(_t, _shader!, _clock, perf ? const Size(480, 270) : const Size(800, 450))
+                    : _FirePainter(_t),
+                isComplex: true,
+                willChange: true,
               ),
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 36,
-              child: AnimatedOpacity(
-                opacity: _hint ? 0.8 : 0,
-                duration: const Duration(milliseconds: 600),
-                child: const Text('Press Back to leave',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 24, color: Colors.white70)),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 36,
+            child: AnimatedOpacity(
+              opacity: _hint ? 0.8 : 0,
+              duration: const Duration(milliseconds: 600),
+              child: const Text('▲ ▼ change the crackle   ·   Back to leave',
+                  textAlign: TextAlign.center, style: TextStyle(fontSize: 24, color: Colors.white70)),
+            ),
+          ),
+          Positioned(
+            right: 60,
+            top: 50,
+            child: AnimatedOpacity(
+              opacity: _volShown ? 1 : 0,
+              duration: const Duration(milliseconds: 250),
+              child: Glass(
+                radius: 30,
+                liquid: false,
+                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(vol == 0 ? Icons.volume_off_rounded : Icons.local_fire_department_rounded,
+                      size: 30, color: const Color(0xFFFFB454)),
+                  const SizedBox(width: 14),
+                  for (var i = 1; i < kFireVolumes.length; i++)
+                    Container(
+                      width: 14,
+                      height: 10.0 + i * 7,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      decoration: BoxDecoration(
+                          color: i <= vol ? const Color(0xFFFFB454) : Colors.white24,
+                          borderRadius: BorderRadius.circular(4)),
+                    ),
+                  const SizedBox(width: 14),
+                  Text(vol == 0 ? 'Silent' : 'Crackle', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
+                ]),
               ),
             ),
-          ]),
-        ),
-      );
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Runs the fire shader at a small size and stretches it over the screen.
+class _ShaderFirePainter extends CustomPainter {
+  _ShaderFirePainter(Listenable tick, this.shader, this.clock, this.small) : super(repaint: tick);
+  final ui.FragmentShader shader;
+  final Stopwatch clock;
+  final Size small;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // wrap the clock so the maths stays precise on long evenings (one tiny skip every 15 minutes)
+    final seconds = (clock.elapsedMilliseconds % 900000) / 1000.0;
+    shader
+      ..setFloat(0, small.width)
+      ..setFloat(1, small.height)
+      ..setFloat(2, seconds);
+    final recorder = ui.PictureRecorder();
+    Canvas(recorder).drawRect(Offset.zero & small, Paint()..shader = shader);
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(small.width.round(), small.height.round());
+    picture.dispose();
+    canvas.drawImageRect(image, Offset.zero & small, Offset.zero & size, Paint()..filterQuality = FilterQuality.medium);
+    image.dispose();
+  }
+
+  @override
+  bool shouldRepaint(covariant _ShaderFirePainter old) => old.shader != shader || old.small != small;
 }
 
 class _FirePainter extends CustomPainter {

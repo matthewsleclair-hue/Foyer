@@ -196,3 +196,11 @@ Settings > Updates only shows the one **Check now / Download and install** butto
 On Android TV each VPN signs in and connects in its own app, so Foyer can't sign in for you. Picking one **opens the app** if it's installed, or its **Play Store page** if it isn't.
 
 Some streaming apps block VPNs or show another country's catalogue while one is on.
+
+### Fireplace
+
+The flame button on the home screen opens a wood fire: flames that tear into tongues, crossed logs with glowing cracks, a bed of coals, sparks, and light flickering on the brick behind. It's simulated live (a shader, `shaders/fire.frag`), not a video, so it never repeats exactly.
+
+It crackles too: a low roar, hiss and random pops. **Up and Down** change the crackle (four levels, or silent) and Foyer remembers your choice. OK or Back leaves. The sound stops whenever Foyer leaves the screen.
+
+Performance mode draws the fire a little softer. If a TV box can't run the shader, Foyer falls back to the simpler drawn fire.

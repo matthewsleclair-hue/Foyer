@@ -113,6 +113,7 @@ class Settings extends ChangeNotifier {
   int scoreAlerts = 2; // 0 off, 1 scores only, 2 scores + start + final
   bool dayLightOn = true; // background warms at sunset and dims at night
   bool devMode = false; // Developer options (press the version 7 times in Updates)
+  int fireVolume = 3; // fireplace crackle, 0 (silent) to 4
   int scoreDelay = 0; // seconds, to stay behind a delayed stream
   int scoreSize = 1; // alert pop-up: 0 small, 1 medium, 2 large
 
@@ -161,6 +162,7 @@ class Settings extends ChangeNotifier {
         'scoreAlerts': scoreAlerts,
         'dayLight': dayLightOn,
         'devMode': devMode,
+        'fireVolume': fireVolume,
         'scoreDelay': scoreDelay,
         'alertSize': scoreSize,
         'remoteKeys': remoteKeys,
@@ -217,6 +219,8 @@ class Settings extends ChangeNotifier {
     seasonal = _b(j['seasonal'], seasonal);
     dayLightOn = _b(j['dayLight'], dayLightOn);
     devMode = _b(j['devMode'], devMode);
+    final fv = j['fireVolume'];
+    if (fv is num) fireVolume = fv.toInt().clamp(0, 4).toInt();
     kDayLight = dayLightOn;
     final sa = j['scoreAlerts'];
     if (sa is num) scoreAlerts = sa.toInt().clamp(0, 2).toInt();
