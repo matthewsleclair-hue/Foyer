@@ -146,8 +146,9 @@ Press the **gear** at the bottom left of the home screen (or the remote's menu b
 Your phone becomes Foyer's best friend. The companion app works on **iPhone and Android**, and there's nothing to download from an app store: you open a link once and add it to your home screen, where it gets its own Foyer icon.
 
 <p align="center">
-  <img src="docs/screenshots/companion.png" width="300" alt="The Foyer companion app on a phone">
+  <img src="docs/screenshots/companion.png" width="860" alt="The Foyer companion app on a phone: sign in, notes, open on TV and the remote">
 </p>
+<p align="center"><sub>Sign in · Notes · Open on TV · Remote. It wears the same photo scenes and frosted glass as Foyer on the TV.</sub></p>
 
 - 🎮 **Remote:** arrows, OK, Back, Home and play/pause, from your phone. Handy when the real remote is lost in the couch.
 - ⌨️ **Type with your phone:** passwords, searches and Wi-Fi names, typed on your phone's keyboard instead of letter by letter with the remote.
