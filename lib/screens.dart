@@ -519,7 +519,7 @@ final List<_Group> _groups = [
         s.wallMode == 'scenes'
             ? (s.wallValue.isEmpty
                 ? 'Scenes, taking turns'
-                : (s.wallValue == 'auto' ? 'Scenes, matching the time of day' : 'Scene: ${kScenes[s.wallValue]?['name'] ?? ''}'))
+                : (s.wallValue == 'auto' ? 'Scenes, matching the time of day' : 'Scene: ${sceneName(s.wallValue)}'))
             : s.wallMode == 'photo'
             ? 'Your photo'
             : (s.wallMode == 'preset'
@@ -1207,7 +1207,7 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
                           // a small live copy of the scene, clock and all
                           FittedBox(
                               fit: BoxFit.cover,
-                              child: SizedBox(width: 1920, height: 1080, child: SceneView(which: k))),
+                              child: SizedBox(width: 1920, height: 1080, child: SceneView(which: k, thumb: true))),
                           if (sel)
                             const Positioned(
                                 top: 8, right: 8, child: Icon(Icons.check_circle, size: 36, color: Colors.white)),
@@ -1215,7 +1215,7 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text('${kScenes[k]!['name']}', style: const TextStyle(fontSize: 22, color: Colors.white70)),
+                    Text(sceneName(k), style: const TextStyle(fontSize: 22, color: Colors.white70)),
                   ]);
                 },
               ),

@@ -1,13 +1,40 @@
 // Scenic home backgrounds: painted landscapes that take turns, with a big glass clock that sits
 // *behind* the front of the scenery (peaks and ridges overlap the bottom of the digits).
-// Everything is drawn by Foyer from the recipes below, so there are no image files.
+// Two kinds: photos (in scenes/, with the scenery in front of the clock cut out of the photo),
+// and painted scenes drawn by Foyer from the recipes below.
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'main.dart';
 
-const List<String> kSceneOrder = ['night', 'golden', 'waterline', 'fog', 'dawn'];
+/// A photo scene: the photo, the clock's place, and the strip of scenery that goes in front of it.
+class PhotoScene {
+  const PhotoScene(this.name, this.top, {this.frontTop});
+  final String name;
+
+  /// Where the top of the clock goes (on the 1920 x 1080 screen).
+  final double top;
+
+  /// Where the cut-out strip (scenes/<key>-front.webp, 420 tall) goes; null = nothing in front.
+  final double? frontTop;
+}
+
+const Map<String, PhotoScene> kPhotoScenes = {
+  'meadow': PhotoScene('Misty meadow', 330, frontTop: 310),
+  'matterhorn': PhotoScene('Matterhorn', 200),
+  'volcano': PhotoScene('Volcano at dusk', 420, frontTop: 400),
+  'starlake': PhotoScene('Starry lake', 170, frontTop: 150),
+  'mistforest': PhotoScene('Misty forest', 150, frontTop: 130),
+};
+
+/// The scenes that take turns: the photos.
+const List<String> kSceneTurns = ['meadow', 'matterhorn', 'volcano', 'starlake', 'mistforest'];
+
+/// Every scene, photos first, then the painted ones.
+const List<String> kSceneOrder = [...kSceneTurns, 'night', 'golden', 'waterline', 'fog', 'dawn'];
+
+String sceneName(String k) => kPhotoScenes[k]?.name ?? '${kScenes[k]?['name'] ?? ''}';
 
 /// Scene recipes: layers painted back to front. Layers marked 'front' are drawn over the clock.
 /// (Generated from the design file; the same numbers drove the previews.)
@@ -277,19 +304,22 @@ class _ScenePainter extends CustomPainter {
 
 /// Which scene suits the hour (for "Match the time of day").
 String sceneForHour(int h) {
-  if (h >= 5 && h < 8) return 'dawn';
-  if (h >= 8 && h < 11) return 'fog';
-  if (h >= 11 && h < 16) return 'waterline';
-  if (h >= 16 && h < 20) return 'golden';
-  return 'night';
+  if (h >= 5 && h < 8) return 'meadow';
+  if (h >= 8 && h < 11) return 'mistforest';
+  if (h >= 11 && h < 16) return 'matterhorn';
+  if (h >= 16 && h < 20) return 'volcano';
+  return 'starlake';
 }
 
 /// One scene, or all of them taking turns every 20 seconds.
 ///   which: '' = take turns, 'auto' = match the time of day, or a scene's key.
 class SceneView extends StatefulWidget {
-  const SceneView({super.key, this.which = '', this.clock = true});
+  const SceneView({super.key, this.which = '', this.clock = true, this.thumb = false});
   final String which;
   final bool clock;
+
+  /// A small preview (decodes photos smaller).
+  final bool thumb;
   @override
   State<SceneView> createState() => _SceneViewState();
 }
@@ -302,7 +332,7 @@ class _SceneViewState extends State<SceneView> {
   void initState() {
     super.initState();
     // start on the scene that suits the hour, then take turns
-    _i = max(0, kSceneOrder.indexOf(sceneForHour(DateTime.now().hour)));
+    _i = max(0, kSceneTurns.indexOf(sceneForHour(DateTime.now().hour)));
     _turn = Timer.periodic(const Duration(seconds: 20), (_) {
       if (mounted && (widget.which.isEmpty || widget.which == 'auto')) setState(() => _i++);
     });
@@ -316,8 +346,8 @@ class _SceneViewState extends State<SceneView> {
 
   String get _name {
     if (widget.which == 'auto') return sceneForHour(DateTime.now().hour);
-    if (kScenes.containsKey(widget.which)) return widget.which;
-    return kSceneOrder[_i % kSceneOrder.length];
+    if (kScenes.containsKey(widget.which) || kPhotoScenes.containsKey(widget.which)) return widget.which;
+    return kSceneTurns[_i % kSceneTurns.length];
   }
 
   @override
@@ -328,7 +358,9 @@ class _SceneViewState extends State<SceneView> {
       switchInCurve: Curves.easeInOut,
       switchOutCurve: Curves.easeInOut,
       layoutBuilder: (cur, prev) => Stack(fit: StackFit.expand, children: [...prev, if (cur != null) cur]),
-      child: _SceneStack(key: ValueKey(name), name: name, clock: widget.clock),
+      child: kPhotoScenes.containsKey(name)
+          ? _PhotoStack(key: ValueKey(name), name: name, clock: widget.clock, thumb: widget.thumb)
+          : _SceneStack(key: ValueKey(name), name: name, clock: widget.clock),
     );
   }
 }
@@ -346,6 +378,105 @@ class _SceneStack extends StatelessWidget {
       if (clock) _SceneClock(color: _c(sc['clock']), dark: sc['dark'] == true),
       // drawn over the clock: this is what puts the digits behind the scenery
       RepaintBoundary(child: CustomPaint(painter: _ScenePainter(name, true))),
+    ]);
+  }
+}
+
+class _PhotoStack extends StatelessWidget {
+  const _PhotoStack({super.key, required this.name, required this.clock, required this.thumb});
+  final String name;
+  final bool clock;
+  final bool thumb;
+
+  @override
+  Widget build(BuildContext context) {
+    final sc = kPhotoScenes[name]!;
+    final ft = sc.frontTop;
+    return Stack(fit: StackFit.expand, children: [
+      Image.asset('scenes/$name.jpg',
+          fit: BoxFit.cover, cacheWidth: thumb ? 480 : null, gaplessPlayback: true,
+          errorBuilder: (_, __, ___) => const ColoredBox(color: Colors.black)),
+      if (clock) _PhotoClock(top: sc.top),
+      // the scenery in front of the clock, cut from the same photo
+      if (clock && ft != null)
+        Positioned(
+          left: 0,
+          top: ft,
+          width: 1920,
+          height: 420,
+          child: Image.asset('scenes/$name-front.webp',
+              fit: BoxFit.fill, cacheWidth: thumb ? 480 : null, gaplessPlayback: true,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+        ),
+    ]);
+  }
+}
+
+/// The date and big clock on a photo scene, placed so the skyline overlaps the digits
+/// just like the previews (Plus Jakarta Sans Bold, 400 px).
+class _PhotoClock extends StatefulWidget {
+  const _PhotoClock({required this.top});
+  final double top;
+  @override
+  State<_PhotoClock> createState() => _PhotoClockState();
+}
+
+class _PhotoClockState extends State<_PhotoClock> {
+  Timer? _t;
+  DateTime _now = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _tick();
+  }
+
+  void _tick() {
+    _now = DateTime.now();
+    if (mounted) setState(() {});
+    _t = Timer(Duration(seconds: 61 - _now.second), _tick);
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final h24 = SettingsScope.of(context).clock24;
+    final m = _now.minute.toString().padLeft(2, '0');
+    final time = h24 ? '${_now.hour.toString().padLeft(2, '0')}:$m' : '${_now.hour % 12 == 0 ? 12 : _now.hour % 12}:$m';
+    final date = '${_weekdayNames[_now.weekday - 1]}, ${_monthNames[_now.month - 1]} ${_now.day}';
+    final top = widget.top;
+    return Stack(children: [
+      Positioned(
+        left: 0,
+        right: 0,
+        top: top - 110,
+        child: Text(date,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 44,
+                height: 1.0,
+                fontWeight: FontWeight.w500,
+                color: Color(0xEBFFFFFF),
+                shadows: [Shadow(color: Color(0x99000000), blurRadius: 18, offset: Offset(0, 2))])),
+      ),
+      Positioned(
+        left: 0,
+        right: 0,
+        top: top + 6,
+        child: Text(time,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 400,
+                height: 1.0,
+                fontWeight: FontWeight.w700,
+                color: Color(0xD7FFFFFF),
+                shadows: [Shadow(color: Color(0x46000000), blurRadius: 20, offset: Offset(0, 4))])),
+      ),
     ]);
   }
 }

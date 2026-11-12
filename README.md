@@ -26,6 +26,7 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - A big clock with "Good evening · 4° Cloudy" underneath
 - Glass-style design that warms up at sunset and dims late at night
 - Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
+- Photo backgrounds (a misty meadow, the Matterhorn, a volcano at dusk, a starry lake, a misty forest) with a big clock tucked behind the mountains and trees
 - Rain, snow or fog drifting over the background when that's the weather outside
 - Press Down on your apps to see all of them
 

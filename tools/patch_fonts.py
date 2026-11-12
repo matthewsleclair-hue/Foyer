@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copies Foyer's font into the Flutter project and lists it in pubspec.yaml (once).
+"""Copies Foyer's font and scene photos into the Flutter project and lists them in pubspec.yaml (once).
 Also removes the fireplace shader entry that v1.18.0 added (the fireplace is a YouTube video now).
 Usage: python3 tools/patch_fonts.py <project-path>    (update.sh and release.sh run it for you)"""
 import re
@@ -10,7 +10,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent.parent
 proj = Path(sys.argv[1] if len(sys.argv) > 1 else Path.home() / "Downloads" / "leclair_home")
 
-for folder, keep in (("fonts", (".ttf", ".txt")),):
+for folder, keep in (("fonts", (".ttf", ".txt")), ("scenes", (".jpg", ".webp"))):
     dst = proj / folder
     dst.mkdir(exist_ok=True)
     for f in (HERE / folder).iterdir():
@@ -33,6 +33,28 @@ if "shaders/fire.frag" in text:
     pub.write_text(text)
     shutil.rmtree(proj / "shaders", ignore_errors=True)
     print("Removed the fireplace shader from pubspec.yaml")
+
+# the scene photos: "assets:" under the top-level flutter section
+if "- scenes/" not in text:
+    lines = text.splitlines(keepends=True)
+    out, state, done = [], None, False
+    for line in lines:
+        if not done and state == "flutter" and re.match(r"^  assets:\s*$", line):
+            out.append(line)
+            out.append("    - scenes/\n")
+            done = True
+            continue
+        if re.match(r"^flutter:\s*(#.*)?$", line):
+            state = "flutter"
+        elif re.match(r"^\S", line):
+            state = None
+        out.append(line)
+    text = "".join(out)
+    if not done:
+        blocks += "  assets:\n    - scenes/\n"
+    else:
+        pub.write_text(text)
+    added.append("the scene photos")
 
 if blocks:
     lines = text.splitlines(keepends=True)
