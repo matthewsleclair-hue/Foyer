@@ -17,4 +17,18 @@ TAG="v$NAME+$BUILD"
 gh release create "$TAG" "$HERE/Foyer.apk" --repo "$REPO" --title "Foyer $NAME ($BUILD)" --notes "$NOTES"
 echo
 echo "Published $TAG to https://github.com/$REPO/releases"
+
+# Also publish to the public, releases-only repo, so friends' boxes update without a token
+# and https://github.com/$PUBLIC/releases/latest/download/Foyer.apk always gets the newest.
+# One-time: gh repo create matthewsleclair-hue/foyer-releases --public --description "Foyer TV launcher downloads"
+PUBLIC="${FOYER_PUBLIC_REPO:-matthewsleclair-hue/foyer-releases}"
+if gh repo view "$PUBLIC" >/dev/null 2>&1; then
+  gh release create "$TAG" "$HERE/Foyer.apk" --repo "$PUBLIC" --title "Foyer $NAME" --notes "$NOTES" --latest
+  echo "Also published to https://github.com/$PUBLIC/releases"
+  echo "Download link for friends: https://github.com/$PUBLIC/releases/latest/download/Foyer.apk"
+else
+  echo "(No public releases repo yet. Create it once with:"
+  echo "   gh repo create $PUBLIC --public --description \"Foyer TV launcher downloads\""
+  echo " so friends' boxes can update without a token.)"
+fi
 echo "On the stick: Settings > Updates > Check now."

@@ -559,6 +559,18 @@ final List<_Group> _groups = [
     _HubItem(Icons.backup_rounded, 'Backup and restore',
         'Save your settings to a file, or load them back',
         () => _push(c, const BackupScreen())),
+    _HubItem(Icons.card_giftcard_rounded, 'Reset for someone new',
+        'Giving this box away? Clears your accounts and settings, keeps the TV set up', () {
+      showMenu2(c, 'Reset for someone new?', [
+        MenuChoice('Forgets your name, apps, Plex, Foyer Drop, teams, remote buttons and tokens. '
+            'Foyer stays the home screen with ads off, and the next start opens the welcome setup.', null),
+        MenuChoice('Reset now', () {
+          Navigator.of(c).popUntil((r) => r.isFirst);
+          s.resetForSomeoneNew();
+        }),
+        MenuChoice('Cancel', () {}),
+      ]);
+    }),
     _HubItem(Icons.restart_alt_rounded, 'Run setup again',
         'The guided setup from the first day. Your settings are kept',
         () => _push(c, FirstRunSetup(onDone: () => Navigator.of(c).pop()))),

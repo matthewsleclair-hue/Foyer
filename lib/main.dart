@@ -19,6 +19,7 @@ import 'weather.dart';
 const MethodChannel kChannel = MethodChannel('leclair/launcher');
 const int kMaxPinned = 8;
 const Color kDefaultTint = Color(0xFF3B5BDB);
+const String kPublicReleases = 'matthewsleclair-hue/foyer-releases';
 const String kPlexPackage = 'com.plexapp.android';
 
 /// Pre-selected on first run if they're installed.
@@ -117,7 +118,9 @@ class Settings extends ChangeNotifier {
 
   /// Custom remote buttons: "313" = pressed, "313L" = held -> app package, "foyer" or "" (normal).
   Map<String, String> remoteKeys = {};
-  String updateUrl = 'matthewsleclair-hue/Foyer';
+  /// Public, releases-only repo: anyone's Foyer can update from it without a token.
+  /// (The code repo is private; tools/publish.sh puts each release in both.)
+  String updateUrl = kPublicReleases;
   String updateToken = '';
   List<FollowedTeam> sportsTeams = [];
 
@@ -306,6 +309,31 @@ class Settings extends ChangeNotifier {
     fn();
     notifyListeners();
     _persist();
+  }
+
+  /// Settings > Backup and updates > Reset for someone new: forget everything personal
+  /// (name, apps, Plex, Foyer Drop, teams, remote buttons, tokens) and open the welcome
+  /// setup on the next start. The TV-level setup (Foyer as home screen, debugging trust,
+  /// remote helper, tune-up) stays, so the next person doesn't have to redo it.
+  Future<void> resetForSomeoneNew() async {
+    final fresh = Settings();
+    applyJson(fresh.toJson(secrets: true), secrets: true);
+    remoteKeys = {};
+    sportsTeams = [];
+    pinned = [];
+    dropHidden = [];
+    serverUrl = '';
+    serverToken = '';
+    updateUrl = kPublicReleases;
+    updateToken = '';
+    final r = Random.secure();
+    clientId = List.generate(16, (_) => r.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+    setupDone = false;
+    try {
+      await kChannel.invokeMethod('dropConfig', {'url': '', 'token': ''});
+    } catch (_) {}
+    notifyListeners();
+    await _persist();
   }
 
   /// Apply a backup file. Plex sign-in and client id stay as they are on this TV.
