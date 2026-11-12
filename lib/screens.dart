@@ -1540,33 +1540,40 @@ class _UpdateScreenState extends State<UpdateScreen> {
         _name = (m?['name'] as String?) ?? '0';
         if (mounted) setState(() => _ver = '$_name ($_build)');
       } catch (_) {}
+      // look right away, so the button already says "Download and install" when there's one
+      if (mounted && SettingsScope.read(context).updateUrl.isNotEmpty) _check(auto: true);
     }();
   }
 
-  Future<void> _check() async {
+  /// One button: Check now, which becomes Download and install once an update is found.
+  /// Pressing Check now and finding one goes straight on to install it.
+  Future<void> _check({bool auto = false}) async {
     final cfg = SettingsScope.read(context);
     if (cfg.updateUrl.isEmpty) {
       setState(() => _msg = 'Set the GitHub repo first.');
       return;
     }
+    if (_busy) return;
     setState(() {
       _busy = true;
       _msg = 'Checking…';
     });
+    UpdateInfo? r;
     try {
-      final r = await UpdateApi.check(cfg.updateUrl, cfg.updateToken, _build, _name);
+      r = await UpdateApi.check(cfg.updateUrl, cfg.updateToken, _build, _name);
       kUpdate.value = r;
       if (!mounted) return;
       setState(() {
         _found = r;
         _msg = r == null
-            ? 'You are up to date.'
-            : 'Version ${r.version} is available.${r.notes.trim().isEmpty ? '' : '\n${r.notes.trim()}'}';
+            ? 'You\'re up to date.'
+            : 'Version ${r.version} is ready.${r.notes.trim().isEmpty ? '' : '\n${r.notes.trim()}'}';
       });
     } catch (e) {
       if (mounted) setState(() => _msg = 'Could not check: ${UpdateApi.friendly(e)}');
     }
     if (mounted) setState(() => _busy = false);
+    if (!auto && r != null && mounted) await _install();
   }
 
   Future<void> _install() async {
@@ -1586,8 +1593,12 @@ class _UpdateScreenState extends State<UpdateScreen> {
       final r = await kChannel.invokeMethod<String>('installApk', {'path': path});
       if (!mounted) return;
       setState(() => _msg = r == 'needsPermission'
-          ? 'Allow Foyer to install apps on the screen that just opened, then press Install again.'
-          : (r == 'started' ? 'Confirm the install on the next screen.' : 'The download could not be installed.'));
+          ? 'Allow Foyer to install apps on the screen that just opened, then press the button again.'
+          : (r == 'started'
+              ? (kIsFireTv
+                  ? 'Confirm the install on the next screen.'
+                  : 'Installing ${u.version}… The screen goes dark for a moment and Foyer comes back by itself.')
+              : 'The download could not be installed.'));
     } catch (e) {
       if (mounted) setState(() => _msg = 'Update failed: ${UpdateApi.friendly(e)}');
     }
@@ -1621,9 +1632,16 @@ class _UpdateScreenState extends State<UpdateScreen> {
           kv('Access token', s.updateToken.isEmpty ? 'None (public repos only)' : 'Set'),
           const SizedBox(height: 18),
           Wrap(spacing: 18, runSpacing: 18, children: [
-            PillButton(label: 'Check now', primary: true, autofocus: true, onSelect: _check),
-            if (_found != null)
-              PillButton(label: 'Download and install ${_found!.version}', primary: true, onSelect: _install),
+            PillButton(
+                key: const ValueKey('update-main'),
+                label: _prog != null
+                    ? 'Downloading… ${((_prog ?? 0) * 100).round()}%'
+                    : (_busy
+                        ? 'Checking…'
+                        : (_found != null ? 'Download and install ${_found!.version}' : 'Check now')),
+                primary: true,
+                autofocus: true,
+                onSelect: () => _found != null ? _install() : _check()),
             PillButton(
                 label: 'Change repo',
                 onSelect: () async {
