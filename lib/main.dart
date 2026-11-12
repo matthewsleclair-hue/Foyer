@@ -1524,7 +1524,7 @@ class _SetupScreenState extends State<SetupScreen> {
       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Linked to $_plexName', style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
-        const Text('Your Plex row will show on the home screen.', style: body),
+        const Text('What you\'re watching in Plex shows up in Keep watching on the home screen.', style: body),
         const SizedBox(height: 32),
         PillButton(label: 'Unlink', autofocus: true, onSelect: _unlinkPlex),
       ]);

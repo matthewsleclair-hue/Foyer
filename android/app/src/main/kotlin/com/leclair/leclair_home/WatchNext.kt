@@ -79,6 +79,7 @@ object WatchNext {
                             "episodeTitle" to cur.getString(3),
                             "season" to cur.getString(4),
                             "episode" to cur.getString(5),
+                            "engaged" to cur.getLong(10),
                             "progress" to if (dur > 0 && pos > 0) (pos.toDouble() / dur).coerceIn(0.0, 1.0) else null,
                             "image" to pic?.let { picture(c, it) }
                         )

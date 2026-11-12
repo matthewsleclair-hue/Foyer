@@ -481,6 +481,9 @@ final List<_Group> _groups = [
     HubEntry(Icons.people_alt_rounded, 'People',
         s.profiles.length < 2 ? 'Give each person their own apps and teams' : s.profiles.map((p) => p.name).join(', '),
         () => _push(c, const PeopleScreen())),
+    HubEntry(Icons.video_library_rounded, 'Plex',
+        s.plexToken.isEmpty ? 'Link your Plex so Keep watching shows your Plex shows' : 'Linked${s.plexName.isEmpty ? '' : ' to ${s.plexName}'}',
+        () => _editStep(c, 3)),
     HubEntry(Icons.play_circle_outline_rounded, 'Keep watching',
         s.keepWatching ? 'On: shows you\'re part way through, above your apps' : 'Off', () {
       s.change(() => s.keepWatching = !s.keepWatching);

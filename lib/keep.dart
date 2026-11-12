@@ -11,28 +11,63 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'main.dart';
 import 'screens.dart';
+import 'plex.dart';
 
 class KeepItem {
-  KeepItem(this.id, this.package, this.app, this.title, this.subtitle, this.progress, this.image);
-  final int id;
+  KeepItem(this.id, this.package, this.app, this.title, this.subtitle, this.progress, this.image,
+      {this.imageUrl = '', this.plex, this.at = 0});
+  final int id; // Watch Next row (-1 for Plex)
   final String package;
   final String app;
   final String title;
   final String subtitle;
   final double? progress;
   final Uint8List? image;
+  final String imageUrl; // Plex artwork, loaded from your server
+  final PlexItem? plex;
+  final int at; // last watched, ms since 1970
 }
 
 /// The Keep watching cards, refreshed while the home screen is open.
 final ValueNotifier<List<KeepItem>> kKeep = ValueNotifier(const []);
 DateTime _keepAt = DateTime(2000);
 
+/// Fills Keep watching from two places: your Plex server's Continue Watching (Plex doesn't
+/// share it with the TV), and the TV's Watch Next list for every other app. Newest first.
 Future<void> refreshKeepWatching({bool force = false}) async {
   if (!force && DateTime.now().difference(_keepAt) < const Duration(seconds: 45)) return;
   _keepAt = DateTime.now();
+  final ctx = kNavKey.currentContext;
+  final s = ctx == null ? null : SettingsScope.read(ctx);
+  final results = await Future.wait([
+    _fromPlex(s),
+    _fromTv(skipPlex: s != null && s.plexUrl.isNotEmpty && s.plexToken.isNotEmpty),
+  ]);
+  final all = [...results[0], ...results[1]]..sort((a, b) => b.at.compareTo(a.at));
+  kKeep.value = all;
+}
+
+Future<List<KeepItem>> _fromPlex(Settings? s) async {
+  if (s == null || s.plexUrl.isEmpty || s.plexToken.isEmpty) return const [];
   try {
-    final r = await kChannel.invokeMapMethod<String, dynamic>('watchNext', {'max': 6, 'skip': const <String>[]});
-    if (r?['ok'] != true) return;
+    final items = await PlexApi(s.clientId)
+        .onDeck(PlexServer(s.plexName, s.plexUrl, s.plexToken))
+        .timeout(const Duration(seconds: 12));
+    return [
+      for (final it in items)
+        KeepItem(-1, kPlexPackage, 'Plex', it.title, it.subtitle, it.progress, null,
+            imageUrl: it.imageUrl, plex: it, at: it.viewedAt * 1000),
+    ];
+  } catch (_) {
+    return const [];
+  }
+}
+
+Future<List<KeepItem>> _fromTv({bool skipPlex = false}) async {
+  try {
+    final r = await kChannel.invokeMapMethod<String, dynamic>(
+        'watchNext', {'max': 6, 'skip': skipPlex ? const [kPlexPackage] : const <String>[]});
+    if (r?['ok'] != true) return const [];
     final out = <KeepItem>[];
     for (final x in (r?['items'] as List? ?? const [])) {
       if (x is! Map) continue;
@@ -55,13 +90,29 @@ Future<void> refreshKeepWatching({bool force = false}) async {
         sub,
         (x['progress'] as num?)?.toDouble(),
         img is Uint8List ? img : null,
+        at: (x['engaged'] as num?)?.toInt() ?? 0,
       ));
     }
-    kKeep.value = out;
-  } catch (_) {}
+    return out;
+  } catch (_) {
+    return const [];
+  }
 }
 
 Future<void> openKeepItem(KeepItem k) async {
+  final p = k.plex;
+  if (p != null) {
+    // the episode or movie's own page in Plex; the Plex app if that doesn't open
+    final link = p.type == 'season' ? p.showLink : p.plexLink;
+    var ok = false;
+    if (link.isNotEmpty) {
+      try {
+        ok = (await kChannel.invokeMethod<bool>('openLink', {'url': link, 'package': kPlexPackage})) ?? false;
+      } catch (_) {}
+    }
+    if (!ok) await launchPackage(kPlexPackage);
+    return;
+  }
   try {
     await kChannel.invokeMethod<bool>('openWatchNext', {'id': k.id});
   } catch (_) {}
@@ -128,6 +179,12 @@ class _KeepCard extends StatelessWidget {
                 height: 84,
                 child: item.image != null
                     ? Image.memory(item.image!, fit: BoxFit.cover, gaplessPlayback: true)
+                    : item.imageUrl.isNotEmpty
+                    ? Image.network(item.imageUrl,
+                        fit: BoxFit.cover,
+                        cacheWidth: 300,
+                        gaplessPlayback: true,
+                        errorBuilder: (_, __, ___) => ColoredBox(color: Colors.white.withAlpha(30)))
                     : ColoredBox(
                         color: Colors.white.withAlpha(30),
                         child: const Icon(Icons.play_arrow_rounded, size: 48, color: Colors.white70)),

@@ -4,7 +4,7 @@ import 'dart:io';
 
 class PlexItem {
   PlexItem(this.title, this.subtitle, this.imageUrl, this.progress,
-      {this.ratingKey = '', this.showKey = '', this.type = '', this.server = ''});
+      {this.ratingKey = '', this.showKey = '', this.type = '', this.server = '', this.viewedAt = 0});
   final String title;
   final String subtitle;
   final String imageUrl; // '' when there is no artwork
@@ -13,6 +13,7 @@ class PlexItem {
   final String showKey; // the show, for episodes and seasons
   final String type; // movie, episode, season, show
   final String server; // the server's machineIdentifier
+  final int viewedAt; // when it was last watched (seconds since 1970), 0 if unknown
 
   /// A link that opens this title's page in the Plex app (Plex for Android TV 2026 format;
   /// the older plex://server:// and plex://preplay links now just open Plex's home).
@@ -180,7 +181,19 @@ class PlexApi {
     return PlexRow('Recently Added', items);
   }
 
-  PlexItem _item(Map m, PlexServer s, String mid) {
+  /// What you're part way through (Plex's "Continue Watching"), newest first.
+  Future<List<PlexItem>> onDeck(PlexServer s, {int max = 6}) async {
+    final mid = await machineId(s);
+    final uri = Uri.parse('${s.baseUrl}/library/onDeck')
+        .replace(queryParameters: {'X-Plex-Container-Start': '0', 'X-Plex-Container-Size': '$max'});
+    final j = await _json('GET', uri, headers: {'X-Plex-Token': s.token});
+    final meta = (j?['MediaContainer']?['Metadata'] as List?) ?? const [];
+    final items = meta.whereType<Map>().map((m) => _item(m, s, mid, thumb: true)).toList();
+    items.sort((a, b) => b.viewedAt.compareTo(a.viewedAt));
+    return items;
+  }
+
+  PlexItem _item(Map m, PlexServer s, String mid, {bool thumb = false}) {
     final type = (m['type'] as String?) ?? '';
     String title;
     String sub;
@@ -206,13 +219,15 @@ class PlexApi {
     }
     final url = path == null
         ? ''
-        : '${s.baseUrl}/photo/:/transcode?width=640&height=360&minSize=1&upscale=1'
+        : '${s.baseUrl}/photo/:/transcode?width=${thumb ? 360 : 640}&height=${thumb ? 202 : 360}&minSize=1&upscale=1'
             '&url=${Uri.encodeComponent(path)}&X-Plex-Token=${s.token}';
+    final seen = m['lastViewedAt'];
     final show = type == 'episode' ? m['grandparentRatingKey'] : (type == 'season' ? m['parentRatingKey'] : null);
     return PlexItem(title, sub, url, progress,
         ratingKey: '${m['ratingKey'] ?? ''}',
         showKey: show == null ? '' : '$show',
         type: type,
-        server: mid);
+        server: mid,
+        viewedAt: seen is num ? seen.toInt() : 0);
   }
 }
