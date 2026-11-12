@@ -604,6 +604,27 @@ class MainActivity : FlutterActivity() {
             if (!canWriteSecure()) return
             if (homeKeyEnabled() && !prefs.contains("homeKeyWanted")) prefs.edit().putBoolean("homeKeyWanted", true).apply()
             if (!prefs.getBoolean("homeKeyWanted", false) || HomeKeyService.running) return
+            if (!isFireTv() && !liftTried) {
+                // An update made the old way marks Foyer "restricted", which keeps the helper off.
+                // Lift it through the TV's debugging link (already allowed), then switch it on.
+                liftTried = true
+                Thread {
+                    try {
+                        LocalAdb(filesDir) { }.run(listOf("appops set $packageName ACCESS_RESTRICTED_SETTINGS allow"))
+                    } catch (e: Exception) { }
+                    runOnUiThread { restartHomeKey() }
+                }.start()
+                return
+            }
+            restartHomeKey()
+        } catch (e: Exception) { }
+    }
+
+    private var liftTried = false
+
+    private fun restartHomeKey() {
+        try {
+            if (HomeKeyService.running) return
             val others = enabledServices().filter { !isOurs(it) }
             Settings.Secure.putString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, others.joinToString(":"))
             Settings.Secure.putString(
