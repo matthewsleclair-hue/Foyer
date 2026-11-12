@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'main.dart';
+import 'scenes.dart';
 import 'remote.dart';
 import 'screens.dart';
 import 'seasons.dart';
@@ -612,6 +613,22 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
                               s.wallValue = '$i';
                             })),
                 ]),
+                if (s.wallMode == 'scenes')
+                  row('Scene', [
+                    Opt(
+                        label: 'Take turns',
+                        selected: s.wallValue.isEmpty,
+                        onSelect: () => s.change(() => s.wallValue = '')),
+                    Opt(
+                        label: 'Match the time of day',
+                        selected: s.wallValue == 'auto',
+                        onSelect: () => s.change(() => s.wallValue = 'auto')),
+                    for (final k in kSceneTurns)
+                      Opt(
+                          label: sceneName(k),
+                          selected: s.wallValue == k,
+                          onSelect: () => s.change(() => s.wallValue = k)),
+                  ]),
                 row('Holiday themes', [
                   Opt(label: 'On', selected: s.seasonal, onSelect: () => s.change(() => s.seasonal = true)),
                   Opt(label: 'Off', selected: !s.seasonal, onSelect: () => s.change(() => s.seasonal = false)),
@@ -842,6 +859,7 @@ class _MiniHome extends StatelessWidget {
                       style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w600)),
                 ),
               ),
+              if (s.wallMode != 'scenes')
               Positioned(
                 right: 72,
                 top: 44,

@@ -54,6 +54,30 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 **The Foyer companion app on your phone**
 - A remote with a real keyboard, plus photos, notes and drawings sent to the TV. [More below](#the-foyer-companion-app).
 
+**Photo backgrounds, with the clock tucked behind the scenery.** They take turns, or follow the time of day: the meadow at sunrise, the forest in the morning mist, the Matterhorn at midday, the volcano at dusk and the starry lake at night.
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/scene-meadow.jpg" alt="Misty meadow"></td>
+    <td><img src="docs/screenshots/scene-matterhorn.jpg" alt="Matterhorn"></td>
+  </tr>
+  <tr>
+    <td align="center">Misty meadow</td>
+    <td align="center">Matterhorn</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/scene-volcano.jpg" alt="Volcano at dusk"></td>
+    <td><img src="docs/screenshots/scene-starlake.jpg" alt="Starry lake"></td>
+  </tr>
+  <tr>
+    <td align="center">Volcano at dusk</td>
+    <td align="center">Starry lake</td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="docs/screenshots/scene-mistforest.jpg" width="50%" alt="Misty forest"><br>Misty forest</td>
+  </tr>
+</table>
+
 <table>
   <tr>
     <td><img src="docs/screenshots/all-apps.png" alt="All apps"></td>

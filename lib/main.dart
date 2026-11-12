@@ -104,7 +104,7 @@ class Settings extends ChangeNotifier {
   double? weatherLat;
   double? weatherLon;
   bool weatherF = false;
-  String wallMode = 'glow'; // glow | preset | photo
+  String wallMode = 'scenes'; // scenes | glow | preset | photo (new boxes start on the photo scenes)
   String wallValue = '';
   int ssMinutes = 5; // 0 = off
   String ssSource = 'colors'; // colors | mine | online | drop
