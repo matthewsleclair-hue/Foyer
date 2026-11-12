@@ -118,6 +118,16 @@ class MainActivity : FlutterActivity() {
                 }.start()
                 "launch" -> result.success(launch(call.argument<String>("package")))
                 "openUrl" -> result.success(openUrl(call.argument<String>("url")))
+                "openLink" -> result.success(
+                    try {
+                        startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(call.argument<String>("url") ?: ""))
+                                .setPackage(call.argument<String>("package"))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                        true
+                    } catch (e: Exception) { false }
+                )
                 "dropConfig" -> {
                     DropRemote.configure(
                         this, call.argument<String>("url") ?: "", call.argument<String>("token") ?: ""

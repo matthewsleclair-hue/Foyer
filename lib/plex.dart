@@ -3,11 +3,31 @@ import 'dart:convert';
 import 'dart:io';
 
 class PlexItem {
-  PlexItem(this.title, this.subtitle, this.imageUrl, this.progress);
+  PlexItem(this.title, this.subtitle, this.imageUrl, this.progress,
+      {this.ratingKey = '', this.showKey = '', this.type = '', this.server = ''});
   final String title;
   final String subtitle;
   final String imageUrl; // '' when there is no artwork
   final double? progress; // 0..1 for partly watched items
+  final String ratingKey; // this movie or episode
+  final String showKey; // the show, for episodes and seasons
+  final String type; // movie, episode, season, show
+  final String server; // the server's machineIdentifier
+
+  /// A link that opens this title's page in the Plex app (Plex for Android TV 2026 format;
+  /// the older plex://server:// and plex://preplay links now just open Plex's home).
+  String get plexLink {
+    if (server.isEmpty || ratingKey.isEmpty) return '';
+    final key = Uri.encodeComponent('/library/metadata/$ratingKey');
+    if (type == 'show') return 'plex://libraries/$server/unmatched/tv/$key';
+    return 'plex://libraries/$server/unmatched/$key';
+  }
+
+  /// Fallback: the show's page, for when an episode link doesn't open.
+  String get showLink {
+    if (server.isEmpty || showKey.isEmpty) return '';
+    return 'plex://libraries/$server/unmatched/tv/${Uri.encodeComponent('/library/metadata/$showKey')}';
+  }
 }
 
 class PlexRow {
@@ -123,7 +143,24 @@ class PlexApi {
 
   // ── the row ──
 
+  final Map<String, String> _machine = {};
+
+  /// The server's machineIdentifier, needed for links into the Plex app.
+  Future<String> machineId(PlexServer s) async {
+    final cached = _machine[s.baseUrl];
+    if (cached != null) return cached;
+    try {
+      final j = await _json('GET', Uri.parse('${s.baseUrl}/identity'), headers: {'X-Plex-Token': s.token});
+      final id = '${j?['MediaContainer']?['machineIdentifier'] ?? ''}';
+      if (id.isNotEmpty) _machine[s.baseUrl] = id;
+      return id;
+    } catch (_) {
+      return '';
+    }
+  }
+
   Future<PlexRow> fetchRow(PlexServer s) async {
+    final mid = await machineId(s);
     Future<List<PlexItem>> grab(String path) async {
       final uri = Uri.parse('${s.baseUrl}$path').replace(
           queryParameters: {'X-Plex-Container-Start': '0', 'X-Plex-Container-Size': '12'});
@@ -131,7 +168,7 @@ class PlexApi {
       final meta = (j?['MediaContainer']?['Metadata'] as List?) ?? const [];
       return meta
           .whereType<Map>()
-          .map((m) => _item(m, s))
+          .map((m) => _item(m, s, mid))
           .where((i) => i.imageUrl.isNotEmpty)
           .take(5)
           .toList();
@@ -143,7 +180,7 @@ class PlexApi {
     return PlexRow('Recently Added', items);
   }
 
-  PlexItem _item(Map m, PlexServer s) {
+  PlexItem _item(Map m, PlexServer s, String mid) {
     final type = (m['type'] as String?) ?? '';
     String title;
     String sub;
@@ -171,6 +208,11 @@ class PlexApi {
         ? ''
         : '${s.baseUrl}/photo/:/transcode?width=640&height=360&minSize=1&upscale=1'
             '&url=${Uri.encodeComponent(path)}&X-Plex-Token=${s.token}';
-    return PlexItem(title, sub, url, progress);
+    final show = type == 'episode' ? m['grandparentRatingKey'] : (type == 'season' ? m['parentRatingKey'] : null);
+    return PlexItem(title, sub, url, progress,
+        ratingKey: '${m['ratingKey'] ?? ''}',
+        showKey: show == null ? '' : '$show',
+        type: type,
+        server: mid);
   }
 }

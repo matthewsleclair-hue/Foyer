@@ -1877,6 +1877,20 @@ class _HomeScreenState extends State<HomeScreen>
           if (_cache[p] != null && _cache[p] != _missingMarker) _cache[p]!
       ];
 
+  /// Opens the title's own page in Plex; the Plex app if there's no link to use.
+  Future<void> _openPlexItem(PlexItem it) async {
+    // seasons open the show; movies and episodes open themselves
+    final link = it.type == 'season' ? it.showLink : it.plexLink;
+    if (link.isNotEmpty) {
+      bool ok = false;
+      try {
+        ok = (await kChannel.invokeMethod<bool>('openLink', {'url': link, 'package': kPlexPackage})) ?? false;
+      } catch (_) {}
+      if (ok) return;
+    }
+    _openPkg(kPlexPackage);
+  }
+
   Future<void> _loadPlex({bool force = false}) async {
     final s = SettingsScope.read(context);
     final sig = '${s.plexUrl}|${s.plexToken}';
@@ -2183,7 +2197,7 @@ class _HomeScreenState extends State<HomeScreen>
             for (final it in row.items)
               Padding(
                 padding: const EdgeInsets.only(right: 28),
-                child: _PlexCard(item: it, onOpen: () => _openPkg(kPlexPackage)),
+                child: _PlexCard(item: it, onOpen: () => _openPlexItem(it)),
               ),
           ]),
         ),
