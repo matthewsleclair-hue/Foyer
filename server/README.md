@@ -12,6 +12,12 @@ docker compose up -d --build
 
 Open `http://<your-server-ip>:8080` (or your own domain) and create the first account. That account is the owner.
 
+**Updating it later:** from the computer with this repo, run `bash tools/deploy-drop.sh`. It copies the new page and
+server over and restarts it; accounts, TVs, notes and photos (in `data/`) are left alone.
+
+The page looks like Foyer itself: one of Foyer's photo scenes behind it (the one for the time of day), frosted glass
+cards, Plus Jakarta Sans, and white for whatever is selected.
+
 ## Link a TV (no long tokens)
 
 1. On the TV: Settings → Home screen → **Foyer Drop** → **Link this TV**. Enter the server address once.
