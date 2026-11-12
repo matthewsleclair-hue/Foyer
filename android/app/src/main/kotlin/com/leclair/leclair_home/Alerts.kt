@@ -43,6 +43,17 @@ object Alerts {
 
     private fun s(a: Map<String, Any?>, k: String) = (a[k] as? String) ?: ""
 
+    private val faces = HashMap<Boolean, Typeface>()
+
+    /** Foyer's font (Plus Jakarta Sans, bundled with the app), or the system font if it's missing. */
+    private fun face(c: Context, bold: Boolean): Typeface = faces.getOrPut(bold) {
+        try {
+            Typeface.createFromAsset(c.assets, "flutter_assets/fonts/PlusJakartaSans-${if (bold) "Bold" else "Medium"}.ttf")
+        } catch (e: Exception) {
+            if (bold) Typeface.create("sans-serif-medium", Typeface.BOLD) else Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+    }
+
     /** Team colour from ESPN, lifted so dark navy or maroon still reads on a dark card. */
     private fun accent(hex: String): Int {
         val base = try {
@@ -84,7 +95,7 @@ object Alerts {
                 text = t
                 setTextColor(color)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, sp * k)
-                typeface = if (bold) Typeface.create("sans-serif-medium", Typeface.BOLD) else Typeface.create("sans-serif", Typeface.NORMAL)
+                typeface = face(svc, bold)
                 letterSpacing = spacing
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END

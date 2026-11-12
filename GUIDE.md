@@ -180,3 +180,7 @@ Foyer is never public. Friends' boxes get updates from **your Foyer Drop server*
 **At his place:** Foyer's welcome setup asks for his Wi-Fi, name, look and apps. In **Extras > Foyer Drop** he links the TV with the account you invited him to (Foyer Drop page > TVs > Add a person, or an invite code). That link is also where his updates come from: Settings > Updates works with one press, no token. Until he links Foyer Drop, he gets no updates (and nobody else can either).
 
 **The Google account:** the box needs his account for the Play Store and his apps. Do Google's setup while he's there or on a call; if Google TV offers to sign in with a phone and a code, send him the code. Or make a new Gmail for the box and give him the password. Don't use your own: your purchases, YouTube history and payment details would come with it.
+
+### Font
+
+Foyer uses **Plus Jakarta Sans** (in `fonts/`, free under the SIL Open Font License, see `fonts/OFL.txt`). `update.sh`, `tools/release.sh` and `tools/publish.sh` copy it into the Flutter project and add it to `pubspec.yaml` automatically (`tools/patch_fonts.py`, safe to run again). Score alert pop-ups use it too.

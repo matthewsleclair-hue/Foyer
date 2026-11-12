@@ -385,7 +385,8 @@ class LauncherApp extends StatelessWidget {
         navigatorKey: kNavKey,
         debugShowCheckedModeBanner: false,
         title: 'Foyer',
-        theme: ThemeData(brightness: Brightness.dark, useMaterial3: true),
+        // Plus Jakarta Sans everywhere (fonts/, added to the project by tools/patch_fonts.py)
+        theme: ThemeData(brightness: Brightness.dark, useMaterial3: true, fontFamily: 'PlusJakartaSans'),
         // Design on a fixed 1920x1080 canvas and scale it to the real screen.
         builder: (context, child) => ColoredBox(
           color: Colors.black,
