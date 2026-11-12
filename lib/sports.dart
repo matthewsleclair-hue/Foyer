@@ -249,8 +249,11 @@ class SportsFeed {
     }
     final sig = '${teams.map((t) => '${t.league}:${t.id}').join(',')}|$h24';
     final live = games.value.any((g) => g.state == 'in');
+    final soon = games.value.any((g) => g.state == 'pre');
     final age = _last == null ? 9999 : DateTime.now().difference(_last!).inSeconds;
-    final due = sig != _sig || force || age >= (live ? 45 : 300);
+    // live game: every 8 s, so a goal shows within ~10 s of ESPN having it.
+    // a game today that hasn't started: every minute, to catch puck drop. Otherwise every 5 min.
+    final due = sig != _sig || force || age >= (live ? 8 : (soon ? 60 : 300));
     if (!due || _busy) return;
     _busy = true;
     _sig = sig;
@@ -438,6 +441,10 @@ class _TeamChip extends StatelessWidget {
 
 /// 0 off, 1 scores only, 2 scores plus game start and final (Settings > Home screen > Score alerts).
 int kScoreAlertLevel = 2;
+
+/// Seconds to hold an alert so it doesn't beat your stream (which runs behind live).
+int kScoreAlertDelay = 0;
+const List<int> kScoreDelays = [0, 15, 30, 45, 60];
 const List<String> kScoreAlertNames = ['Off', 'Scores only', 'Scores, start and final'];
 
 /// Watches the games of the teams you follow and pops a note over whatever is playing
@@ -450,7 +457,7 @@ class ScoreAlerts {
   void start(Settings Function() read) {
     if (_t != null) return;
     kSports.games.addListener(_onGames);
-    _t = Timer.periodic(const Duration(seconds: 30), (_) {
+    _t = Timer.periodic(const Duration(seconds: 4), (_) {
       if (kScoreAlertLevel == 0) return;
       try {
         final s = read();
@@ -480,7 +487,12 @@ class ScoreAlerts {
   }
 
   void _alert(String title, String line) {
-    kChannel.invokeMethod('alert', {'title': title, 'line': line}).catchError((_) => null);
+    void send() => kChannel.invokeMethod('alert', {'title': title, 'line': line}).catchError((_) => null);
+    if (kScoreAlertDelay > 0) {
+      Timer(Duration(seconds: kScoreAlertDelay), send);
+    } else {
+      send();
+    }
   }
 
   void _onGames() {

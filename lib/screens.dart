@@ -482,6 +482,19 @@ final List<_Group> _groups = [
         }).catchError((_) => null);
       }
     }),
+    if (s.scoreAlerts > 0)
+      _HubItem(
+          Icons.timer_rounded,
+          'Score alert delay',
+          s.scoreDelay == 0
+              ? 'None: as fast as possible (about 10 s). Raise it if alerts beat your stream'
+              : '${s.scoreDelay} s: waits so the goal shows on your TV first', () {
+        final i = kScoreDelays.indexOf(s.scoreDelay);
+        s.change(() {
+          s.scoreDelay = kScoreDelays[(i + 1) % kScoreDelays.length];
+          kScoreAlertDelay = s.scoreDelay;
+        });
+      }),
     _HubItem(Icons.cloud_sync_rounded, 'Foyer Drop',
         s.serverUrl.isEmpty || s.serverToken.isEmpty ? 'Not linked' : 'Linked to ${s.serverUrl}',
         () => _push(c, const ServerScreen())),
