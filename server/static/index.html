@@ -187,6 +187,17 @@ section{animation:rise .35s ease-out}
     <div class="card"><label>Photos on the TV</label><div class="grid" id="grid"></div></div>
   </section>
 
+  <!-- games -->
+  <section id="p-games" class="hide">
+    <h2>Send games</h2><p class="sub">Your own game files go to the TV's Games, ready to play: Game Boy Advance, Game Boy, NES, SNES, N64 and Mega Drive.</p>
+    <div class="card">
+      <label class="pick"><b>Choose game files</b><span>.gba .gb .gbc .nes .sfc .n64 .md,</span><input id="gameFiles" type="file" multiple onchange="sendGames()"></label>
+      <p class="msg" id="mGames"></p>
+    </div>
+    <div class="card"><label>Games on your TVs</label><div id="games"></div></div>
+    <p class="msg" style="font-size:13px">Only send games you own. GameCube and Wii discs are too big to send this way: on a PC, copy them into the Games folder instead.</p>
+  </section>
+
   <!-- open on TV -->
   <section id="p-apps" class="hide">
     <h2>Open on TV</h2><p class="sub">Tap an app and the TV opens it. Foyer has to be on screen.</p>
@@ -285,6 +296,7 @@ section{animation:rise .35s ease-out}
   <button data-p="notes" class="on"><svg viewBox="0 0 24 24"><path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5M8 9h8M8 13h4"/></svg>Notes</button>
   <button data-p="draw"><svg viewBox="0 0 24 24"><path d="M4 20l4-1L19 8l-3-3L5 16z"/><path d="M14 7l3 3"/></svg>Draw</button>
   <button data-p="photos"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 4 3 3-2 4 3"/></svg>Photos</button>
+  <button data-p="games"><svg viewBox="0 0 24 24"><rect x="2.5" y="7" width="19" height="11" rx="5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="17.5" cy="13.8" r="1"/></svg>Games</button>
   <button data-p="apps"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>Apps</button>
   <button data-p="remote"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="3"/><circle cx="12" cy="8" r="2"/><path d="M12 13.5v.01M12 17v.01"/></svg>Remote</button>
   <button data-p="tvs"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg>TVs</button>
@@ -347,7 +359,7 @@ async function signOut(){try{await api('/api/logout',{method:'POST'})}catch(e){}
 ['aName','aPass','aInvite','aReset'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')doAuth()}));
 
 // ── tabs ──
-const loaders={notes:loadNotes,draw:loadDrawings,photos:loadPics,apps:loadApps,remote:loadRemote,tvs:loadTvs};
+const loaders={notes:loadNotes,draw:loadDrawings,photos:loadPics,games:loadGames,apps:loadApps,remote:loadRemote,tvs:loadTvs};
 function go(p){
   for(const k in loaders)$('p-'+k).classList.toggle('hide',k!==p);
   $('hello').classList.toggle('hide',p!=='notes');
@@ -419,6 +431,26 @@ async function sendPics(){
     const fd=new FormData();fd.append('files',f);
     try{await api('/api/photos',{method:'POST',body:fd});n++}catch(e){say('mPhotos',f.name+': '+e.message,true);$('pics').value='';loadPics();return}}
   $('pics').value='';say('mPhotos',n===1?'Sent 1 photo.':'Sent '+n+' photos.');loadPics()}
+
+// ── games ──
+const SYS={gba:'Game Boy Advance',gb:'Game Boy',gbc:'Game Boy Color',nes:'NES',sfc:'SNES',smc:'SNES',n64:'N64',z64:'N64',v64:'N64',md:'Mega Drive',gen:'Mega Drive',smd:'Mega Drive',sms:'Master System',gg:'Game Gear'};
+function mb(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'}
+async function loadGames(){
+  const j=await getJSON('/api/games'),box=$('games');box.innerHTML='';
+  if(!j.games.length){box.innerHTML='<div class="empty">No games sent yet.</div>';return}
+  j.games.forEach(g=>{
+    const ext=(g.name.split('.').pop()||'').toLowerCase(),title=g.name.replace(/\.[^.]+$/,'');
+    const row=document.createElement('div');row.className='item';row.style.alignItems='center';
+    const a=esc(title),s=document.createElement('small');s.textContent=(SYS[ext]||ext.toUpperCase())+' · '+mb(g.size)+' · '+when(g.created);a.appendChild(s);
+    const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Remove '+title);
+    x.onclick=async()=>{if(!confirm('Remove '+title+' from your TVs?'))return;await api('/api/games/'+g.id,{method:'DELETE'});loadGames()};
+    row.append(a,x);box.appendChild(row)})}
+async function sendGames(){
+  const files=[...$('gameFiles').files];if(!files.length)return;let n=0;
+  for(const f of files){say('mGames','Sending '+f.name+' ('+(n+1)+' of '+files.length+')…');
+    const fd=new FormData();fd.append('files',f);
+    try{await api('/api/games',{method:'POST',body:fd});n++}catch(e){say('mGames',f.name+': '+e.message,true);$('gameFiles').value='';loadGames();return}}
+  $('gameFiles').value='';say('mGames',(n===1?'Sent 1 game.':'Sent '+n+' games.')+' It shows up in Games on the TV in a moment.');loadGames()}
 
 // ── open on TV ──
 let TVS=[],tvId=store.get('foyerTv');

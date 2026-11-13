@@ -16,6 +16,7 @@ import 'setup.dart';
 import 'remote.dart';
 import 'idle.dart';
 import 'keep.dart';
+import 'games.dart';
 import 'weatherfx.dart';
 import 'online.dart';
 import 'update.dart';
@@ -484,6 +485,9 @@ final List<_Group> _groups = [
               ? 'Microsoft Store apps when they\'re installed, else full-screen web windows'
               : 'Always full-screen web windows (arrows move between the shows)',
           () => s.change(() => s.pcStoreApps = !s.pcStoreApps)),
+    HubEntry(Icons.sports_esports_rounded, 'Games',
+        kGames.value.isEmpty ? 'Play your own Game Boy, SNES, N64 and GameCube games' : '${kGames.value.length} games',
+        () => _push(c, const GamesSettingsScreen())),
     HubEntry(Icons.people_alt_rounded, 'People',
         s.profiles.length < 2 ? 'Give each person their own apps and teams' : s.profiles.map((p) => p.name).join(', '),
         () => _push(c, const PeopleScreen())),

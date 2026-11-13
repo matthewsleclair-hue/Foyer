@@ -3,6 +3,12 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.25.0
+**Added**
+- **Games:** play your own Game Boy Advance, Game Boy, NES, SNES, N64, Sega and GameCube/Wii games, with their box art. A Games tile sits at the start of your apps once there are games; the game you played last shows in Keep watching. Games open in RetroArch (or Dolphin for GameCube and Wii), on the TV and on Foyer for PC.
+- **Send games from your phone:** Foyer Drop has a Games tab. Pick the game files and they download to your TVs and PCs by themselves.
+- Foyer for PC: an Xbox-style controller moves around Foyer (D-pad or stick, A, B, Start), and holding Back + Start leaves a game.
+
 ## 1.24.3
 **Changed**
 - Foyer for PC: Store apps and programs (Netflix, Disney+, Prime Video, Spotify...) open full screen instead of in a window.

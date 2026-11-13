@@ -31,6 +31,9 @@ final int Function(int, Pointer<Uint16>, int) _className = _user32
         'GetClassNameW');
 final int Function(int, Pointer<Int32>) _windowRect =
     _user32.lookupFunction<Int32 Function(IntPtr, Pointer<Int32>), int Function(int, Pointer<Int32>)>('GetWindowRect');
+final DynamicLibrary _xinput = DynamicLibrary.open('xinput1_4.dll');
+final int Function(int, Pointer<Uint8>) _padState =
+    _xinput.lookupFunction<Uint32 Function(Uint32, Pointer<Uint8>), int Function(int, Pointer<Uint8>)>('XInputGetState');
 final Pointer<Void> Function(int) _alloc =
     _ole32.lookupFunction<Pointer<Void> Function(IntPtr), Pointer<Void> Function(int)>('CoTaskMemAlloc');
 final void Function(Pointer<Void>) _free =
@@ -170,6 +173,70 @@ class Win {
     }
     await Future.delayed(const Duration(milliseconds: 900));
     if (foreground == h && !coversScreen(h)) stretch(h);
+  }
+
+  // ── game controllers (Xbox and compatible, through XInput) ──
+  static Timer? _pad;
+  static int _held = 0; // buttons down last time
+  static int _repeatKey = 0;
+  static DateTime _repeatAt = DateTime(2000);
+  static DateTime? _comboSince;
+
+  /// While Foyer is in front, the controller moves around Foyer like a remote:
+  /// D-pad or left stick = arrows, A = OK, B = Back, Start = menu. While a game is in
+  /// front, holding Back + Start for a moment leaves it.
+  static void watchPad({required void Function() onLeaveGame}) {
+    _pad?.cancel();
+    final st = _alloc(16).cast<Uint8>();
+    _pad = Timer.periodic(const Duration(milliseconds: 50), (_) {
+      var buttons = 0, lx = 0, ly = 0;
+      for (var i = 0; i < 4; i++) {
+        if (_padState(i, st) != 0) continue; // not connected
+        buttons = st[4] | (st[5] << 8);
+        lx = (st[8] | (st[9] << 8)).toSigned(16);
+        ly = (st[10] | (st[11] << 8)).toSigned(16);
+        break;
+      }
+      // the left stick acts like the D-pad
+      const dead = 16000;
+      if (ly > dead) buttons |= 0x1;
+      if (ly < -dead) buttons |= 0x2;
+      if (lx < -dead) buttons |= 0x4;
+      if (lx > dead) buttons |= 0x8;
+      final now = DateTime.now();
+      final front = foyerInFront;
+      // Back (0x20) + Start (0x10) held: leave the game
+      if (!front && (buttons & 0x30) == 0x30) {
+        _comboSince ??= now;
+        if (now.difference(_comboSince!) > const Duration(milliseconds: 600)) {
+          _comboSince = DateTime(2100);
+          onLeaveGame();
+        }
+      } else if ((buttons & 0x30) != 0x30) {
+        _comboSince = null;
+      }
+      if (front) {
+        const map = {0x1: vkUp, 0x2: vkDown, 0x4: vkLeft, 0x8: vkRight, 0x1000: vkReturn, 0x2000: vkEscape, 0x10: vkApps};
+        for (final e in map.entries) {
+          final down = (buttons & e.key) != 0, was = (_held & e.key) != 0;
+          if (down && !was) {
+            press(e.value);
+            // arrows repeat while held, like a remote
+            if (e.key <= 0x8) {
+              _repeatKey = e.key;
+              _repeatAt = now.add(const Duration(milliseconds: 420));
+            }
+          }
+        }
+        if (_repeatKey != 0 && (buttons & _repeatKey) != 0 && now.isAfter(_repeatAt)) {
+          press(map[_repeatKey]!);
+          _repeatAt = now.add(const Duration(milliseconds: 120));
+        } else if (_repeatKey != 0 && (buttons & _repeatKey) == 0) {
+          _repeatKey = 0;
+        }
+      }
+      _held = buttons;
+    });
   }
 
   /// Turns the monitor or TV picture off; any key or mouse move brings it back.

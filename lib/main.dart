@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'extras.dart';
+import 'games.dart';
 import 'idle.dart';
 import 'keep.dart';
 import 'plex.dart';
@@ -189,6 +190,8 @@ class Settings extends ChangeNotifier {
   int scoreSize = 1; // alert pop-up: 0 small, 1 medium, 2 large
   bool weatherFx = true; // rain, snow and fog over the background when it's like that outside
   bool keepWatching = true; // the Keep watching row on the home screen
+  bool gamesOnHome = true; // a Games tile at the start of the app row (once there are games)
+  Map<String, int> gamesPlayed = {}; // game file -> when it was last played (ms)
   bool pcStoreApps = true; // Foyer for PC: open the Microsoft Store app when it's installed
   bool nowPlaying = true; // the song playing behind Foyer, first in that row
   List<String> keepHidden = []; // shows hidden from Keep watching ("package|title")
@@ -311,6 +314,8 @@ class Settings extends ChangeNotifier {
         'weatherFx': weatherFx,
         'keepWatching': keepWatching,
         'pcStoreApps': pcStoreApps,
+        'gamesOnHome': gamesOnHome,
+        'gamesPlayed': gamesPlayed,
         'nowPlaying': nowPlaying,
         'keepHidden': keepHidden,
         'keepHiddenApps': keepHiddenApps,
@@ -389,6 +394,9 @@ class Settings extends ChangeNotifier {
     weatherFx = _b(j['weatherFx'], weatherFx);
     keepWatching = _b(j['keepWatching'], keepWatching);
     pcStoreApps = _b(j['pcStoreApps'], pcStoreApps);
+    gamesOnHome = _b(j['gamesOnHome'], gamesOnHome);
+    final gp = j['gamesPlayed'];
+    if (gp is Map) gamesPlayed = {for (final e in gp.entries) if (e.value is num) '${e.key}': (e.value as num).toInt()};
     nowPlaying = _b(j['nowPlaying'], nowPlaying);
     final kh = j['keepHidden'];
     if (kh is List) keepHidden = kh.whereType<String>().toList();
@@ -2007,6 +2015,12 @@ class _HomeScreenState extends State<HomeScreen>
     kUpdate.addListener(_onUpdateFound);
     HardwareKeyboard.instance.addHandler(_onAnyKey);
     _idleTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkIdle());
+    // games: look for them now and then, and show the Games tile once there are some
+    kGames.addListener(_onGames);
+    makeGamesTileArt().then((_) => scanGames());
+    _gamesTimer = Timer.periodic(const Duration(minutes: 10), (_) {
+      if (mounted && _fg) scanGames();
+    });
     _keepTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted && _fg && SettingsScope.read(context).keepWatching) refreshKeepWatching();
     });
@@ -2027,6 +2041,11 @@ class _HomeScreenState extends State<HomeScreen>
 
   Timer? _sportsTimer;
   Timer? _keepTimer;
+  Timer? _gamesTimer;
+
+  void _onGames() {
+    if (mounted) setState(() {});
+  }
   Timer? _nowTimer;
 
   /// "Open on TV" from the phone page. Only acts while Foyer is on screen.
@@ -2162,6 +2181,8 @@ class _HomeScreenState extends State<HomeScreen>
     _dropTimer?.cancel();
     _idleTimer?.cancel();
     _keepTimer?.cancel();
+    _gamesTimer?.cancel();
+    kGames.removeListener(_onGames);
     _nowTimer?.cancel();
     _updateTimer?.cancel();
     _toastTimer?.cancel();
@@ -2231,6 +2252,9 @@ class _HomeScreenState extends State<HomeScreen>
   static final AppInfo _missingMarker = AppInfo('', '', Uint8List(0), false, 0);
 
   List<AppInfo> _shown(List<String> pinned) => [
+        // Games first, once there are some (Settings > Home screen > Games can hide it)
+        if (SettingsScope.read(context).gamesOnHome && kGames.value.isNotEmpty && kGamesTileArt != null)
+          AppInfo(kGamesTile, 'Games', kGamesTileArt!, true, 0xFF6D5BD0),
         for (final p in pinned)
           if (_cache[p] != null && _cache[p] != _missingMarker) _cache[p]!
       ];
@@ -2275,6 +2299,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _openPkg(String pkg) async {
     if (_leaving) return;
+    if (pkg == kGamesTile) {
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const GamesScreen()));
+      return;
+    }
     // a soundscape gives way to the app you open
     if (kSoundscape.value.isNotEmpty) setSoundscape('');
     final zoom = !SettingsScope.read(context).perfMode && _zoomFrom(pkg);
@@ -2371,6 +2399,13 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _tileMenu(AppInfo a, int index, int count) {
     final s = SettingsScope.read(context);
+    if (a.package == kGamesTile) {
+      showMenu2(context, 'Games', [
+        MenuChoice('Hide Games from the home screen', () => s.change(() => s.gamesOnHome = false)),
+        MenuChoice('Cancel', () {}),
+      ]);
+      return;
+    }
     void move(int dir) {
       final p = [...s.pinned];
       final i = p.indexOf(a.package);

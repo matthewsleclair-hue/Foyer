@@ -190,6 +190,20 @@ class MainActivity : FlutterActivity() {
                     result.success(SleepTimer.endAt)
                 }
                 "screenOff" -> result.success(ScreenOff.on(this))
+                "gamesDir" -> Thread {
+                    val d = Games.dir(this)
+                    runOnUiThread { result.success(d) }
+                }.start()
+                "gamesStatus" -> result.success(Games.status(this))
+                "launchGame" -> {
+                    val path = call.argument<String>("path") ?: ""
+                    val sys = call.argument<String>("system") ?: ""
+                    val core = call.argument<String>("core") ?: ""
+                    Thread {
+                        val r = Games.launch(this, path, sys, core)
+                        runOnUiThread { result.success(r) }
+                    }.start()
+                }
                 "soundscape" -> {
                     val k = call.argument<String>("kind") ?: ""
                     if (k.isEmpty()) Soundscape.stop() else Soundscape.play(k)

@@ -12,10 +12,11 @@ import 'package:flutter/material.dart';
 import 'main.dart';
 import 'screens.dart';
 import 'plex.dart';
+import 'games.dart';
 
 class KeepItem {
   KeepItem(this.id, this.package, this.app, this.title, this.subtitle, this.progress, this.image,
-      {this.imageUrl = '', this.plex, this.at = 0});
+      {this.imageUrl = '', this.plex, this.at = 0, this.game});
   final int id; // Watch Next row (-1 for Plex)
   final String package;
   final String app;
@@ -26,6 +27,7 @@ class KeepItem {
   final String imageUrl; // Plex artwork, loaded from your server
   final PlexItem? plex;
   final int at; // last watched, ms since 1970
+  final Game? game; // a game you were playing
 
   /// What "Hide this show" remembers.
   String get hideKey => '$package|${title.toLowerCase()}';
@@ -43,16 +45,35 @@ Future<void> refreshKeepWatching({bool force = false}) async {
   final ctx = kNavKey.currentContext;
   final s = ctx == null ? null : SettingsScope.read(ctx);
   final results = await Future.wait([
+    _fromGames(s),
     _fromPlex(s),
     _fromTv(skipPlex: s != null && s.plexUrl.isNotEmpty && s.plexToken.isNotEmpty),
   ]);
   final hiddenShows = s?.keepHidden.toSet() ?? const <String>{};
   final hiddenApps = s?.keepHiddenApps.toSet() ?? const <String>{};
-  final all = [...results[0], ...results[1]]
+  final all = [...results[0], ...results[1], ...results[2]]
       .where((x) => !hiddenApps.contains(x.package) && !hiddenShows.contains(x.hideKey))
       .toList()
     ..sort((a, b) => b.at.compareTo(a.at));
   kKeep.value = all;
+}
+
+/// The game you played last (in the past two weeks), as a "keep playing" card.
+Future<List<KeepItem>> _fromGames(Settings? s) async {
+  if (s == null || s.gamesPlayed.isEmpty || kGames.value.isEmpty) return const [];
+  final cutoff = DateTime.now().subtract(const Duration(days: 14)).millisecondsSinceEpoch;
+  Game? best;
+  var at = 0;
+  for (final g in kGames.value) {
+    final t = s.gamesPlayed[g.path] ?? 0;
+    if (t > at && t > cutoff) {
+      best = g;
+      at = t;
+    }
+  }
+  if (best == null) return const [];
+  final cover = await coverFor(best);
+  return [KeepItem(-3, kGamesTile, best.system.short, best.name, 'Keep playing', null, cover, at: at, game: best)];
 }
 
 Future<List<KeepItem>> _fromPlex(Settings? s) async {
@@ -108,6 +129,12 @@ Future<List<KeepItem>> _fromTv({bool skipPlex = false}) async {
 }
 
 Future<void> openKeepItem(KeepItem k) async {
+  final g = k.game;
+  final ctx = kNavKey.currentContext;
+  if (g != null) {
+    if (ctx != null) await playGame(ctx, g);
+    return;
+  }
   final p = k.plex;
   if (p != null) {
     // the episode or movie's own page in Plex; the Plex app if that doesn't open

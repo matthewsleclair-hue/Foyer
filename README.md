@@ -35,6 +35,11 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - Google's ad-filled home screen is switched off
 - A one-press **Tune-up** turns off Google's tracking and the apps you don't use (and can bring them all back)
 
+**Games**
+- Your own Game Boy Advance, Game Boy, NES, SNES, N64, Sega and GameCube/Wii games, with box art, played in RetroArch or Dolphin
+- Send game files from your phone with Foyer Drop (Games tab) and they show up on the TV by themselves
+- Pick up the game you played last, right from Keep watching
+
 **Sports**
 - Live scores for your teams (NHL, MLB, NBA, NFL and Formula 1)
 - A small pop-up when your team scores, even while you're watching Netflix, in your team's colours

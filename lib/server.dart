@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'main.dart';
+import 'games.dart';
 import 'screens.dart';
 
 /// Talks to your own Foyer Drop server (the Docker app in /server):
@@ -133,6 +134,7 @@ class DropFeed {
 
   /// Changes whenever photos are added or removed, so the screensaver can reload.
   final ValueNotifier<String> photosStamp = ValueNotifier('');
+  String _gamesStamp = '';
 
   /// Set by the home screen: runs "open this app" / "open this link" sent from the phone.
   void Function(String type, String value)? onCommand;
@@ -294,6 +296,12 @@ class DropFeed {
             : null;
         final ph = '${j['photos'] ?? ''}';
         if (ph != photosStamp.value) photosStamp.value = ph;
+        // games sent from a phone: download them into the Games folder
+        final gs = '${j['games'] ?? ''}';
+        if (gs != _gamesStamp) {
+          _gamesStamp = gs;
+          if (gs.isNotEmpty) syncDropGames(DropApi.clean(url), token);
+        }
         final cmds = j['commands'];
         if (cmds is List) {
           for (final c in cmds) {

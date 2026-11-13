@@ -24,6 +24,10 @@ class PcBridge {
     await Directory(_localDir).create(recursive: true);
     // Home on the remote: close the streaming window and come back to Foyer
     Win.watchHome(goHome);
+    // a game controller works Foyer's screens; Back + Start leaves a game
+    Win.watchPad(onLeaveGame: () {
+      if (_gamePid != 0) goHome();
+    });
     await refreshStoreApps(force: true);
   }
 
@@ -32,6 +36,7 @@ class PcBridge {
     if (!Win.foyerInFront) {
       await closeWebApps();
       await closeStoreApp();
+      await closeGame();
     }
     Win.toFront();
     kGoHome?.call();
@@ -91,6 +96,18 @@ Future<dynamic> pcChannel(String channel, String method, dynamic args) async {
     case 'killApp':
       await closeWebApps();
       return true;
+
+    // ── games ──
+    case 'gamesDir':
+      {
+        final d = Directory('${_env('USERPROFILE')}\\Documents\\Foyer Games');
+        await d.create(recursive: true);
+        return d.path;
+      }
+    case 'gamesStatus':
+      return {'retroarch': _retroArch() != null, 'dolphin': _dolphin() != null};
+    case 'launchGame':
+      return launchGame('${a['path']}', '${a['system']}', '${a['core']}');
 
     // ── Foyer Drop ──
     case 'dropConfig':
@@ -401,4 +418,67 @@ void _showAlert(Map a) {
   );
   overlay.insert(e);
   Timer(const Duration(seconds: 9), () => e.remove());
+}
+
+// ───────────────────────── games ─────────────────────────
+
+String? _first(List<String> paths) {
+  for (final p in paths) {
+    if (p.isNotEmpty && File(p).existsSync()) return p;
+  }
+  return null;
+}
+
+String? _retroArch() => _first([
+      'C:\\RetroArch-Win64\\retroarch.exe',
+      '${_env('APPDATA')}\\RetroArch\\retroarch.exe',
+      '${_env('ProgramFiles')}\\RetroArch\\retroarch.exe',
+      '${_env('ProgramFiles(x86)')}\\Steam\\steamapps\\common\\RetroArch\\retroarch.exe',
+      '${_env('USERPROFILE')}\\scoop\\apps\\retroarch\\current\\retroarch.exe',
+    ]);
+
+String? _dolphin() => _first([
+      '${_env('ProgramFiles')}\\Dolphin\\Dolphin.exe',
+      '${_env('ProgramFiles')}\\Dolphin-x64\\Dolphin.exe',
+      '${_env('LOCALAPPDATA')}\\Programs\\Dolphin\\Dolphin.exe',
+      'C:\\Dolphin-x64\\Dolphin.exe',
+      'C:\\Dolphin\\Dolphin.exe',
+    ]);
+
+int _gamePid = 0;
+
+/// Opens a game full screen: RetroArch with the right core, or Dolphin for GameCube and Wii.
+Future<String> launchGame(String path, String system, String core) async {
+  await closeGame();
+  await closeWebApps();
+  try {
+    if (system == 'gc') {
+      final d = _dolphin();
+      if (d == null) return 'missing:dolphin';
+      final p = await Process.start(
+          d, ['-b', '-C', 'Dolphin.Display.Fullscreen=True', '-e', path],
+          mode: ProcessStartMode.detached);
+      _gamePid = p.pid;
+      return 'ok';
+    }
+    final ra = _retroArch();
+    if (ra == null) return 'missing:retroarch';
+    final dll = '${File(ra).parent.path}\\cores\\${core}_libretro.dll';
+    if (!File(dll).existsSync()) return 'missing:core:$core';
+    final p = await Process.start(ra, ['-f', '-L', dll, path], mode: ProcessStartMode.detached);
+    _gamePid = p.pid;
+    return 'ok';
+  } catch (_) {
+    return 'error';
+  }
+}
+
+/// Closes the game Foyer opened (Back + Start on the controller, or Home).
+Future<void> closeGame() async {
+  final pid = _gamePid;
+  if (pid == 0) return;
+  _gamePid = 0;
+  try {
+    await Process.run('taskkill', ['/PID', '$pid', '/T', '/F']);
+  } catch (_) {}
 }

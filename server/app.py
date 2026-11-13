@@ -25,6 +25,7 @@ from PIL import Image, ImageOps
 
 DATA = Path(os.environ.get("DATA_DIR", "/data"))
 PHOTOS = DATA / "photos"
+GAMES = DATA / "games"
 DRAWINGS = DATA / "drawings"
 DB = DATA / "foyer.db"
 MAX_PHOTO_PX = int(os.environ.get("MAX_PHOTO_PX", "1920"))  # keeps the stick's memory happy
@@ -34,6 +35,10 @@ LINK_MINUTES = 10
 CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I to mix up
 
 PHOTOS.mkdir(parents=True, exist_ok=True)
+GAMES.mkdir(parents=True, exist_ok=True)
+MAX_GAME_MB = int(os.environ.get("MAX_GAME_MB", "128"))
+# game files the TVs can pick up: Game Boy (Color/Advance), NES, SNES, N64, Mega Drive, Master System, Game Gear
+GAME_EXT = {"gba", "gb", "gbc", "nes", "sfc", "smc", "n64", "z64", "v64", "md", "gen", "smd", "sms", "gg"}
 DRAWINGS.mkdir(parents=True, exist_ok=True)
 app = FastAPI(title="Foyer Drop", docs_url=None, redoc_url=None)
 
@@ -65,6 +70,8 @@ with closing(db()) as _c, _c:
           PRIMARY KEY(owner_id, member_id));
         CREATE TABLE IF NOT EXISTS joins(hash TEXT PRIMARY KEY, owner_id INTEGER, expires REAL);
         CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
+        CREATE TABLE IF NOT EXISTS games(id TEXT PRIMARY KEY, user_id INTEGER, name TEXT, size INTEGER,
+          sender TEXT, created REAL);
         """
     )
 
@@ -831,10 +838,12 @@ def feed(w: Who = Depends(who)):
         photos = c.execute(
             "SELECT COUNT(*) n, MAX(created) m FROM media WHERE user_id=? AND kind='photo'", (w.user_id,)
         ).fetchone()
+        games = c.execute("SELECT COUNT(*) n, MAX(created) m FROM games WHERE user_id=?", (w.user_id,)).fetchone()
     out = {
         "notes": [{"id": r["id"], "text": r["text"], "from": r["sender"]} for r in notes],
         "drawing": {"id": d[0]["id"], "from": d[0]["sender"]} if d else None,
         "photos": f"{photos['n']}:{photos['m'] or 0}",
+        "games": f"{games['n']}:{games['m'] or 0}",
     }
     if w.kind == "tv":
         _tv_seen[w.token_id] = now
@@ -967,6 +976,83 @@ def get_drawing(drawing_id: str, w: Who = Depends(who)):
 def delete_drawing(drawing_id: str, w: Who = Depends(who)):
     return _remove(w, drawing_id, "drawing", DRAWINGS, "png")
 
+
+
+# ── games: send your own game files to the TV from a phone or computer ──
+# Kept per household; the TV (or Foyer for PC) downloads new ones into its games library.
+
+
+def _game_name(raw: str) -> str:
+    name = Path(raw or "").name.strip()
+    name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "", name)[:150]
+    return name
+
+
+@app.get("/api/games")
+def list_games(w: Who = Depends(who)):
+    with closing(db()) as c:
+        rows = c.execute(
+            "SELECT id,name,size,sender,created FROM games WHERE user_id=? ORDER BY created DESC", (w.user_id,)
+        ).fetchall()
+    return {"games": [dict(r) for r in rows]}
+
+
+@app.post("/api/games")
+async def add_games(files: list[UploadFile] = File(...), w: Who = Depends(who)):
+    saved = []
+    for f in files:
+        name = _game_name(f.filename or "")
+        ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+        if ext not in GAME_EXT:
+            raise HTTPException(400, f"{name or 'That file'} isn't a game file Foyer knows (GBA, GB, NES, SNES, N64, Mega Drive)")
+        gid = uuid.uuid4().hex[:12]
+        dest = GAMES / gid
+        size = 0
+        with open(dest, "wb") as out:
+            while True:
+                chunk = await f.read(1024 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > MAX_GAME_MB * 1024 * 1024:
+                    out.close()
+                    dest.unlink(missing_ok=True)
+                    raise HTTPException(413, f"{name} is bigger than {MAX_GAME_MB} MB")
+                out.write(chunk)
+        with closing(db()) as c, c:
+            # sending the same file again replaces the old copy
+            for r in c.execute("SELECT id FROM games WHERE user_id=? AND name=?", (w.user_id, name)).fetchall():
+                c.execute("DELETE FROM games WHERE id=?", (r["id"],))
+                (GAMES / r["id"]).unlink(missing_ok=True)
+            c.execute(
+                "INSERT INTO games(id,user_id,name,size,sender,created) VALUES(?,?,?,?,?,?)",
+                (gid, w.user_id, name, size, w.name, time.time()),
+            )
+        saved.append({"id": gid, "name": name, "size": size})
+    bump(w.user_id)
+    return {"saved": saved}
+
+
+@app.get("/games/{game_id}")
+def get_game(game_id: str, w: Who = Depends(who)):
+    if not game_id.isalnum():
+        raise HTTPException(404)
+    with closing(db()) as c:
+        r = c.execute("SELECT name FROM games WHERE id=? AND user_id=?", (game_id, w.user_id)).fetchone()
+    p = GAMES / game_id
+    if not r or not p.exists():
+        raise HTTPException(404)
+    return FileResponse(p, media_type="application/octet-stream", filename=r["name"])
+
+
+@app.delete("/api/games/{game_id}")
+def delete_game(game_id: str, w: Who = Depends(who)):
+    with closing(db()) as c, c:
+        cur = c.execute("DELETE FROM games WHERE id=? AND user_id=?", (game_id, w.user_id))
+    if cur.rowcount and game_id.isalnum():
+        (GAMES / game_id).unlink(missing_ok=True)
+    bump(w.user_id)
+    return {"ok": True}
 
 
 # ── Foyer updates for your people ──
