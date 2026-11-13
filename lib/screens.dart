@@ -602,6 +602,12 @@ final List<_Group> _groups = [
         () => _push(c, const RemoteButtonsScreen())),
   ]),
   _Group(Icons.system_update_rounded, 'Backup and updates', 'Updates, backup, run setup again', (c, s) => [
+    if (kIsPc && kPcUpdateScreen != null)
+      HubEntry(
+          Icons.system_update_rounded,
+          'Updates',
+          kUpdate.value != null ? 'Version ${kUpdate.value!.version} is available' : 'Check for a newer Foyer for PC',
+          () => _push(c, kPcUpdateScreen!())),
     if (!kIsPc)
     HubEntry(
         Icons.system_update_rounded,

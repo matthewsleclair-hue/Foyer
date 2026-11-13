@@ -138,7 +138,7 @@ class UpdateApi {
         if (uri.host == 'api.github.com') {
           req.headers.set('Accept', 'application/octet-stream');
           if (token.isNotEmpty) req.headers.set('Authorization', 'Bearer $token');
-        } else if (uri.path.endsWith('/api/update/apk') && hop == 0 && token.isNotEmpty) {
+        } else if ((uri.path.endsWith('/api/update/apk') || uri.path.endsWith('/api/update/pc/zip')) && hop == 0 && token.isNotEmpty) {
           // Foyer Drop: the TV's own sign-in (only on the first hop, never to a redirect)
           req.headers.set('Authorization', 'Bearer $token');
         }

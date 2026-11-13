@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../main.dart';
 import 'apps.dart';
 import 'bridge.dart';
+import 'update_pc.dart';
 import 'win.dart';
 
 Future<void> main() async {
@@ -13,12 +14,14 @@ Future<void> main() async {
   kIsPc = true;
   kSuggested = kPcSuggested;
   kChannelOverride = pcChannel;
+  kPcUpdateScreen = () => const PcUpdateScreen();
   await PcBridge.init();
   runApp(SettingsScope(settings: Settings(), child: const PcShell(child: LauncherApp())));
   // borderless full screen once the window exists, and again a moment later in case Windows moved it
   WidgetsBinding.instance.addPostFrameCallback((_) {
     Win.fullScreen();
     Timer(const Duration(seconds: 2), Win.toFront);
+    startPcUpdateChecks();
   });
 }
 

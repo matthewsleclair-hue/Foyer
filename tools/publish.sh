@@ -44,3 +44,6 @@ if ssh -o ConnectTimeout=5 "$DROP_SSH" "mkdir -p $DROP_DIR" 2>/dev/null; then
 else
   echo "(Could not reach $DROP_SSH, so Foyer Drop didn't get this version. Set FOYER_DROP_SSH if it moved.)"
 fi
+
+# Foyer for PC (built by GitHub): put the newest one on Foyer Drop too, so PCs update themselves.
+bash "$HERE/tools/publish-pc.sh" || echo "(Foyer for PC wasn't put on Foyer Drop this time.)"

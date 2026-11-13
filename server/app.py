@@ -995,4 +995,26 @@ def update_apk(w: Who = Depends(who)):
     return FileResponse(f, media_type="application/vnd.android.package-archive", filename="Foyer.apk")
 
 
+# Foyer for PC: tools/publish-pc.sh puts Foyer-PC.zip and update.json in DATA/releases/pc.
+@app.get("/api/update/pc")
+def update_pc_info(w: Who = Depends(who)):
+    d = REL / "pc"
+    f = d / "update.json"
+    if not f.exists() or not (d / "Foyer-PC.zip").exists():
+        raise HTTPException(404, "No Foyer for PC release on this server yet")
+    try:
+        j = json.loads(f.read_text())
+    except Exception:
+        raise HTTPException(500, "update.json is not readable")
+    return {"version": str(j.get("version", "")), "build": int(j.get("build", 0) or 0), "notes": str(j.get("notes", ""))}
+
+
+@app.get("/api/update/pc/zip")
+def update_pc_zip(w: Who = Depends(who)):
+    f = REL / "pc" / "Foyer-PC.zip"
+    if not f.exists():
+        raise HTTPException(404, "No Foyer for PC release on this server yet")
+    return FileResponse(f, media_type="application/zip", filename="Foyer-PC.zip")
+
+
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")

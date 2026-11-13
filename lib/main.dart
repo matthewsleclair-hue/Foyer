@@ -28,6 +28,9 @@ ChannelOverride? kChannelOverride;
 /// True when Foyer runs on a Windows PC (Foyer for PC).
 bool kIsPc = false;
 
+/// Foyer for PC's own Updates page (it updates from a zip, not an APK). Set by lib/pc.
+Widget Function()? kPcUpdateScreen;
+
 /// Back to the home screen from anywhere (Home on a PC remote). Set by the app shell.
 VoidCallback? kGoHome;
 
