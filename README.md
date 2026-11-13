@@ -141,6 +141,15 @@ Press the **gear** at the bottom left of the home screen (or the remote's menu b
 | **TV tools** | Home button, Tune-up, remote buttons |
 | **Backup and updates** | Updates, backup and restore, reset for someone new, run setup again |
 
+## Foyer for PC
+
+Got a small Windows PC by the TV (a Lenovo ThinkCentre Tiny, an Intel NUC, any mini PC)? **Foyer for PC** is the same home
+screen, photo scenes, sports, Plex Keep watching and Foyer Drop, full screen on Windows. Netflix (in 4K), Prime Video,
+Disney+, Crave and YouTube open as their own full-screen windows; Plex, Spotify, Kodi and Steam open as themselves.
+An air-mouse remote's **Home** button brings you back to Foyer from anywhere, and the phone remote drives the PC too.
+
+Download `Foyer-PC-….zip` from the newest **Foyer for PC** release, unzip it and double-click **Install Foyer.cmd**.
+
 ## The Foyer companion app
 
 Your phone becomes Foyer's best friend. The companion app works on **iPhone and Android**, and there's nothing to download from an app store: you open a link once and add it to your home screen, where it gets its own Foyer icon.

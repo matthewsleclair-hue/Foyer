@@ -77,9 +77,10 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
 
   List<_Step> get _steps => [
         _Step.welcome,
-        _Step.home,
+        // a PC is already its own home and online: no takeover, no Wi-Fi step
+        if (!kIsPc) _Step.home,
         // Wi-Fi only shows up when the box is offline (the takeover can drop it)
-        if (!_wifiChecked || _link == 'none' || _step == _Step.wifi) _Step.wifi,
+        if (!kIsPc && (!_wifiChecked || _link == 'none' || _step == _Step.wifi)) _Step.wifi,
         _Step.about,
         _Step.look,
         _Step.apps,
@@ -104,13 +105,13 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
 
   void _next() {
     _done.add(_step);
-    final all = _Step.values;
+    final all = _steps;
     final i = all.indexOf(_step);
     if (i < all.length - 1) _go(all[i + 1]);
   }
 
   void _back() {
-    final all = _Step.values;
+    final all = _steps;
     var i = all.indexOf(_step) - 1;
     // skip Wi-Fi going back when it wasn't needed
     if (i >= 0 && all[i] == _Step.wifi && _link != 'none') i--;
@@ -724,13 +725,14 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
                 subtitle: 'Send photos, notes and drawings from your phone, and use it as a remote',
                 value: s.serverUrl.isNotEmpty && s.serverToken.isNotEmpty ? '✓ Linked' : '',
                 onSelect: () => _open(const ServerScreen())),
+            if (!kIsPc)
             SysRow(
                 icon: Icons.settings_remote_rounded,
                 title: 'Remote buttons',
                 subtitle: 'Choose what the star, YouTube and Netflix buttons open',
                 value: customKeys ? '✓ Set' : '',
                 onSelect: () => _open(const RemoteButtonsScreen())),
-            if (!kIsFireTv && !_tunedUp && !_isHome)
+            if (!kIsFireTv && !kIsPc && !_tunedUp && !_isHome)
               SysRow(
                   icon: Icons.cleaning_services_rounded,
                   title: 'Tune-up',
@@ -766,8 +768,8 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
     return SingleChildScrollView(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _title('You\'re all set, ${s.name}', 'Here\'s what\'s ready. Everything can be changed later in Settings.'),
-        line(_isHome || (kIsFireTv && _helper), 'Foyer is your home screen'),
-        if (!kIsFireTv) line(_tunedUp || _isHome, 'Google\'s ads switched off'),
+        if (!kIsPc) line(_isHome || (kIsFireTv && _helper), 'Foyer is your home screen'),
+        if (!kIsFireTv && !kIsPc) line(_tunedUp || _isHome, 'Google\'s ads switched off'),
         line(_helper, 'Remote helper on'),
         line(s.pinned.isNotEmpty, '${s.pinned.length} apps on your home screen'),
         line(s.weatherCity.isNotEmpty, s.weatherCity.isEmpty ? 'Weather (not set)' : 'Weather for ${s.weatherCity}'),

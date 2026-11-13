@@ -2,8 +2,9 @@
 // Hooked in once for the whole app, so every screen gets them.
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'main.dart';
 
-const MethodChannel _ch = MethodChannel('leclair/sound');
+const FoyerChannel _ch = FoyerChannel('leclair/sound');
 
 /// 0 off, 1 quiet, 2 normal (Settings > Appearance > Sounds).
 int kSoundLevel = 1;

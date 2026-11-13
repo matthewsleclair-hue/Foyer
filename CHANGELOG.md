@@ -3,6 +3,13 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.24.0
+**Added**
+- **Foyer for PC:** the same Foyer on a Windows PC plugged into the TV. Netflix, Prime Video, Disney+, Crave and YouTube open as full-screen windows, Plex, Spotify, Kodi and Steam as themselves; Home on the remote comes back to Foyer from anywhere; the Foyer Drop phone remote drives the PC. Download it from the "Foyer for PC" release.
+
+**Fixed**
+- The welcome setup's Next and Back buttons follow only the steps this box needs.
+
 ## 1.23.1
 **Changed**
 - The Updates screen shows what's new in the version you're about to install, as a tidy list.

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show File, NetworkInterface, InternetAddressType;
+import 'dart:io' show File, NetworkInterface, InternetAddressType, Process;
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -219,7 +219,7 @@ class SettingsPage extends StatelessWidget {
 
 /// Asks for a line of text in a small dialog, so the on-screen keyboard never
 /// traps the remote on a normal screen. Returns null if cancelled.
-const MethodChannel kPhoneChannel = MethodChannel('leclair/phone');
+const FoyerChannel kPhoneChannel = FoyerChannel('leclair/phone');
 
 Future<String?> askText(BuildContext context, String title, String initial,
     {String hint = '', int maxLength = 40}) {
@@ -544,6 +544,7 @@ final List<_Group> _groups = [
     HubEntry(Icons.celebration_rounded, 'Seasonal themes',
         s.seasonal ? 'On: Halloween, Christmas, New Year and Easter' : 'Off',
         () => _push(c, const SeasonsScreen())),
+    if (!kIsPc)
     HubEntry(Icons.music_note_rounded, 'Sounds',
         '${kSoundNames[s.soundLevel]}: a soft tick when you move around', () {
       s.change(() {
@@ -560,15 +561,17 @@ final List<_Group> _groups = [
         () => _push(c, const SmartIdleScreen())),
     HubEntry(Icons.tv_off_rounded, 'Screen off',
         'Picture off, sound keeps playing. Any button brings it back', () => screenOffNow(c)),
-    HubEntry(Icons.power_settings_new_rounded, 'Start on boot',
-        s.autoStart ? 'On: opens Foyer when the stick starts' : 'Off',
+    HubEntry(Icons.power_settings_new_rounded, kIsPc ? 'Start with Windows' : 'Start on boot',
+        s.autoStart ? (kIsPc ? 'On: Foyer opens when the PC starts' : 'On: opens Foyer when the stick starts') : 'Off',
         () => s.change(() => s.autoStart = !s.autoStart)),
     if (kIsFireTv)
       HubEntry(Icons.restart_alt_rounded, 'Restart Fire TV',
           'Reboots the stick (needs ADB debugging on)', () => restartStick(c)),
-    if (!kIsFireTv)
+    if (!kIsFireTv && !kIsPc)
       HubEntry(Icons.restart_alt_rounded, 'Restart or sleep',
           'Restart the TV box, or put it to sleep', () => _push(c, const PowerScreen())),
+    if (kIsPc)
+      HubEntry(Icons.restart_alt_rounded, 'Sleep, restart or shut down', 'The PC itself', () => pcPowerMenu(c)),
   ]),
   // The title stays "Fire TV tools" on a Fire TV; on other boxes the page shows only what applies.
   _Group(Icons.build_rounded, 'Fire TV tools', 'Home button, tune-up, remote buttons', (c, s) => [
@@ -593,6 +596,7 @@ final List<_Group> _groups = [
         () => _push(c, const RemoteButtonsScreen())),
   ]),
   _Group(Icons.system_update_rounded, 'Backup and updates', 'Updates, backup, run setup again', (c, s) => [
+    if (!kIsPc)
     HubEntry(
         Icons.system_update_rounded,
         'Updates',
@@ -600,6 +604,7 @@ final List<_Group> _groups = [
             ? 'Version ${kUpdate.value!.version} is available'
             : (s.updateUrl.isEmpty ? 'Set up an update link' : 'Check for a newer version'),
         () => _push(c, const UpdateScreen())),
+    if (!kIsPc)
     HubEntry(Icons.backup_rounded, 'Backup and restore',
         'Save your settings to a file, or load them back',
         () => _push(c, const BackupScreen())),
@@ -654,7 +659,7 @@ class _SettingsHubState extends State<SettingsHub> {
   }
 
   Future<void> _loadTv() async {
-    if (kIsFireTv) return;
+    if (kIsFireTv || kIsPc) return;
     final i = await sysCall('info');
     if (mounted) setState(() => _tv = i);
   }
@@ -688,15 +693,17 @@ class _SettingsHubState extends State<SettingsHub> {
           HubEntry(Icons.system_update_rounded, 'Install version ${up.version}', 'Takes about a minute. Your settings stay',
               () => _open(const UpdateScreen())),
         ], dot: true),
-      if (!kIsFireTv)
+      if (!kIsFireTv && !kIsPc)
         _Section(Icons.tv_rounded, 'TV settings', tvSettingsEntries(c, _tv, _open)),
-      for (final g in _groups) _Section(g.icon, g.title, g.items(c, s)),
+      // the TV tools (Home button, tune-up, remote buttons) are Android things
+      for (final g in _groups)
+        if (!(kIsPc && g.icon == Icons.build_rounded)) _Section(g.icon, g.title, g.items(c, s)),
       if (kIsFireTv)
         _Section(Icons.settings_rounded, 'Fire TV settings', [
           HubEntry(Icons.settings_rounded, 'Open Fire TV settings', 'The stock Wi-Fi, display and sound settings',
               () => openFireSettings(c)),
         ]),
-      if (s.devMode)
+      if (s.devMode && !kIsPc)
         _Section(Icons.developer_mode_rounded, 'Developer options', [
           HubEntry(Icons.developer_mode_rounded, 'Developer options', 'Where updates come from, GitHub repo and access token',
               () => _open(const DeveloperScreen())),
@@ -2298,3 +2305,12 @@ class _QrCodeState extends State<QrCode> {
             : Image.memory(_png!, filterQuality: FilterQuality.none, gaplessPlayback: true),
       );
 }
+
+
+/// Foyer for PC: sleep, restart or shut down the PC.
+void pcPowerMenu(BuildContext c) => showMenu2(c, 'The PC', [
+      MenuChoice('Sleep', () => Process.run('rundll32.exe', ['powrprof.dll,SetSuspendState', '0,1,0'])),
+      MenuChoice('Restart', () => Process.run('shutdown', ['/r', '/t', '0'])),
+      MenuChoice('Shut down', () => Process.run('shutdown', ['/s', '/t', '0'])),
+      MenuChoice('Cancel', () {}),
+    ]);

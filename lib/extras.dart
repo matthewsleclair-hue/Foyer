@@ -225,8 +225,9 @@ Future<void> goodnightMenu(BuildContext context) async {
     MenuChoice('Goodnight now', () => startGoodnight(context)),
     MenuChoice(on ? 'Change the sleep timer…' : 'Sleep timer…', () => _sleepChoices(context)),
     MenuChoice('Screen off (the sound keeps playing)', () => screenOffNow(context)),
-    MenuChoice(kSoundscape.value.isEmpty ? 'Soundscape…' : 'Soundscape: ${kSoundscapeNames[kSoundscape.value]}…',
-        () => soundscapeMenu(context)),
+    if (!kIsPc)
+      MenuChoice(kSoundscape.value.isEmpty ? 'Soundscape…' : 'Soundscape: ${kSoundscapeNames[kSoundscape.value]}…',
+          () => soundscapeMenu(context)),
     MenuChoice('Fireplace', () => openFireplace(context)),
     if (on) MenuChoice('Turn off the sleep timer', () => setSleep(0)),
     MenuChoice('Cancel', () {}),

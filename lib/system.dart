@@ -10,7 +10,7 @@ import 'main.dart';
 import 'screens.dart';
 import 'vpn.dart';
 
-const MethodChannel kSystem = MethodChannel('leclair/system');
+const FoyerChannel kSystem = FoyerChannel('leclair/system');
 const String _me = 'com.leclair.leclair_home';
 
 // ───────────────────────── helpers ─────────────────────────

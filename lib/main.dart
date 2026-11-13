@@ -19,13 +19,55 @@ import 'update.dart';
 import 'weather.dart';
 import 'weatherfx.dart';
 
-const MethodChannel kChannel = MethodChannel('leclair/launcher');
+const FoyerChannel kChannel = FoyerChannel('leclair/launcher');
+
+/// Foyer for PC answers the native calls in Dart (lib/pc/bridge.dart); on Android this stays null.
+typedef ChannelOverride = Future<dynamic> Function(String channel, String method, dynamic args);
+ChannelOverride? kChannelOverride;
+
+/// True when Foyer runs on a Windows PC (Foyer for PC).
+bool kIsPc = false;
+
+/// Back to the home screen from anywhere (Home on a PC remote). Set by the app shell.
+VoidCallback? kGoHome;
+
+/// A MethodChannel that Foyer for PC can answer itself.
+class FoyerChannel extends MethodChannel {
+  const FoyerChannel(super.name);
+
+  @override
+  Future<T?> invokeMethod<T>(String method, [dynamic arguments]) async {
+    final o = kChannelOverride;
+    if (o != null) return (await o(name, method, arguments)) as T?;
+    return super.invokeMethod<T>(method, arguments);
+  }
+
+  @override
+  Future<List<T>?> invokeListMethod<T>(String method, [dynamic arguments]) async {
+    final o = kChannelOverride;
+    if (o != null) {
+      final r = await o(name, method, arguments);
+      return r == null ? null : (r as List).cast<T>();
+    }
+    return super.invokeListMethod<T>(method, arguments);
+  }
+
+  @override
+  Future<Map<K, V>?> invokeMapMethod<K, V>(String method, [dynamic arguments]) async {
+    final o = kChannelOverride;
+    if (o != null) {
+      final r = await o(name, method, arguments);
+      return r == null ? null : (r as Map).cast<K, V>();
+    }
+    return super.invokeMapMethod<K, V>(method, arguments);
+  }
+}
 const int kMaxPinned = 8;
 const Color kDefaultTint = Color(0xFF3B5BDB);
 const String kPlexPackage = 'com.plexapp.android';
 
 /// Pre-selected on first run if they're installed.
-const List<String> kSuggested = [
+List<String> kSuggested = [
   'com.netflix.ninja',
   'com.amazon.amazonvideo.livingroom',
   'com.google.android.youtube.tv',
@@ -504,7 +546,7 @@ Future<bool> launchPackage(String pkg) async =>
 // ───────────────────────── app shell ─────────────────────────
 
 final GlobalKey<NavigatorState> kNavKey = GlobalKey<NavigatorState>();
-const MethodChannel kNavChannel = MethodChannel('leclair/nav');
+const FoyerChannel kNavChannel = FoyerChannel('leclair/nav');
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -549,11 +591,14 @@ class _RootState extends State<Root> {
   @override
   void initState() {
     super.initState();
+    void goHome() {
+      kNavKey.currentState?.popUntil((r) => r.isFirst);
+      if (mounted) setState(() => _mode = _Mode.home);
+    }
+
+    kGoHome = goHome;
     kNavChannel.setMethodCallHandler((call) async {
-      if (call.method == 'goHome') {
-        kNavKey.currentState?.popUntil((r) => r.isFirst);
-        if (mounted) setState(() => _mode = _Mode.home);
-      }
+      if (call.method == 'goHome') goHome();
     });
     Future.wait([SettingsScope.read(context).load(), loadDevice()]).then((_) {
       if (mounted) setState(() => _ready = true);
@@ -2185,6 +2230,7 @@ class _HomeScreenState extends State<HomeScreen>
       ];
 
   Future<void> _checkUpdate({bool force = false}) async {
+    if (kIsPc) return; // Foyer for PC updates from its own download, not the TV's
     final s = SettingsScope.read(context);
     final url = s.updateUrl;
     if (url.isEmpty) {
