@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.24.1
+**Changed**
+- Foyer for PC: the arrow keys (or the remote's arrows) now move between the shows and buttons on Netflix, Prime Video, Disney+ and Crave in their full-screen windows, and OK opens them.
+
 ## 1.24.0
 **Added**
 - **Foyer for PC:** the same Foyer on a Windows PC plugged into the TV. Netflix, Prime Video, Disney+, Crave and YouTube open as full-screen windows, Plex, Spotify, Kodi and Steam as themselves; Home on the remote comes back to Foyer from anywhere; the Foyer Drop phone remote drives the PC. Download it from the "Foyer for PC" release.

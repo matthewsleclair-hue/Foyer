@@ -163,6 +163,8 @@ Future<bool> openWeb(String url, {bool tv = false}) async {
         '--no-first-run',
         '--no-default-browser-check',
         '--autoplay-policy=no-user-gesture-required',
+        // arrows hop between the tiles and buttons on any site, like a TV app
+        '--enable-spatial-navigation',
         if (tv) '--user-agent=$_tvAgent',
       ],
       mode: ProcessStartMode.detached);
