@@ -39,6 +39,18 @@ object Games {
         }
     }
 
+    /** Closes an emulator that's still open from before. Background thread. */
+    private fun stop(c: Context, pkg: String) {
+        try {
+            LocalAdb(c.filesDir) { }.run(listOf("am force-stop $pkg"))
+        } catch (e: Exception) {
+            try {
+                (c.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager).killBackgroundProcesses(pkg)
+            } catch (_: Exception) { }
+        }
+        Thread.sleep(400)
+    }
+
     /** The Games folder, made if needed. Null if Foyer can't write there. Background thread. */
     fun dir(c: Context): String? {
         if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) allowFiles(c, c.packageName)
@@ -59,6 +71,7 @@ object Games {
             if (system == "gc") {
                 val pkg = DOLPHIN.firstOrNull { installed(c, it) } ?: return "missing:dolphin"
                 allowFiles(c, pkg)
+                stop(c, pkg)
                 c.startActivity(
                     Intent(Intent.ACTION_MAIN)
                         .setClassName(pkg, "org.dolphinemu.dolphinemu.ui.main.MainActivity")
@@ -69,6 +82,9 @@ object Games {
             }
             val pkg = RETROARCH.firstOrNull { installed(c, it) } ?: return "missing:retroarch"
             allowFiles(c, pkg)
+            // RetroArch can't switch games while it's already open (it just freezes), so it's
+            // closed first, the way other game launchers do it ("am start -S").
+            stop(c, pkg)
             // RetroArch's own way of being told what to play (the same one other launchers use)
             val coreFile = if (core == "mupen64plus_next") "mupen64plus_next_gles3" else core
             @Suppress("DEPRECATION")

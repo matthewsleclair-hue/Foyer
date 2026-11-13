@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.25.1
+**Fixed**
+- Games on the TV: a game no longer freezes when RetroArch (or Dolphin) was already open. Foyer closes it first, then opens the game.
+
 ## 1.25.0
 **Added**
 - **Games:** play your own Game Boy Advance, Game Boy, NES, SNES, N64, Sega and GameCube/Wii games, with their box art. A Games tile sits at the start of your apps once there are games; the game you played last shows in Keep watching. Games open in RetroArch (or Dolphin for GameCube and Wii), on the TV and on Foyer for PC.
