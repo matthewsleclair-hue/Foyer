@@ -195,6 +195,14 @@ class MainActivity : FlutterActivity() {
                     runOnUiThread { result.success(d) }
                 }.start()
                 "gamesStatus" -> result.success(Games.status(this))
+                "diagnoseGame" -> {
+                    val path = call.argument<String>("path") ?: ""
+                    val core = call.argument<String>("core") ?: ""
+                    Thread {
+                        val r = Games.diagnose(this, path, core)
+                        runOnUiThread { result.success(r) }
+                    }.start()
+                }
                 "launchGame" -> {
                     val path = call.argument<String>("path") ?: ""
                     val sys = call.argument<String>("system") ?: ""

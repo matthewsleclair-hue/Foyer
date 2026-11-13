@@ -3,6 +3,14 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.25.2
+**Added**
+- **Add a game controller:** pick PS5 DualSense, PS4, Xbox, Switch Pro or 8BitDo, and Foyer shows which buttons to hold, then finds and pairs it by itself. In TV settings → Bluetooth, and in Games settings.
+- Games settings → **Check that games work**: starts a game and shows what RetroArch said, to find out why one won't start.
+
+**Changed**
+- Games on the TV start RetroArch the same way other game launchers do (closed first, then handed the game and its core).
+
 ## 1.25.1
 **Fixed**
 - Games on the TV: a game no longer freezes when RetroArch (or Dolphin) was already open. Foyer closes it first, then opens the game.

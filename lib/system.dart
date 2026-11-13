@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'main.dart';
 import 'screens.dart';
 import 'vpn.dart';
+import 'controllers.dart';
 
 const FoyerChannel kSystem = FoyerChannel('leclair/system');
 const String _me = 'com.leclair.leclair_home';
@@ -680,6 +681,18 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
               subtitle: 'Needs the one-time TV access from Home button setup',
               autofocus: true,
               onSelect: () => _load(grant: true)),
+        if (on)
+          SysRow(
+              icon: Icons.sports_esports_rounded,
+              title: 'Add a game controller',
+              subtitle: 'PS5 DualSense, PS4, Xbox, Switch Pro, 8BitDo: Foyer shows which buttons to hold and pairs it',
+              onSelect: () async {
+                await Navigator.of(context)
+                    .push(MaterialPageRoute<void>(builder: (_) => const ControllerPairScreen()));
+                // that page borrowed the Bluetooth events: take them back
+                kSystem.setMethodCallHandler(_onEvent);
+                _load();
+              }),
         if (on && paired.isNotEmpty) _heading('Paired'),
         for (final d in paired) SysRow(icon: d.icon, title: d.name, subtitle: 'Paired', onSelect: () => _pairedMenu(d)),
         if (on && (_scanning || _found.isNotEmpty)) _heading('Found nearby'),

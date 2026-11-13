@@ -9,8 +9,10 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'main.dart';
 import 'screens.dart';
+import 'controllers.dart';
 
 class GameSystem {
   const GameSystem(this.id, this.name, this.short, this.exts, this.color, this.thumbs, this.core);
@@ -459,6 +461,30 @@ class GamesSettingsScreen extends StatefulWidget {
 }
 
 class _GamesSettingsScreenState extends State<GamesSettingsScreen> {
+  /// Starts a game (a GBA one if there is one) and collects what RetroArch said: a report
+  /// to show (and photograph) when something doesn't start.
+  Future<void> _check(BuildContext context) async {
+    final games = kGames.value.where((g) => !g.system.dolphin).toList();
+    if (games.isEmpty) return;
+    final g = games.firstWhere((x) => x.system.id == 'gba', orElse: () => games.first);
+    showInfo(context, 'Checking with ${g.name}',
+        'RetroArch opens for about 10 seconds, then Foyer comes back with what it found. Leave the remote for a moment.');
+    String report = '';
+    try {
+      report = (await kChannel.invokeMethod<String>('diagnoseGame', {'path': g.path, 'core': g.system.core})) ?? '';
+    } catch (e) {
+      report = 'Couldn\'t check: $e';
+    }
+    if (!context.mounted) return;
+    Navigator.of(context).popUntil((r) => r is! PopupRoute); // the "Checking" note
+    Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => SettingsPage(
+              title: 'What RetroArch said',
+              subtitle: 'Also saved in the Games folder as retroarch-check.txt. A photo of this screen is enough to find the problem.',
+              child: _ReportView(report),
+            )));
+  }
+
   Map<String, dynamic> _st = {};
   String _dirPath = '';
 
@@ -540,6 +566,13 @@ class _GamesSettingsScreenState extends State<GamesSettingsScreen> {
         ]),
       ),
       actions: [
+        if (!kIsPc && kGames.value.isNotEmpty)
+          PillButton(label: 'Check that games work', onSelect: () => _check(context)),
+        if (!kIsPc)
+          PillButton(
+              label: 'Add a controller',
+              onSelect: () =>
+                  Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ControllerPairScreen()))),
         PillButton(
             label: 'Look for games again',
             onSelect: () async {
@@ -549,4 +582,42 @@ class _GamesSettingsScreenState extends State<GamesSettingsScreen> {
       ],
     );
   }
+}
+
+
+/// Long text that the remote's up and down arrows scroll.
+class _ReportView extends StatefulWidget {
+  const _ReportView(this.text);
+  final String text;
+  @override
+  State<_ReportView> createState() => _ReportViewState();
+}
+
+class _ReportViewState extends State<_ReportView> {
+  final ScrollController _c = ScrollController();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Focus(
+        autofocus: true,
+        onKeyEvent: (_, e) {
+          if (e is KeyUpEvent || !_c.hasClients) return KeyEventResult.ignored;
+          final k = e.logicalKey;
+          final step = k == LogicalKeyboardKey.arrowDown ? 220.0 : (k == LogicalKeyboardKey.arrowUp ? -220.0 : 0.0);
+          if (step == 0) return KeyEventResult.ignored;
+          _c.animateTo((_c.offset + step).clamp(0.0, _c.position.maxScrollExtent),
+              duration: const Duration(milliseconds: 120), curve: Curves.easeOut);
+          return KeyEventResult.handled;
+        },
+        child: SingleChildScrollView(
+          controller: _c,
+          child: Text(widget.text,
+              style: const TextStyle(fontSize: 19, height: 1.35, fontFamily: 'monospace', color: Colors.white70)),
+        ),
+      );
 }

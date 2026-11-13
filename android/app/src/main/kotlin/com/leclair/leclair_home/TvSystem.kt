@@ -218,14 +218,16 @@ class TvSystem(private val act: Activity, private val ch: MethodChannel) {
                 @Suppress("DEPRECATION")
                 override fun onReceive(c: Context, i: Intent) {
                     when (i.action) {
-                        BluetoothDevice.ACTION_FOUND, BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
+                        BluetoothDevice.ACTION_FOUND, BluetoothDevice.ACTION_BOND_STATE_CHANGED,
+                        BluetoothDevice.ACTION_NAME_CHANGED -> {
                             val d: BluetoothDevice? = if (Build.VERSION.SDK_INT >= 33)
                                 i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
                             else i.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
                             if (d != null) {
                                 val m = HashMap(dev(d))
                                 m["bond"] = d.bondState
-                                ch.invokeMethod(if (i.action == BluetoothDevice.ACTION_FOUND) "btFound" else "btBond", m)
+                                // a controller often says its name a moment after it's found
+                                ch.invokeMethod(if (i.action == BluetoothDevice.ACTION_BOND_STATE_CHANGED) "btBond" else "btFound", m)
                             }
                         }
                         BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> ch.invokeMethod("btDone", null)
@@ -235,6 +237,7 @@ class TvSystem(private val act: Activity, private val ch: MethodChannel) {
             val f = IntentFilter().apply {
                 addAction(BluetoothDevice.ACTION_FOUND)
                 addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+                addAction(BluetoothDevice.ACTION_NAME_CHANGED)
                 addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
             }
             if (Build.VERSION.SDK_INT >= 33) act.registerReceiver(r, f, Context.RECEIVER_EXPORTED)
