@@ -24,11 +24,15 @@ class PcBridge {
     await Directory(_localDir).create(recursive: true);
     // Home on the remote: close the streaming window and come back to Foyer
     Win.watchHome(goHome);
+    await refreshStoreApps(force: true);
   }
 
   /// Back to Foyer's home screen from anywhere.
   static Future<void> goHome() async {
-    if (!Win.foyerInFront) await closeWebApps();
+    if (!Win.foyerInFront) {
+      await closeWebApps();
+      await closeStoreApp();
+    }
     Win.toFront();
     kGoHome?.call();
   }
@@ -61,6 +65,7 @@ Future<dynamic> pcChannel(String channel, String method, dynamic args) async {
 
     // ── apps ──
     case 'listApps':
+      await refreshStoreApps();
       return [
         for (final p in kPcApps)
           if (available(p)) {'package': p.id, 'label': p.label, 'icon': await tileArt(p, square: true)}
@@ -185,6 +190,32 @@ Future<void> closeWebApps() async {
   } catch (_) {}
 }
 
+/// The Store app Foyer opened last (its package family), so Home can close it.
+String _storeFamily = '';
+
+/// Closes the Store app Foyer opened, so a show stops when you go back to Foyer.
+Future<void> closeStoreApp() async {
+  final fam = _storeFamily;
+  if (fam.isEmpty) return;
+  _storeFamily = '';
+  try {
+    await Process.run('powershell', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      "\$p = Get-AppxPackage | Where-Object { \$_.PackageFamilyName -eq '$fam' } | Select-Object -First 1; "
+          "if (\$p) { Get-Process | Where-Object { \$_.Path -and \$_.Path.StartsWith(\$p.InstallLocation) } | "
+          'Stop-Process -Force -ErrorAction SilentlyContinue }',
+    ]);
+  } catch (_) {}
+}
+
+/// Whether to use the Microsoft Store app when it's installed (Settings > Home screen).
+bool get _preferStore {
+  final c = kNavKey.currentContext;
+  return c == null || SettingsScope.read(c).pcStoreApps;
+}
+
 Future<bool> launchPcApp(String id) async {
   PcApp? app;
   for (final p in kPcApps) {
@@ -192,7 +223,16 @@ Future<bool> launchPcApp(String id) async {
   }
   if (app == null) return false;
   final exe = installedExe(app);
+  final storeId = _preferStore ? storeAppId(app) : null;
   try {
+    // a real program wins (Plex HTPC, Spotify), then the Store app, then the website
+    if (exe == null && storeId != null) {
+      await closeWebApps();
+      await closeStoreApp();
+      _storeFamily = storeId.split('!').first;
+      await Process.start('explorer.exe', ['shell:AppsFolder\\$storeId'], mode: ProcessStartMode.detached);
+      return true;
+    }
     if (exe != null) {
       if (app.uri.isNotEmpty && app.id == 'pc.steam') {
         await Process.start('cmd', ['/c', 'start', '', app.uri], mode: ProcessStartMode.detached);

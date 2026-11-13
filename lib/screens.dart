@@ -478,6 +478,12 @@ final List<_Group> _groups = [
     HubEntry(Icons.apps_rounded, 'Pinned apps',
         s.personName.isEmpty ? '${s.pinned.length} on your home screen' : '${s.pinned.length} for ${s.personName}',
         () => _editStep(c, 2)),
+    if (kIsPc)
+      HubEntry(Icons.storefront_rounded, 'Streaming apps',
+          s.pcStoreApps
+              ? 'Microsoft Store apps when they\'re installed, else full-screen web windows'
+              : 'Always full-screen web windows (arrows move between the shows)',
+          () => s.change(() => s.pcStoreApps = !s.pcStoreApps)),
     HubEntry(Icons.people_alt_rounded, 'People',
         s.profiles.length < 2 ? 'Give each person their own apps and teams' : s.profiles.map((p) => p.name).join(', '),
         () => _push(c, const PeopleScreen())),

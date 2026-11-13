@@ -4,6 +4,9 @@ Newest first. Each update on the TV (Settings → Backup and updates → Updates
 GitHub release shows the part of this list it brings.
 
 ## 1.24.1
+**Added**
+- Foyer for PC uses the Microsoft Store apps (Netflix, Disney+, Prime Video, Apple TV, Plex, Spotify, Paramount+, Kodi) when they're installed, and closes them when you press Home. Settings → Home screen → Streaming apps switches back to web windows.
+
 **Changed**
 - Foyer for PC: the arrow keys (or the remote's arrows) now move between the shows and buttons on Netflix, Prime Video, Disney+ and Crave in their full-screen windows, and OK opens them.
 

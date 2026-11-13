@@ -186,6 +186,7 @@ class Settings extends ChangeNotifier {
   int scoreSize = 1; // alert pop-up: 0 small, 1 medium, 2 large
   bool weatherFx = true; // rain, snow and fog over the background when it's like that outside
   bool keepWatching = true; // the Keep watching row on the home screen
+  bool pcStoreApps = true; // Foyer for PC: open the Microsoft Store app when it's installed
   bool nowPlaying = true; // the song playing behind Foyer, first in that row
   List<String> keepHidden = []; // shows hidden from Keep watching ("package|title")
   List<String> keepHiddenApps = []; // apps hidden from Keep watching
@@ -306,6 +307,7 @@ class Settings extends ChangeNotifier {
         'alertSize': scoreSize,
         'weatherFx': weatherFx,
         'keepWatching': keepWatching,
+        'pcStoreApps': pcStoreApps,
         'nowPlaying': nowPlaying,
         'keepHidden': keepHidden,
         'keepHiddenApps': keepHiddenApps,
@@ -383,6 +385,7 @@ class Settings extends ChangeNotifier {
     kScoreAlertSize = scoreSize;
     weatherFx = _b(j['weatherFx'], weatherFx);
     keepWatching = _b(j['keepWatching'], keepWatching);
+    pcStoreApps = _b(j['pcStoreApps'], pcStoreApps);
     nowPlaying = _b(j['nowPlaying'], nowPlaying);
     final kh = j['keepHidden'];
     if (kh is List) keepHidden = kh.whereType<String>().toList();
