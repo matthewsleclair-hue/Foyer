@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.24.3
+**Changed**
+- Foyer for PC: Store apps and programs (Netflix, Disney+, Prime Video, Spotify...) open full screen instead of in a window.
+
 ## 1.24.2
 **Added**
 - Foyer for PC updates itself: Settings → Backup and updates → Updates downloads the new version, closes for a moment and opens again. It also checks by itself every few hours, and the gear gets a dot when there's one.

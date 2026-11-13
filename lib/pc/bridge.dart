@@ -231,6 +231,7 @@ Future<bool> launchPcApp(String id) async {
       await closeStoreApp();
       _storeFamily = storeId.split('!').first;
       await Process.start('explorer.exe', ['shell:AppsFolder\\$storeId'], mode: ProcessStartMode.detached);
+      Win.fullScreenNext(); // Store apps open in a window: make it full screen
       return true;
     }
     if (exe != null) {
@@ -239,6 +240,9 @@ Future<bool> launchPcApp(String id) async {
       } else {
         await Process.start(exe, const [], mode: ProcessStartMode.detached);
       }
+      // programs like Spotify open windowed (Plex HTPC and Kodi already fill the screen;
+      // Steam may show a sign-in box first, so it's left alone)
+      if (app.id != 'pc.steam') Win.fullScreenNext();
       return true;
     }
     return openWeb(app.url, tv: app.tv);
