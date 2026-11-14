@@ -1,0 +1,102 @@
+name: Foyer for TV
+
+# Builds the signed Foyer.apk on GitHub's own machine and publishes it as a release, so no
+# Mac or PC is needed to publish. Your Foyer Drop server picks new releases up by itself
+# (Foyer Drop → TVs → Updates from GitHub), and the TVs update from there.
+# Runs when VERSION changes on main, or by hand: Actions > Foyer for TV > Run workflow.
+# One-time setup: bash tools/setup-ci.sh on the Mac (puts the signing key in GitHub's secrets).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [VERSION]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: foyer-android
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.FOYER_KEYSTORE_B64 }}
+      STORE_PASSWORD: ${{ secrets.FOYER_STORE_PASSWORD }}
+      KEY_PASSWORD: ${{ secrets.FOYER_KEY_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.FOYER_KEY_ALIAS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Make the Android project
+        run: |
+          flutter create --platforms=android --org com.leclair --project-name leclair_home build_android
+          rm -rf build_android/lib
+          cp -R lib build_android/lib
+          cp -R android/. build_android/android/
+          python3 tools/patch_fonts.py build_android
+          python3 tools/patch_deps.py build_android
+          # TVs run Android 8 or newer; release builds shouldn't stop on lint warnings
+          python3 - <<'PY'
+          import re
+          p = 'build_android/android/app/build.gradle.kts'
+          s = open(p).read()
+          s = re.sub(r'minSdk\s*=\s*[^\n]+', 'minSdk = 26', s, count=1)
+          s = s.replace('android {', 'android {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }', 1)
+          open(p, 'w').write(s)
+          PY
+
+      - name: Signing key
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::No signing key in GitHub's secrets yet (run tools/setup-ci.sh on the Mac). Building with a test key, and not publishing."
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/foyer.jks"
+          cat > build_android/android/key.properties <<PROPS
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=$RUNNER_TEMP/foyer.jks
+          PROPS
+          python3 tools/patch_signing.py build_android
+
+      - name: Build
+        run: |
+          NAME="$(cat VERSION)"
+          # same build numbers as tools/release.sh: 30,000,000 + minutes since 2026-01-01
+          BUILD="$(( 30000000 + ( $(date +%s) - 1767225600 ) / 60 ))"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          cd build_android
+          flutter build apk --release --build-name "$NAME" --build-number "$BUILD"
+          cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/Foyer.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Foyer-apk
+          path: Foyer.apk
+
+      - name: Release
+        if: env.KEYSTORE_B64 != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PREV="$(gh api "repos/${{ github.repository }}/releases/latest" --jq .tag_name 2>/dev/null | sed 's/^v//; s/+.*//' || true)"
+          if [ -n "$PREV" ] && [ "$PREV" != "$NAME" ]; then
+            python3 tools/release_notes.py "$NAME" "$PREV" > notes.md
+          else
+            python3 tools/release_notes.py "$NAME" > notes.md
+          fi
+          gh release create "v$NAME+$BUILD" Foyer.apk --title "Foyer $NAME ($BUILD)" --notes-file notes.md --target "${{ github.sha }}"
