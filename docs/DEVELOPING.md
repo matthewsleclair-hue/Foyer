@@ -1,5 +1,25 @@
 # Building and publishing Foyer
 
+## Publishing without a computer (the normal way now)
+
+GitHub builds everything. When `VERSION` changes on `main`:
+
+- **Foyer for TV** (`.github/workflows/foyer-android.yml`) builds and signs `Foyer.apk` and publishes it as a release.
+- **Foyer for PC** (`.github/workflows/foyer-pc.yml`) builds the Windows zip and publishes a "Foyer for PC" pre-release.
+- **Foyer Drop** checks GitHub every 10 minutes (with a read-only token, set on its web page: TVs → Foyer updates from
+  GitHub) and fetches both, so linked TVs and PCs update from it.
+
+So publishing is: change the code, `bash tools/bump.sh small|medium|large`, add the CHANGELOG entry, push. From any
+computer, or none (a Claude session can do it).
+
+One-time setup:
+1. On the Mac with the signing key: `bash tools/setup-ci.sh` (puts the key in the repo's secrets).
+2. Update Foyer Drop: `bash tools/deploy-drop.sh`, then on its web page (owner): TVs → Foyer updates from GitHub → paste a
+   fine-grained token (only the Foyer repository, Contents: Read-only) → Save token.
+
+The older way below (building on the Mac with `tools/publish.sh`) still works.
+
+
 Notes for whoever builds Foyer from this code. The friendly overview is the [README](../README.md).
 
 Features: pinned-app dock, weather, screensaver (colors, your photos, or online photos), wallpapers,

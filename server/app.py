@@ -1103,4 +1103,167 @@ def update_pc_zip(w: Who = Depends(who)):
     return FileResponse(f, media_type="application/zip", filename="Foyer-PC.zip")
 
 
+# ── updates straight from GitHub ──
+# GitHub builds Foyer (the TV app and Foyer for PC) every time its version changes. With a
+# read-only GitHub token (owner: TVs page → Updates from GitHub, or GITHUB_TOKEN in .env),
+# this server fetches each new release by itself, so publishing needs no computer at all.
+import urllib.request
+import urllib.error
+
+GH_REPO = os.environ.get("GITHUB_REPO", "matthewsleclair-hue/Foyer")
+_gh = {"last": 0.0, "error": "", "checking": False}
+
+
+def _meta_get(k: str) -> str:
+    with closing(db()) as c:
+        r = c.execute("SELECT v FROM meta WHERE k=?", (k,)).fetchone()
+    return r["v"] if r else ""
+
+
+def _meta_set(k: str, v: str):
+    with closing(db()) as c, c:
+        c.execute("INSERT OR REPLACE INTO meta(k,v) VALUES(?,?)", (k, v))
+
+
+def _gh_token() -> str:
+    return (_meta_get("github_token") or os.environ.get("GITHUB_TOKEN", "")).strip()
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *a, **k):
+        return None
+
+
+def _gh_get(url: str, token: str, accept: str = "application/vnd.github+json"):
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}", "Accept": accept,
+                                               "User-Agent": "foyer-drop"})
+    return urllib.request.build_opener(_NoRedirect).open(req, timeout=30)
+
+
+def _gh_download(asset_url: str, token: str, dest: Path):
+    """Release files: GitHub answers with a short-lived link elsewhere; the token never goes there."""
+    try:
+        r = _gh_get(asset_url, token, "application/octet-stream")
+    except urllib.error.HTTPError as e:
+        if e.code not in (301, 302, 303, 307, 308):
+            raise
+        r = urllib.request.urlopen(urllib.request.Request(e.headers["Location"], headers={"User-Agent": "foyer-drop"}),
+                                   timeout=300)
+    tmp = dest.with_suffix(dest.suffix + ".part")
+    with open(tmp, "wb") as out:
+        while True:
+            b = r.read(1024 * 1024)
+            if not b:
+                break
+            out.write(b)
+    return tmp
+
+
+def _local_build(folder: Path) -> int:
+    try:
+        return int(json.loads((folder / "update.json").read_text()).get("build", 0))
+    except Exception:
+        return 0
+
+
+def github_sync() -> str:
+    """Fetches the newest TV release and the newest Foyer for PC release, if they're newer."""
+    token = _gh_token()
+    if not token:
+        return "No GitHub token yet."
+    if _gh["checking"]:
+        return "Already checking."
+    _gh["checking"] = True
+    got = []
+    try:
+        with _gh_get(f"https://api.github.com/repos/{GH_REPO}/releases?per_page=30", token) as r:
+            rels = json.loads(r.read())
+        want = [  # (tag prefix, folder, file name, file ending)
+            ("v", REL, "Foyer.apk", ".apk"),
+            ("pc-v", REL / "pc", "Foyer-PC.zip", ".zip"),
+        ]
+        for prefix, folder, name, ending in want:
+            for rel in rels:
+                m = re.match(r"^" + re.escape(prefix) + r"(\d+\.\d+\.\d+)\+(\d+)$", rel.get("tag_name", ""))
+                if not m or rel.get("draft"):
+                    continue
+                if prefix == "v" and rel.get("prerelease"):
+                    continue
+                version, build = m.group(1), int(m.group(2))
+                if build <= _local_build(folder):
+                    break
+                asset = next((a for a in rel.get("assets", []) if a.get("name", "").lower().endswith(ending)), None)
+                if not asset:
+                    break
+                folder.mkdir(parents=True, exist_ok=True)
+                part = _gh_download(asset["url"], token, folder / name)
+                part.replace(folder / name)
+                (folder / "update.json").write_text(json.dumps(
+                    {"version": version, "build": build, "notes": rel.get("body") or ""}))
+                got.append(f"{name} {version}")
+                break
+        _gh["error"] = ""
+    except urllib.error.HTTPError as e:
+        _gh["error"] = "GitHub refused the token (check it can read the Foyer repo)" if e.code in (401, 403, 404) \
+            else f"GitHub said {e.code}"
+    except Exception as e:
+        _gh["error"] = f"Couldn't reach GitHub: {e}"
+    finally:
+        _gh["last"] = time.time()
+        _gh["checking"] = False
+    return _gh["error"] or (("Got " + ", ".join(got)) if got else "Up to date.")
+
+
+def _gh_loop():
+    while True:
+        try:
+            if _gh_token():
+                github_sync()
+        except Exception:
+            pass
+        time.sleep(600)  # every 10 minutes
+
+
+threading.Thread(target=_gh_loop, daemon=True, name="github-sync").start()
+
+
+def _owner(w: Who):
+    if not w.owner:
+        raise HTTPException(403, "Only the owner of this server can do that")
+
+
+def _gh_status():
+    def ver(folder):
+        try:
+            return json.loads((folder / "update.json").read_text()).get("version", "")
+        except Exception:
+            return ""
+    return {"repo": GH_REPO, "token": bool(_gh_token()), "last": _gh["last"], "error": _gh["error"],
+            "tv": ver(REL), "pc": ver(REL / "pc")}
+
+
+@app.get("/api/admin/github")
+def gh_status(w: Who = Depends(web)):
+    _owner(w)
+    return _gh_status()
+
+
+@app.post("/api/admin/github")
+def gh_set(body: dict, w: Who = Depends(web)):
+    _owner(w)
+    tok = str(body.get("token", "")).strip()
+    if tok and not re.fullmatch(r"[A-Za-z0-9_]{20,255}", tok):
+        raise HTTPException(400, "That doesn't look like a GitHub token")
+    _meta_set("github_token", tok)
+    msg = github_sync() if tok else "Token removed."
+    return {**_gh_status(), "message": msg}
+
+
+@app.post("/api/admin/github/check")
+def gh_check(w: Who = Depends(web)):
+    _owner(w)
+    msg = github_sync()
+    return {**_gh_status(), "message": msg}
+
+
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")

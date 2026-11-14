@@ -5,7 +5,11 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
-    # environment:
+    environment:
+      # Foyer updates straight from GitHub (or set the token on the web page: TVs → Foyer updates from GitHub)
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_REPO: ${GITHUB_REPO:-matthewsleclair-hue/Foyer}
+    # more settings:
     #   NOTE_HOURS: "24"        # how long notes show by default
     #   MAX_PHOTO_PX: "1920"    # photos are shrunk to this size for the stick
     volumes:

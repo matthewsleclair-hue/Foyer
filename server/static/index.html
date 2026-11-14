@@ -275,6 +275,14 @@ section{animation:rise .35s ease-out}
       <div class="row" style="align-items:center"><div class="invite" id="invite"></div><button class="btn ghost" style="flex:none;width:auto;padding:10px 14px" onclick="newInvite()">New code</button></div>
       <p class="msg">They choose "Create an account" on this page and enter it. Each account has its own TVs, notes and photos.</p>
     </div>
+    <div class="card hide" id="ghCard">
+      <label>Foyer updates from GitHub</label>
+      <div id="ghStatus" class="msg" style="margin:0 0 12px"></div>
+      <input id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="GitHub token (read-only, Foyer repo)">
+      <div class="row"><button class="btn" onclick="ghSave()">Save token</button><button class="btn ghost" onclick="ghCheck()">Check now</button></div>
+      <p class="msg" id="mGh"></p>
+      <p class="msg" style="font-size:13px">GitHub builds Foyer for TVs and PCs whenever there's a new version. With a token, this server fetches each one by itself (every 10 minutes) and your TVs and PCs update from here. Make one at github.com → Settings → Developer settings → Fine-grained tokens: only the Foyer repository, Contents: Read-only.</p>
+    </div>
     <div class="card hide" id="acctCard">
       <label>Accounts. Someone forgot their password? Make them a reset code.</label>
       <div id="accts"></div>
@@ -527,8 +535,22 @@ async function loadTvs(){
     const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Unlink this TV');
     x.onclick=async()=>{if(!confirm('Unlink '+(t.label||'this TV')+'?'))return;await api('/api/tvs/'+t.id,{method:'DELETE'});loadTvs()};
     row.append(a);if(mine)row.append(x);box.appendChild(row)});
-  $('inviteCard').classList.toggle('hide',!j.owner);$('acctCard').classList.toggle('hide',!j.owner);
-  if(j.owner){$('invite').textContent=j.invite;loadAccts().catch(()=>{})}}
+  $('inviteCard').classList.toggle('hide',!j.owner);$('acctCard').classList.toggle('hide',!j.owner);$('ghCard').classList.toggle('hide',!j.owner);
+  if(j.owner){$('invite').textContent=j.invite;loadAccts().catch(()=>{});loadGh().catch(()=>{})}}
+// ── updates from GitHub (owner) ──
+function paintGh(s){
+  const parts=[];
+  parts.push(s.token?'Token saved.':'No token yet.');
+  parts.push('On this server: TV '+(s.tv||'none')+' · PC '+(s.pc||'none')+'.');
+  if(s.last)parts.push('Checked '+when(s.last)+'.');
+  $('ghStatus').textContent=parts.join(' ');
+  if(s.error)say('mGh',s.error,true);else if(s.message)say('mGh',s.message)}
+async function loadGh(){paintGh(await getJSON('/api/admin/github',{noHome:true}))}
+async function ghSave(){
+  const t=$('ghToken').value.trim();say('mGh',t?'Saving and checking GitHub…':'Removing…');
+  try{paintGh(await getJSON('/api/admin/github',{method:'POST',json:{token:t},noHome:true}));$('ghToken').value=''}catch(e){say('mGh',e.message,true)}}
+async function ghCheck(){say('mGh','Checking GitHub…');
+  try{paintGh(await getJSON('/api/admin/github/check',{method:'POST',noHome:true}))}catch(e){say('mGh',e.message,true)}}
 // ── households ──
 function paintHomeBar(){
   const bar=$('homeBar');bar.innerHTML='';bar.classList.toggle('hide',HOMES.length<2||$('app').classList.contains('hide'));
