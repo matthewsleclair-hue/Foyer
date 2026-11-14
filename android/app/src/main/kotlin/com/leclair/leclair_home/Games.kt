@@ -73,6 +73,7 @@ object Games {
     fun diagnose(c: Context, path: String, core: String): String {
         val pkg = RETROARCH.firstOrNull { installed(c, it) } ?: return "RetroArch isn't installed."
         allowFiles(c, pkg)
+        val path = stage(c, pkg, path)
         val sb = StringBuilder()
         fun section(t: String, s: String) { sb.append("── ").append(t).append(" ──\n").append(s.trim()).append("\n\n") }
         try {
@@ -118,6 +119,35 @@ object Games {
         return report
     }
 
+    /**
+     * RetroArch from the Play Store isn't allowed to read other folders on the TV (Android's
+     * storage rules; it has no "all files" access), so it froze trying to open a game in
+     * Foyer/Games. It can always read its own media folder, and Foyer can write there, so the
+     * game is copied in first (once; a game that's already there is reused).
+     */
+    private fun stage(c: Context, pkg: String, path: String): String {
+        val src = File(path)
+        @Suppress("DEPRECATION")
+        val dir = File(Environment.getExternalStorageDirectory(), "Android/media/$pkg/Foyer")
+        val dest = File(dir, src.name)
+        try {
+            if (dest.exists() && dest.length() == src.length()) return dest.absolutePath
+            dir.mkdirs()
+            src.copyTo(dest, overwrite = true)
+            // keep the newest 12 copies; the games themselves stay in Foyer/Games
+            dir.listFiles()?.sortedByDescending { it.lastModified() }?.drop(12)?.forEach { it.delete() }
+            return dest.absolutePath
+        } catch (e: Exception) {
+            Log.d(TAG, "couldn't copy the game for RetroArch: $e")
+        }
+        // the debugging link's shell can write there too
+        try {
+            LocalAdb(c.filesDir) { }.run(listOf("mkdir -p ${q(dir.absolutePath)} && cp ${q(path)} ${q(dest.absolutePath)}"))
+            if (dest.exists()) return dest.absolutePath
+        } catch (_: Exception) { }
+        return path
+    }
+
     /** Closes an emulator that's still open from before. Background thread. */
     private fun stop(c: Context, pkg: String) {
         try {
@@ -161,6 +191,7 @@ object Games {
             }
             val pkg = RETROARCH.firstOrNull { installed(c, it) } ?: return "missing:retroarch"
             allowFiles(c, pkg)
+            val path = stage(c, pkg, path)
             // Started over the TV's debugging link with "am start -S": RetroArch is closed first
             // (it freezes if it's asked to switch games while open), and this is the exact way
             // other game launchers (ES-DE, Daijisho) hand RetroArch a game.

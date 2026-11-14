@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.25.3
+**Fixed**
+- Games on the Google TV froze in RetroArch: RetroArch from the Play Store isn't allowed to read Foyer's Games folder. Foyer now copies the game into RetroArch's own folder first (once), and starts it from there.
+
 ## 1.25.2
 **Added**
 - **Add a game controller:** pick PS5 DualSense, PS4, Xbox, Switch Pro or 8BitDo, and Foyer shows which buttons to hold, then finds and pairs it by itself. In TV settings → Bluetooth, and in Games settings.
