@@ -17,7 +17,8 @@ cd "$PROJ"
 # builds), changes every minute, and stays far below Android's 2.1 billion limit.
 BUILD="$(( 30000000 + ( $(date +%s) - 1767225600 ) / 60 ))"
 NAME="$(cat "$HERE/VERSION" 2>/dev/null || echo 1.0.0)"
-flutter build apk --release --build-name "$NAME" --build-number "$BUILD"
+TMDB_KEY="$(cat "$HOME/.leclair-signing/tmdb-key" 2>/dev/null || true)"   # see tools/set-tmdb-key.sh
+flutter build apk --release --build-name "$NAME" --build-number "$BUILD" --dart-define=TMDB_KEY="$TMDB_KEY"
 OUT="$HERE/Foyer.apk"
 cp build/app/outputs/flutter-apk/app-release.apk "$OUT"
 cat > "$HERE/update.json" <<JSON

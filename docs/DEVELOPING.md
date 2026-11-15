@@ -83,6 +83,11 @@ Each box posts its settings (no sign-ins) to Foyer Drop (`POST /api/tv/settings`
 after a change; `GET /api/tv/settings` lists the household's boxes and `GET /api/tv/settings/{id}`
 gives one. The client is `lib/sync.dart`. The server needs `bash tools/deploy-drop.sh` once for this.
 
+## Search key (TMDB)
+`bash tools/set-tmdb-key.sh` once: it asks for the key (hidden), checks it with TMDB, saves it in
+`~/.leclair-signing/tmdb-key` and as the GitHub secret `TMDB_KEY`, and rebuilds. The builds pass it
+with `--dart-define=TMDB_KEY=…` (lib/tmdb.dart). A key typed in Developer options wins over it.
+
 ## Icon
 Regenerate with `python3 tools/make_icons.py` (needs `pip install playwright`). Previews are in `docs/`.
 

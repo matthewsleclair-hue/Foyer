@@ -31,6 +31,7 @@ jobs:
         shell: pwsh
         env:
           PYTHONUTF8: '1'
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
         run: |
           pip install --quiet pillow
           flutter config --enable-windows-desktop
@@ -42,7 +43,7 @@ jobs:
           (Get-Content build_pc\windows\runner\main.cpp) -replace 'L"foyer"', 'L"Foyer TV"' | Set-Content build_pc\windows\runner\main.cpp
           $v = (Get-Content VERSION).Trim()
           Push-Location build_pc
-          flutter build windows --release -t lib/pc/main_pc.dart --dart-define=FOYER_VERSION=$v --dart-define=FOYER_BUILD=${{ github.run_number }}
+          flutter build windows --release -t lib/pc/main_pc.dart --dart-define=FOYER_VERSION=$v --dart-define=FOYER_BUILD=${{ github.run_number }} --dart-define=TMDB_KEY="$env:TMDB_KEY"
           Pop-Location
 
       - name: Package

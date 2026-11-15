@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'main.dart';
 import 'server.dart';
 import 'sync.dart';
+import 'tmdb.dart';
 import 'sports.dart';
 import 'system.dart';
 import 'sounds.dart';
@@ -2274,6 +2275,17 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
                 subtitle: 'Reads foyer-token.txt sent from a computer, then deletes it',
                 onSelect: () => _loadTokenFile(s)),
           ],
+          SysRow(
+              icon: Icons.search_rounded,
+              title: 'TMDB key for search',
+              subtitle: kBuiltInTmdbKey.isNotEmpty
+                  ? 'Built into this version. Type one only to use a different key'
+                  : 'For "Where to watch" in Search. Free at themoviedb.org → Settings → API',
+              value: s.tmdbKey.isNotEmpty ? 'Set' : (kBuiltInTmdbKey.isNotEmpty ? 'Built in' : 'None'),
+              onSelect: () async {
+                final v = await askText(context, 'TMDB key', '', hint: 'API key or read access token', maxLength: 400);
+                if (v != null) s.change(() => s.tmdbKey = v.trim());
+              }),
           SysRow(
               icon: Icons.developer_mode_rounded,
               title: 'Turn off developer options',

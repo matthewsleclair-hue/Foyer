@@ -227,6 +227,8 @@ class Settings extends ChangeNotifier {
   /// signed in to it can download Foyer, and no GitHub token is needed.
   String updateUrl = UpdateApi.dropSource;
   String updateToken = '';
+  /// TMDB key for Search everything, typed in Developer options (else the one built in)
+  String tmdbKey = '';
   List<FollowedTeam> sportsTeams = [];
 
   /// Apps kept off the phone page's "Open on TV" list.
@@ -354,6 +356,7 @@ class Settings extends ChangeNotifier {
           'plexName': plexName,
           'clientId': clientId,
           'updateToken': updateToken,
+          'tmdbKey': tmdbKey,
         },
       };
 
@@ -450,6 +453,7 @@ class Settings extends ChangeNotifier {
       plexName = _s(j['plexName'], plexName);
       clientId = _s(j['clientId'], clientId);
       updateToken = _s(j['updateToken'], updateToken);
+      tmdbKey = _s(j['tmdbKey'], tmdbKey);
     }
   }
 

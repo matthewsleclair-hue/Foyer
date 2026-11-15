@@ -10,6 +10,7 @@ import 'games.dart';
 import 'plex.dart';
 import 'screens.dart';
 import 'server.dart';
+import 'tmdb.dart';
 
 /// Streaming services: their name on TMDB (squashed, see _squash) → the app on a TV and on a PC.
 const Map<String, List<String>> _tvApps = {
@@ -133,8 +134,13 @@ class _SearchScreenState extends State<SearchScreen> {
         if (mounted && run == _run) setState(() => _plex = l);
       }).catchError((_) {}));
     }
-    if (s.serverUrl.isNotEmpty && s.serverToken.isNotEmpty) {
-      jobs.add(DropApi.search(s.serverUrl, s.serverToken, q, s.lang).then((l) {
+    final key = s.tmdbKey.isNotEmpty ? s.tmdbKey : kBuiltInTmdbKey;
+    final linked = s.serverUrl.isNotEmpty && s.serverToken.isNotEmpty;
+    if (key.isNotEmpty || linked) {
+      final ask = key.isNotEmpty
+          ? tmdbSearch(key, q, s.lang)
+          : DropApi.search(s.serverUrl, s.serverToken, q, s.lang);
+      jobs.add(ask.then((l) {
         if (mounted && run == _run) setState(() => _watch = l);
       }).catchError((Object e) {
         if (mounted && run == _run) {
@@ -142,7 +148,7 @@ class _SearchScreenState extends State<SearchScreen> {
         }
       }));
     } else {
-      _note = 'Link Foyer Drop (Settings › Home screen › Foyer Drop) to also see which streaming apps have it.';
+      _note = 'Add a TMDB key in Developer options, or link Foyer Drop, to also see which streaming apps have it.';
     }
     await Future.wait(jobs);
     if (mounted && run == _run) setState(() => _busy = false);

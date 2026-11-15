@@ -73,6 +73,8 @@ jobs:
           python3 tools/patch_signing.py build_android
 
       - name: Build
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
         run: |
           NAME="$(cat VERSION)"
           # same build numbers as tools/release.sh: 30,000,000 + minutes since 2026-01-01
@@ -80,7 +82,7 @@ jobs:
           echo "NAME=$NAME" >> "$GITHUB_ENV"
           echo "BUILD=$BUILD" >> "$GITHUB_ENV"
           cd build_android
-          flutter build apk --release --build-name "$NAME" --build-number "$BUILD"
+          flutter build apk --release --build-name "$NAME" --build-number "$BUILD" --dart-define=TMDB_KEY="$TMDB_KEY"
           cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/Foyer.apk"
 
       - uses: actions/upload-artifact@v4
