@@ -2635,7 +2635,7 @@ class _HomeScreenState extends State<HomeScreen>
     // the app tray is centred between x 200 and 1820; Keep watching starts at its left edge,
     // so the two always line up, however many apps there are
     final trayW = count * tileW + 28.0 * (count - 1) + 80;
-    final keepLeft = 200 + max(0.0, (1620 - trayW) / 2);
+    final keepLeft = 200.0 + max(0.0, (1620 - trayW) / 2);
     return Stack(children: [
       Positioned(
           left: 84,
