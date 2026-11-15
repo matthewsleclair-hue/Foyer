@@ -114,17 +114,49 @@ void homeBack(BuildContext context) {
   }
 }
 
-/// Apps that are running right now (Android), so the switcher only shows open ones.
-/// Null when Foyer can't tell (no TV access yet, or on a PC): then every recent app shows.
-Future<Set<String>?> _running() async {
+/// When each app was closed from the switcher, so it stays gone until it's used again.
+final Map<String, DateTime> _closedAt = {};
+
+/// Not apps you'd switch to: Foyer itself, Google's home and setup screens, the assistant.
+const _notApps = {
+  'com.leclair.leclair_home',
+  'com.google.android.apps.tv.launcherx',
+  'com.google.android.tvlauncher',
+  'com.google.android.tungsten.setupwraith',
+  'com.google.android.katniss',
+  'com.android.systemui',
+  'com.android.tv.settings',
+  'com.google.android.tv.remote.service',
+  'com.amazon.tv.launcher',
+};
+
+/// The TV's own list of recent apps (the one Android keeps), newest first: apps opened from
+/// Foyer, Keep watching, Search, the remote's app buttons or the phone. Null when Foyer
+/// can't read it (no TV access yet, or on a PC).
+Future<List<String>?> _systemRecents() async {
   if (kIsPc) return null;
-  final r = await adbOut(['ps -A -o NAME']);
-  if (!r.ok) return null;
-  return {for (final l in r.at(0).split('\n')) l.trim().split(':').first};
+  final r = await adbOut(['dumpsys activity recents']);
+  if (!r.ok || !r.at(0).contains('Recent #')) return null;
+  final out = <String>[];
+  final now = DateTime.now();
+  for (final chunk in r.at(0).split('* Recent #').skip(1)) {
+    final m = RegExp(r'realActivity=\{?([A-Za-z0-9_.]+)/').firstMatch(chunk) ??
+        RegExp(r'A=\d+:([A-Za-z0-9_.]+)').firstMatch(chunk);
+    if (m == null) continue;
+    final pkg = m.group(1)!;
+    if (_notApps.contains(pkg) || out.contains(pkg)) continue;
+    // closed from the switcher, and not used since
+    final closed = _closedAt[pkg];
+    final idle = int.tryParse(RegExp(r'inactive for (\d+)s').firstMatch(chunk)?.group(1) ?? '');
+    if (closed != null && (idle == null || now.subtract(Duration(seconds: idle)).isBefore(closed))) continue;
+    out.add(pkg);
+  }
+  return out;
 }
 
 /// Closes an app for real (the TV's force stop), or as well as Android allows.
 Future<void> closeAppNow(String pkg) async {
+  _closedAt[pkg] = DateTime.now();
   if (!kIsPc) {
     final r = await adbOut(['am force-stop $pkg']);
     if (r.ok) return;
@@ -138,9 +170,9 @@ Future<void> closeAppNow(String pkg) async {
 /// an Apple TV. OK opens one, Up swipes it away and closes it, Close all closes them all.
 Future<void> showRecents(BuildContext context) async {
   final s = SettingsScope.read(context);
-  var want = s.recentApps.take(8).toList();
-  final running = await _running();
-  if (running != null) want = [for (final p in want) if (running.contains(p)) p];
+  // the TV's own recent apps; Foyer's own list when it can't read those
+  final sys = await _systemRecents();
+  final want = (sys ?? [for (final p in s.recentApps) if (!_closedAt.containsKey(p)) p]).take(8).toList();
   List<Map> raw = const [];
   if (want.isNotEmpty) {
     try {

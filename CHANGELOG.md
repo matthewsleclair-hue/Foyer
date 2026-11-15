@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.34.2
+**Fixed**
+- Open apps (Back twice on the home screen) was nearly always empty: it only knew apps opened from Foyer's own tiles. It now uses the TV's own list of recent apps, so it shows what you've been using however you opened it (Keep watching, Search, the remote's app buttons, your phone). An app you close there stays gone until you use it again.
+
 ## 1.34.1
 **Fixed**
 - Jiggle mode: the app you're moving no longer has its top cut off by the edge of the app tray.
