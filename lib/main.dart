@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart' hide Text;
 import 'i18n.dart';
 import 'package:flutter/services.dart';
+import 'aerial.dart';
 import 'extras.dart';
 import 'games.dart';
 import 'idle.dart';
@@ -87,6 +88,9 @@ List<String> kSuggested = [
   'ca.bellmedia.cravetv',
 ];
 const List<String> kNameIdeas = ['Home', 'Living Room', 'Bedroom', 'Basement'];
+
+/// Jiggle mode (hold OK on an app): the package being moved, or null.
+final ValueNotifier<String?> kJiggle = ValueNotifier(null);
 
 final Set<LogicalKeyboardKey> _selectKeys = {
   LogicalKeyboardKey.select,
@@ -399,7 +403,7 @@ class Settings extends ChangeNotifier {
     final ss = j['ssMinutes'];
     if (ss is num) ssMinutes = ss.toInt();
     final src = j['ssSource'];
-    if (src is String && (src == 'mine' || src == 'online' || src == 'colors' || src == 'drop')) {
+    if (src is String && (src == 'mine' || src == 'online' || src == 'colors' || src == 'drop' || src == 'aerial')) {
       ssSource = src;
     } else if (j['ssPhotos'] == true) {
       ssSource = 'mine';
@@ -2159,6 +2163,13 @@ class _HomeScreenState extends State<HomeScreen>
           body: Focus(
             autofocus: true,
             onKeyEvent: (_, e) {
+              // aerial screensaver: Down shows where it is instead of waking
+              if (e is KeyDownEvent &&
+                  e.logicalKey == LogicalKeyboardKey.arrowDown &&
+                  SettingsScope.read(context).ssSource == 'aerial') {
+                kAerialWhere.value++;
+                return KeyEventResult.handled;
+              }
               if (e is KeyDownEvent && !closed) {
                 closed = true;
                 Navigator.of(ctx).pop();
@@ -2349,6 +2360,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _openPkg(String pkg) async {
+    kJiggle.value = null;
     if (_leaving) return;
     if (pkg == kGamesTile) {
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const GamesScreen()));
@@ -2448,6 +2460,26 @@ class _HomeScreenState extends State<HomeScreen>
     ));
   }
 
+  /// Hold OK on an app: jiggle mode, like rearranging on an iPhone or Apple TV.
+  void _tileHold(AppInfo a, int index, int count) {
+    if (a.package == kGamesTile || !SettingsScope.read(context).pinned.contains(a.package)) {
+      _tileMenu(a, index, count);
+      return;
+    }
+    kJiggle.value = a.package;
+  }
+
+  void _moveTile(String pkg, int dir) {
+    final s = SettingsScope.read(context);
+    final p = [...s.pinned];
+    final i = p.indexOf(pkg);
+    final j = i + dir;
+    if (i < 0 || j < 0 || j >= p.length) return;
+    p.removeAt(i);
+    p.insert(j, pkg);
+    s.setPinned(p);
+  }
+
   void _tileMenu(AppInfo a, int index, int count) {
     final s = SettingsScope.read(context);
     if (a.package == kGamesTile) {
@@ -2487,7 +2519,12 @@ class _HomeScreenState extends State<HomeScreen>
       canPop: false,
       // Back twice quickly: recent apps
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) homeBack(context);
+        if (didPop) return;
+        if (kJiggle.value != null) {
+          kJiggle.value = null; // Back: done moving
+        } else {
+          homeBack(context);
+        }
       },
       child: Focus(
         canRequestFocus: false,
@@ -2637,7 +2674,12 @@ class _HomeScreenState extends State<HomeScreen>
                 intro: _intro,
                 onFocused: (i) => _focus.value = i,
                 onOpen: (a) => _openPkg(a.package),
-                onMenu: (a, i) => _tileMenu(a, i, apps.length),
+                onMenu: (a, i) => _tileHold(a, i, apps.length),
+                onMore: (a, i) {
+                  kJiggle.value = null;
+                  _tileMenu(a, i, apps.length);
+                },
+                onMove: _moveTile,
                 onAllApps: _openAllApps,
               ),
             ),
@@ -2653,16 +2695,21 @@ class _HomeScreenState extends State<HomeScreen>
           child: IgnorePointer(
             child: FadeTransition(
               opacity: _fadeLate,
-              child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.keyboard_arrow_down_rounded, size: 30, color: Colors.white54),
-                SizedBox(width: 4),
-                Text('All apps',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white54,
-                        shadows: [Shadow(color: Color(0x99000000), blurRadius: 12)])),
-              ]),
+              child: ValueListenableBuilder<String?>(
+                valueListenable: kJiggle,
+                builder: (_, j, __) => Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  if (j == null) ...[
+                    const Icon(Icons.keyboard_arrow_down_rounded, size: 30, color: Colors.white54),
+                    const SizedBox(width: 4),
+                  ],
+                  Text(j == null ? 'All apps' : 'Left / Right moves it  ·  OK when done  ·  Down for more',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                          color: j == null ? Colors.white54 : Colors.white,
+                          shadows: const [Shadow(color: Color(0x99000000), blurRadius: 12)])),
+                ]),
+              ),
             ),
           ),
         ),
@@ -2787,6 +2834,8 @@ class _Dock extends StatelessWidget {
       required this.onFocused,
       required this.onOpen,
       required this.onMenu,
+      required this.onMore,
+      required this.onMove,
       required this.onAllApps});
   final List<AppInfo> apps;
   final double tileW;
@@ -2794,6 +2843,8 @@ class _Dock extends StatelessWidget {
   final ValueChanged<int> onFocused;
   final ValueChanged<AppInfo> onOpen;
   final void Function(AppInfo, int) onMenu;
+  final void Function(AppInfo, int) onMore;
+  final void Function(String, int) onMove;
   final VoidCallback onAllApps;
 
   @override
@@ -2825,6 +2876,9 @@ class _Dock extends StatelessWidget {
                   onFocused: onFocused,
                   onActivate: () => onOpen(apps[i]),
                   onLongPress: () => onMenu(apps[i], i),
+                  pkg: apps[i].package,
+                  onMove: (dir) => onMove(apps[i].package, dir),
+                  onMore: () => onMore(apps[i], i),
                 ),
               ),
             if (apps.isEmpty)
@@ -2863,7 +2917,10 @@ class _Tile extends StatefulWidget {
       required this.art,
       required this.onFocused,
       required this.onActivate,
-      this.onLongPress});
+      this.onLongPress,
+      this.pkg = '',
+      this.onMove,
+      this.onMore});
   final int index;
   final double w;
   final Animation<double> intro;
@@ -2871,6 +2928,9 @@ class _Tile extends StatefulWidget {
   final ValueChanged<int> onFocused;
   final VoidCallback onActivate;
   final VoidCallback? onLongPress;
+  final String pkg;
+  final ValueChanged<int>? onMove; // jiggle mode: -1 left, 1 right
+  final VoidCallback? onMore; // jiggle mode: Down for the app's options
   @override
   State<_Tile> createState() => _TileState();
 }
@@ -2889,6 +2949,24 @@ class _TileState extends State<_Tile> with TickerProviderStateMixin {
   bool _pressed = false;
   bool _down = false;
   bool _long = false;
+  bool _jdown = false; // OK pressed while jiggling (the hold that started it doesn't count)
+  late final AnimationController _wig =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
+
+  bool get _jiggling => kJiggle.value != null;
+  bool get _picked => kJiggle.value != null && kJiggle.value == widget.pkg;
+
+  void _onJiggle() {
+    if (!mounted) return;
+    if (_jiggling && !SettingsScope.read(context).perfMode) {
+      _wig.repeat(reverse: true);
+    } else {
+      _wig.stop();
+      _wig.value = 0.5;
+    }
+    _jdown = false;
+    setState(() {});
+  }
 
   double get _h => widget.w * 9 / 16;
 
@@ -2899,6 +2977,8 @@ class _TileState extends State<_Tile> with TickerProviderStateMixin {
     final e = (s + 0.45).clamp(0.0, 1.0).toDouble();
     _intro = CurvedAnimation(
         parent: widget.intro, curve: Interval(s, e, curve: Curves.easeOutCubic));
+    _wig.value = 0.5;
+    kJiggle.addListener(_onJiggle);
   }
 
   @override
@@ -2914,9 +2994,11 @@ class _TileState extends State<_Tile> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    kJiggle.removeListener(_onJiggle);
     _node.dispose();
     _fc.dispose();
     _shine.dispose();
+    _wig.dispose();
     super.dispose();
   }
 
@@ -2939,6 +3021,26 @@ class _TileState extends State<_Tile> with TickerProviderStateMixin {
   }
 
   KeyEventResult _onKey(FocusNode _, KeyEvent e) {
+    if (_jiggling) {
+      // Left/Right move the picked app, OK is done, Down shows its options
+      final k = e.logicalKey;
+      if (_selectKeys.contains(k)) {
+        if (e is KeyDownEvent) _jdown = true;
+        if (e is KeyUpEvent && _jdown) kJiggle.value = null;
+        return KeyEventResult.handled;
+      }
+      if (e is KeyUpEvent) return KeyEventResult.ignored;
+      if (k == LogicalKeyboardKey.arrowLeft || k == LogicalKeyboardKey.arrowRight) {
+        if (_picked) widget.onMove?.call(k == LogicalKeyboardKey.arrowLeft ? -1 : 1);
+        return KeyEventResult.handled;
+      }
+      if (k == LogicalKeyboardKey.arrowDown) {
+        if (_picked) widget.onMore?.call();
+        return KeyEventResult.handled;
+      }
+      if (k == LogicalKeyboardKey.arrowUp) return KeyEventResult.handled;
+      return KeyEventResult.ignored;
+    }
     if (!_selectKeys.contains(e.logicalKey)) return KeyEventResult.ignored;
     if (e is KeyDownEvent) {
       _down = true;
@@ -2974,14 +3076,24 @@ class _TileState extends State<_Tile> with TickerProviderStateMixin {
             child: FadeTransition(
               opacity: _intro,
               child: AnimatedBuilder(
-                animation: Listenable.merge([_intro, _f]),
+                animation: Listenable.merge([_intro, _f, _wig]),
                 child: _body(),
-                builder: (_, child) => Transform.translate(
-                  offset: Offset(0, -16 * _f.value + 30 * (1 - _intro.value)),
-                  child: Transform.scale(
-                      scale: (0.86 + 0.14 * _intro.value) * (1 + 0.14 * _f.value),
-                      child: child),
-                ),
+                builder: (_, child) {
+                  // jiggle: the others wiggle, the one you're moving lifts up
+                  final lift = _picked ? 1.0 : 0.0;
+                  final turn = _jiggling && !_picked
+                      ? (_wig.value - 0.5) * 0.035 * (widget.index.isEven ? 1 : -1)
+                      : 0.0;
+                  return Transform.translate(
+                    offset: Offset(0, -16 * _f.value + 30 * (1 - _intro.value) - 14 * lift),
+                    child: Transform.rotate(
+                      angle: turn,
+                      child: Transform.scale(
+                          scale: (0.86 + 0.14 * _intro.value) * (1 + 0.14 * _f.value) * (1 + 0.06 * lift),
+                          child: child),
+                    ),
+                  );
+                },
               ),
             ),
           ),

@@ -3,6 +3,11 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.30.0
+**Added**
+- **Jiggle mode:** hold OK on an app on the home screen and the apps wiggle, like on an iPhone or Apple TV. Left and Right move the one you picked, OK (or Back) when you're done, Down for its other options (close, uninstall, remove).
+- **Aerial screensaver:** the photo scenes drift slowly in and across, one after another, with the time in the corner and the scene's name as it starts. Press Down to see where it is again. Settings → Screensaver and power → Screensaver → Aerial.
+
 ## 1.29.0
 **Added**
 - **Open apps, like on an Apple TV:** press Back twice on the home screen and the apps that are open show as big cards. OK jumps back into one, Up swipes it away and closes it, and Close all closes them all.

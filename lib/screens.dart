@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart' hide Text;
 import 'i18n.dart';
 import 'package:flutter/services.dart';
+import 'aerial.dart';
 import 'main.dart';
 import 'server.dart';
 import 'sync.dart';
@@ -1388,7 +1389,7 @@ class _ScreensaverViewState extends State<ScreensaverView> with SingleTickerProv
     super.initState();
     final cfg = SettingsScope.read(context);
     if (!cfg.perfMode) _zoom.repeat(reverse: true);
-    if (cfg.ssSource != 'colors') _loadShots(cfg.ssSource);
+    if (cfg.ssSource != 'colors' && cfg.ssSource != 'aerial') _loadShots(cfg.ssSource);
     if (cfg.ssSource == 'drop') kDrop.photosStamp.addListener(_reloadDrop);
     _t = Timer.periodic(const Duration(seconds: 20), (_) {
       _ticks++;
@@ -1448,6 +1449,7 @@ class _ScreensaverViewState extends State<ScreensaverView> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final s = SettingsScope.of(context);
+    if (s.ssSource == 'aerial') return const AerialView();
     final h24 = s.clock24;
     final m = _now.minute.toString().padLeft(2, '0');
     final time = h24
@@ -1592,6 +1594,10 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
           const SizedBox(height: 14),
           Wrap(spacing: 16, runSpacing: 16, children: [
             Opt(
+                label: 'Aerial',
+                selected: s.ssSource == 'aerial',
+                onSelect: () => s.change(() => s.ssSource = 'aerial')),
+            Opt(
                 label: 'Moving colors',
                 selected: s.ssSource == 'colors',
                 onSelect: () => s.change(() => s.ssSource = 'colors')),
@@ -1613,6 +1619,12 @@ class _ScreensaverScreenState extends State<ScreensaverScreen> {
             const Padding(
               padding: EdgeInsets.only(top: 14),
               child: Text('Uses photos sent to your Foyer Drop server. Falls back to colors if it is offline.',
+                  style: TextStyle(fontSize: 22, color: Colors.white60)),
+            ),
+          if (s.ssSource == 'aerial')
+            const Padding(
+              padding: EdgeInsets.only(top: 14),
+              child: Text('The photo scenes, drifting slowly one after another, like an Apple TV. Press Down to see where it is; any other button wakes the TV.',
                   style: TextStyle(fontSize: 22, color: Colors.white60)),
             ),
           if (s.ssSource == 'online')
