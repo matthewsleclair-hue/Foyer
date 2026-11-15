@@ -5,7 +5,8 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'main.dart';
 import 'weather.dart';
 
@@ -466,7 +467,7 @@ class _PhotoClockState extends State<_PhotoClock> {
     final h24 = SettingsScope.of(context).clock24;
     final m = _now.minute.toString().padLeft(2, '0');
     final time = h24 ? '${_now.hour.toString().padLeft(2, '0')}:$m' : '${_now.hour % 12 == 0 ? 12 : _now.hour % 12}:$m';
-    final date = '${_weekdayNames[_now.weekday - 1]}, ${_monthNames[_now.month - 1]} ${_now.day}';
+    final date = longDate(_now);
     final top = widget.top;
     return Stack(children: [
       Positioned(
@@ -499,11 +500,6 @@ class _PhotoClockState extends State<_PhotoClock> {
   }
 }
 
-const _weekdayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const _monthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
 
 /// The date and the big glass clock, centred in the sky.
 class _SceneClock extends StatefulWidget {
@@ -541,7 +537,7 @@ class _SceneClockState extends State<_SceneClock> {
     final h24 = SettingsScope.of(context).clock24;
     final m = _now.minute.toString().padLeft(2, '0');
     final time = h24 ? '${_now.hour.toString().padLeft(2, '0')}:$m' : '${_now.hour % 12 == 0 ? 12 : _now.hour % 12}:$m';
-    final date = '${_weekdayNames[_now.weekday - 1]}, ${_monthNames[_now.month - 1]} ${_now.day}';
+    final date = longDate(_now);
     final c = widget.color;
     final shadow = [
       Shadow(color: widget.dark ? const Color(0x40FFFFFF) : const Color(0x40000000), blurRadius: 30),

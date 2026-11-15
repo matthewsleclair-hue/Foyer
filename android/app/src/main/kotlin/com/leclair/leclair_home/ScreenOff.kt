@@ -36,7 +36,8 @@ object ScreenOff {
             val dp = { v: Float -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, svc.resources.displayMetrics) }
             val root = FrameLayout(svc).apply { setBackgroundColor(Color.BLACK) }
             val t = TextView(svc).apply {
-                text = "Screen off. The sound keeps playing.\nPress any button to bring the picture back."
+                text = Lang.t(svc, "Screen off. The sound keeps playing.\nPress any button to bring the picture back.",
+                    "Écran éteint. Le son continue.\nAppuyez sur n'importe quel bouton pour ramener l'image.")
                 setTextColor(Color.argb(150, 255, 255, 255))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                 gravity = Gravity.CENTER

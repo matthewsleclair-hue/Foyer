@@ -93,7 +93,8 @@ object CrashGuard {
                 .putLong("asideUntil", now + ASIDE_MS)
                 .remove("crashes").remove("unsettled")
                 .commit()
-            toast(a, "Foyer had a problem, so the TV's own home is on for a few minutes.")
+            toast(a, Lang.t(a, "Foyer had a problem, so the TV's own home is on for a few minutes.",
+                "Foyer a eu un problème, alors l'accueil de la télé prend le relais quelques minutes."))
             openStockHome(a)
             return true
         }

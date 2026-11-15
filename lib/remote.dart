@@ -1,7 +1,8 @@
 // Settings > TV tools > Remote buttons: choose what the remote's extra buttons
 // open (the Streamer's star button, YouTube, Netflix, or any other button),
 // on a press and on a hold. The native side is RemoteKeys.kt.
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'main.dart';
 import 'screens.dart';
 import 'system.dart';

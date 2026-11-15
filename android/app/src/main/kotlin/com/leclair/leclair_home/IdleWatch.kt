@@ -95,7 +95,8 @@ object IdleWatch {
         if (now - pausedSince >= waitMs()) {
             firedSig = sig
             Log.d(TAG, "paused for ${(now - pausedSince) / 60_000} min: turning the TV off in a minute")
-            SleepTimer.start(c, 1, "Paused for a while: turning the TV off in 1 minute\nPress any button to keep it on")
+            SleepTimer.start(c, 1, Lang.t(c, "Paused for a while: turning the TV off in 1 minute\nPress any button to keep it on",
+                "En pause depuis un moment : la télé s'éteint dans 1 minute\nAppuyez sur n'importe quel bouton pour la garder allumée"))
         }
     }
 }

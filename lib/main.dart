@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'package:flutter/services.dart';
 import 'extras.dart';
 import 'games.dart';
@@ -16,6 +17,7 @@ import 'setup.dart';
 import 'sounds.dart';
 import 'server.dart';
 import 'sports.dart';
+import 'sync.dart';
 import 'update.dart';
 import 'weather.dart';
 import 'weatherfx.dart';
@@ -163,6 +165,17 @@ class Settings extends ChangeNotifier {
   String name = 'Home';
   bool liquid = false;
   bool clock24 = false;
+  /// 'en' or 'fr' (Settings → Appearance → Language, or the first setup step)
+  String _lang = 'en';
+  String get lang => _lang;
+  /// keep a copy of these settings on Foyer Drop, for other boxes to copy (sync.dart)
+  bool syncOn = true;
+  set lang(String v) {
+    final was = _lang;
+    _lang = v == 'fr' ? 'fr' : 'en';
+    kLang = _lang;
+    if (was != _lang) makeGamesTileArt(); // the Games tile has its name painted in
+  }
   List<String> pinned = [];
   bool setupDone = false;
   String plexToken = '';
@@ -292,6 +305,8 @@ class Settings extends ChangeNotifier {
         'name': name,
         'liquid': liquid,
         'clock24': clock24,
+        'lang': lang,
+        'syncOn': syncOn,
         'pinned': pinned,
         'weatherCity': weatherCity,
         'weatherLat': weatherLat,
@@ -350,6 +365,8 @@ class Settings extends ChangeNotifier {
     if (n.isNotEmpty) name = n;
     liquid = _b(j['liquid'], liquid);
     clock24 = _b(j['clock24'], clock24);
+    lang = _s(j['lang'], lang);
+    syncOn = _b(j['syncOn'], syncOn);
     final pin = j['pinned'];
     if (pin is List) {
       pinned = pin.whereType<String>().take(kMaxPinned).toList();
@@ -465,6 +482,7 @@ class Settings extends ChangeNotifier {
       _persist();
     }
     notifyListeners();
+    syncSoon(this, soon: const Duration(minutes: 2)); // so the other boxes can see this one
   }
 
   Future<void> save({
@@ -538,6 +556,7 @@ class Settings extends ChangeNotifier {
     try {
       await kChannel.invokeMethod('saveSettings', {'json': jsonEncode(toJson())});
     } catch (_) {}
+    syncSoon(this);
   }
 }
 
@@ -575,19 +594,29 @@ class LauncherApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         navigatorKey: kNavKey,
         debugShowCheckedModeBanner: false,
-        title: 'Foyer',
+        title: 'Foyer TV',
         // Plus Jakarta Sans everywhere (fonts/, added to the project by tools/patch_fonts.py)
         theme: ThemeData(brightness: Brightness.dark, useMaterial3: true, fontFamily: 'PlusJakartaSans'),
         // Design on a fixed 1920x1080 canvas and scale it to the real screen.
-        builder: (context, child) => ColoredBox(
-          color: Colors.black,
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: SizedBox(width: 1920, height: 1080, child: child),
+        builder: (context, child) => _LangHost(
+          child: ColoredBox(
+            color: Colors.black,
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: SizedBox(width: 1920, height: 1080, child: child),
+            ),
           ),
         ),
         home: const Root(),
       );
+}
+
+/// Rebuilds the words on every page when the language changes.
+class _LangHost extends StatelessWidget {
+  const _LangHost({required this.child});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) => LangScope(lang: SettingsScope.of(context).lang, child: child);
 }
 
 enum _Mode { home, hub }
@@ -1681,7 +1710,7 @@ class _SetupScreenState extends State<SetupScreen> {
       } else {
         _gMsg = home
             ? 'Done. The Home button now opens Foyer.'
-            : 'Almost there. Press Home on the remote; if the TV asks which home app to use, pick Foyer and Always.';
+            : 'Almost there. Press Home on the remote; if the TV asks which home app to use, pick Foyer TV and Always.';
       }
     });
     _refreshHomeKey();

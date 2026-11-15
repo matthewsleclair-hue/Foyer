@@ -8,7 +8,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
 import 'screens.dart';
@@ -265,9 +266,11 @@ Future<void> syncDropGames(String url, String token) async {
 
 const String kGamesTile = 'foyer.games';
 Uint8List? kGamesTileArt;
+String _tileLang = '';
 
 Future<void> makeGamesTileArt() async {
-  if (kGamesTileArt != null) return;
+  if (kGamesTileArt != null && _tileLang == kLang) return;
+  _tileLang = kLang;
   const w = 640.0, h = 360.0;
   final rec = ui.PictureRecorder();
   final c = Canvas(rec);
@@ -284,8 +287,8 @@ Future<void> makeGamesTileArt() async {
     ..layout();
   icon.paint(c, Offset((w - icon.width) / 2, 60));
   final t = TextPainter(
-      text: const TextSpan(
-          text: 'Games',
+      text: TextSpan(
+          text: tr('Games'),
           style: TextStyle(fontFamily: 'PlusJakartaSans', fontSize: 64, fontWeight: FontWeight.w800, color: Colors.white)),
       textDirection: TextDirection.ltr)
     ..layout();

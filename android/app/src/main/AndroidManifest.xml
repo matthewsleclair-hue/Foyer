@@ -23,7 +23,7 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
-        android:label="Foyer"
+        android:label="Foyer TV"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/foyer_banner"
@@ -34,7 +34,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
             android:banner="@drawable/foyer_banner"
-            android:label="Foyer"
+            android:label="Foyer TV"
             android:launchMode="singleTask"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
@@ -60,7 +60,7 @@
         <service
             android:name=".HomeKeyService"
             android:exported="false"
-            android:label="Foyer Home button"
+            android:label="Foyer TV Home button"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -73,7 +73,7 @@
         <service
             android:name=".MediaListener"
             android:exported="false"
-            android:label="Foyer now playing"
+            android:label="Foyer TV now playing"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />

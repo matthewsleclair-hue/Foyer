@@ -39,7 +39,7 @@ jobs:
           Copy-Item -Recurse lib build_pc\lib
           python tools/patch_fonts.py build_pc
           python -c "from PIL import Image; Image.open('docs/icon.png').convert('RGBA').save('build_pc/windows/runner/resources/app_icon.ico', sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])"
-          (Get-Content build_pc\windows\runner\main.cpp) -replace 'L"foyer"', 'L"Foyer"' | Set-Content build_pc\windows\runner\main.cpp
+          (Get-Content build_pc\windows\runner\main.cpp) -replace 'L"foyer"', 'L"Foyer TV"' | Set-Content build_pc\windows\runner\main.cpp
           $v = (Get-Content VERSION).Trim()
           Push-Location build_pc
           flutter build windows --release -t lib/pc/main_pc.dart --dart-define=FOYER_VERSION=$v --dart-define=FOYER_BUILD=${{ github.run_number }}

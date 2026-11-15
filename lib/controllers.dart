@@ -2,7 +2,8 @@
 // pick the kind, Foyer says which buttons to hold, searches, and pairs the controller
 // the moment it shows up. No codes, nothing else to press.
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
 import 'screens.dart';

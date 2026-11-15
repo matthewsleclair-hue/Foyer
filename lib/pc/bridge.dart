@@ -5,7 +5,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../i18n.dart';
 import 'package:flutter/services.dart';
 import '../main.dart';
 import 'apps.dart';

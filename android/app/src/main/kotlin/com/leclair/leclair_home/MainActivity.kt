@@ -240,7 +240,8 @@ class MainActivity : FlutterActivity() {
                 }
                 "tvOffSoon" -> {
                     // smart idle on the home screen: off in a minute, any button keeps it on
-                    SleepTimer.start(this, 1, "Nobody's been watching: turning the TV off in 1 minute\nPress any button to keep it on")
+                    SleepTimer.start(this, 1, Lang.t(this, "Nobody's been watching: turning the TV off in 1 minute\nPress any button to keep it on",
+                        "Personne ne regarde : la télé s'éteint dans 1 minute\nAppuyez sur n'importe quel bouton pour la garder allumée"))
                     result.success(SleepTimer.endAt)
                 }
                 "smartIdle" -> {

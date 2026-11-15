@@ -69,6 +69,20 @@ Not using GitHub? Settings > Updates also accepts a link to a small JSON file
 `tools/release.sh` writes one as `update.json`.
 Bump `VERSION` to change the version name; the build number goes up automatically (every minute), so you can publish as often as you like.
 
+## French (and other words on screen)
+Write the English in the code as usual. Every file imports `material.dart hide Text` plus
+`i18n.dart`, whose `Text` looks the words up in `lib/fr.dart` when it's shown, so the French
+needs no other change. For words that aren't a `Text` widget (a painted tile, a hint), call
+`tr('...')`. A part that changes is written `{}` in fr.dart: `'Remove {}': 'Retirer {}'`.
+`python3 tools/i18n_scan.py` lists English text that has no French yet.
+The few words the Android side shows by itself (sleep note, Screen off, toasts) use `Lang.t()`
+in `Lang.kt`.
+
+## Settings follow you
+Each box posts its settings (no sign-ins) to Foyer Drop (`POST /api/tv/settings`) about 20 seconds
+after a change; `GET /api/tv/settings` lists the household's boxes and `GET /api/tv/settings/{id}`
+gives one. The client is `lib/sync.dart`. The server needs `bash tools/deploy-drop.sh` once for this.
+
 ## Icon
 Regenerate with `python3 tools/make_icons.py` (needs `pip install playwright`). Previews are in `docs/`.
 

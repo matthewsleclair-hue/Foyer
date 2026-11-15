@@ -2,16 +2,16 @@
   <img src="docs/icon.png" width="120" alt="Foyer icon">
 </p>
 
-<h1 align="center">Foyer</h1>
+<h1 align="center">Foyer TV</h1>
 
 <p align="center"><b>A calm, ad-free home screen for your TV.</b><br>
 Your apps, the time, the weather and your team's score. Nothing you didn't ask for.</p>
 
 ---
 
-## What is Foyer?
+## What is Foyer TV?
 
-When you turn on most streaming boxes, the first thing you see is a wall of ads, "sponsored" shows and apps you never installed. **Foyer replaces that screen.** Press Home on your remote and you get a clean, good-looking screen with just *your* apps, a big clock, today's weather and a greeting.
+When you turn on most streaming boxes, the first thing you see is a wall of ads, "sponsored" shows and apps you never installed. **Foyer TV replaces that screen.** Press Home on your remote and you get a clean, good-looking screen with just *your* apps, a big clock, today's weather and a greeting.
 
 Everything you already use keeps working exactly as before: **Netflix, Prime Video, Crave, Disney+, YouTube, Plex, Fibe TV** and anything else from the Play Store. Foyer just changes what you see between them.
 
@@ -30,6 +30,8 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - Rain, snow or fog drifting over the background when that's the weather outside
 - "Good evening · 4° Cloudy", and glass that warms up at sunset and dims late at night
 - Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
+- **In English or in French** (Français), picked on the first setup screen or in Settings → Appearance → Language
+- **Settings follow you:** a new box (or the PC) can set itself up like any of your other boxes, through Foyer Drop: apps, people, teams, look and weather in one step
 
 **No ads, no clutter**
 - Google's ad-filled home screen is switched off
@@ -141,10 +143,10 @@ Press the **gear** at the bottom left of the home screen (or the remote's menu b
 |---|---|
 | **TV settings** | Network and Wi-Fi, VPN, Bluetooth and remotes, picture and resolution, sound, apps, storage, the TV's name, power |
 | **Home screen** | Name and clock, your apps, **People**, **Plex**, **Keep watching** (on or off), weather, sports and score alerts, Foyer Drop |
-| **Appearance** | Glass style, wallpaper and **scenes**, performance mode, light that follows the day, **weather on the background**, holiday themes, sounds |
+| **Appearance** | **Language (English or Français)**, glass style, wallpaper and **scenes**, performance mode, light that follows the day, **weather on the background**, holiday themes, sounds |
 | **Screensaver and power** | Screensaver, **Smart idle**, **Screen off**, start on boot, restart or sleep |
 | **TV tools** | Home button, Tune-up, remote buttons |
-| **Backup and updates** | Updates, backup and restore, reset for someone new, run setup again |
+| **Backup and updates** | Updates, backup and restore, **settings follow you**, reset for someone new, run setup again |
 
 ## Foyer for PC
 
@@ -204,6 +206,12 @@ Yes, any time: **Settings → TV tools → Home button → Bring back the TV's o
 
 **Does Foyer collect anything about me?**
 No. Foyer has no ads and no tracking. Weather and scores come from public sources; Foyer Drop runs on a server that belongs to whoever set it up for you.
+
+**Is Foyer TV available in French?**
+Yes. Pick **Français** on the first setup screen, or go to **Settings → Appearance → Language**. Everything switches at once, and the clock goes to 24 hours.
+
+**I got a second box. Do I have to set it up from scratch?**
+No. Link it to Foyer Drop during setup and it asks whether to copy one of your other boxes. You can also do it later in **Settings → Backup and updates → Settings follow you**. Sign-ins like Plex aren't copied, so link those again.
 
 **Something looks wrong. What do I do?**
 Press **Home** to come back to Foyer. If it ever keeps crashing, the TV's own home screen takes over for a few minutes by itself. If that doesn't help, try **Settings → Screensaver and power → Restart or sleep → Restart**, then tell whoever set up Foyer for you.

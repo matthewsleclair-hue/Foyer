@@ -1,7 +1,15 @@
-# What's new in Foyer
+# What's new in Foyer TV
 
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
+
+## 1.26.0
+**Added**
+- **Français:** Foyer TV in French, from the first setup screen (English / Français) or Settings → Appearance → Language. It switches at once, and French also turns on the 24-hour clock.
+- **Settings follow you:** every TV and PC linked to Foyer Drop keeps a copy of its settings there (apps, people, teams, look, weather). Right after you link a new box, Foyer asks whether to set it up like one of your other boxes. Also in Settings → Backup and updates → Settings follow you. Plex and other sign-ins are never copied.
+
+**Changed**
+- Foyer is now called **Foyer TV** (on the TV's app list, the PC window and the shortcuts).
 
 ## 1.25.3
 **Fixed**

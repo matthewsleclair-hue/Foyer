@@ -1,6 +1,7 @@
 // Settings > TV settings > VPN. On Android TV every VPN works through its own app, which
 // also holds the login. Foyer shows whether a VPN is on, and opens the app (or its Play Store page).
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'main.dart';
 import 'screens.dart';
 import 'system.dart';

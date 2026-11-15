@@ -19,7 +19,8 @@ $exe = Join-Path $dest 'foyer.exe'
 # Start menu and desktop shortcuts
 $shell = New-Object -ComObject WScript.Shell
 foreach ($dir in @([Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Desktop'))) {
-  $lnk = $shell.CreateShortcut((Join-Path $dir 'Foyer.lnk'))
+  Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $dir 'Foyer.lnk')  # the old name
+  $lnk = $shell.CreateShortcut((Join-Path $dir 'Foyer TV.lnk'))
   $lnk.TargetPath = $exe
   $lnk.WorkingDirectory = $dest
   $lnk.IconLocation = "$exe,0"

@@ -2,7 +2,8 @@
 // colours, gently falling particles and a greeting for the week around the day.
 import 'dart:async';
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'main.dart';
 import 'screens.dart';
 
@@ -65,20 +66,23 @@ Season activeSeason(Settings s) =>
     kSeasonPreview.value ?? (s.seasonal ? seasonFor(DateTime.now()) : Season.none);
 
 String _fmt(DateTime d) =>
-    '${const ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.month]} ${d.day}';
+    shortDate(d);
+
+String _range(DateTime a, DateTime b) =>
+    kLang == 'fr' ? 'Du ${_fmt(a)} au ${_fmt(b)}' : '${_fmt(a)} to ${_fmt(b)}';
 
 /// "Easter: Mar 21 to Mar 29" for the settings page.
 String seasonDates(Season s, int year) {
   switch (s) {
     case Season.halloween:
-      return 'Oct 25 to Oct 31';
+      return _range(DateTime(year, 10, 25), DateTime(year, 10, 31));
     case Season.christmas:
-      return 'Dec 19 to Dec 26';
+      return _range(DateTime(year, 12, 19), DateTime(year, 12, 26));
     case Season.newYear:
-      return 'Dec 27 to Jan 2';
+      return _range(DateTime(year, 12, 27), DateTime(year + 1, 1, 2));
     case Season.easter:
       final e = easterSunday(year);
-      return '${_fmt(e.subtract(const Duration(days: 7)))} to ${_fmt(e.add(const Duration(days: 1)))}';
+      return _range(e.subtract(const Duration(days: 7)), e.add(const Duration(days: 1)));
     case Season.none:
       return '';
   }
@@ -119,7 +123,8 @@ class _SeasonGreetingState extends State<SeasonGreeting> {
     if (widget.season == Season.newYear && now.month == 12 && now.day == 31) {
       final left = DateTime(now.year + 1).difference(now);
       final h = left.inHours, m = left.inMinutes % 60;
-      return h > 0 ? '$h h $m min to ${now.year + 1}' : '$m min to ${now.year + 1}';
+      final to = kLang == 'fr' ? 'avant' : 'to';
+      return h > 0 ? '$h h $m min $to ${now.year + 1}' : '$m min $to ${now.year + 1}';
     }
     return look.greeting;
   }

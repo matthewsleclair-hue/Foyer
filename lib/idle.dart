@@ -8,7 +8,8 @@
 // Screen off: the picture goes black while the sound keeps playing.
 import 'dart:async';
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
 import 'screens.dart';
@@ -23,8 +24,11 @@ String idleActionName(String a) =>
 
 String smartIdleSummary(Settings s) {
   if (!s.idleOn) return 'Off';
-  final p = s.pausedMinutes > 0 ? ', paused shows after ${_mins(s.pausedMinutes)}' : '';
-  return '${idleActionName(s.idleAction)} after ${_mins(s.idleMinutes)}$p';
+  final fr = kLang == 'fr';
+  final p = s.pausedMinutes > 0
+      ? (fr ? ', émissions en pause après ${tr(_mins(s.pausedMinutes))}' : ', paused shows after ${_mins(s.pausedMinutes)}')
+      : '';
+  return '${tr(idleActionName(s.idleAction))} ${fr ? 'après' : 'after'} ${tr(_mins(s.idleMinutes))}$p';
 }
 
 bool _quietNow() {
@@ -150,8 +154,6 @@ class _DimClockViewState extends State<DimClockView> {
     final s = SettingsScope.of(context);
     final m = _now.minute.toString().padLeft(2, '0');
     final h = s.clock24 ? _now.hour.toString().padLeft(2, '0') : '${_now.hour % 12 == 0 ? 12 : _now.hour % 12}';
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     return ColoredBox(
       color: Colors.black,
       child: AnimatedAlign(
@@ -162,7 +164,7 @@ class _DimClockViewState extends State<DimClockView> {
           Text('$h:$m',
               style: const TextStyle(fontSize: 150, fontWeight: FontWeight.w200, color: Color(0x66FFFFFF), height: 1)),
           const SizedBox(height: 8),
-          Text('${days[_now.weekday - 1]}, ${months[_now.month - 1]} ${_now.day}',
+          Text(longDate(_now),
               style: const TextStyle(fontSize: 30, color: Color(0x4DFFFFFF))),
         ]),
       ),

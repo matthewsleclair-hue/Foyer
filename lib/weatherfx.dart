@@ -3,7 +3,8 @@
 // Every particle's position is worked out from the time, so nothing is stored per
 // frame and it stays light on a TV box.
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
 import 'screens.dart';

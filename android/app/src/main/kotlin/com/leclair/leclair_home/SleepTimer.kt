@@ -50,24 +50,26 @@ object SleepTimer {
     }
 
     private const val DEFAULT_NOTE = "Going to sleep in 1 minute\nPress any button to keep watching"
+    private const val DEFAULT_NOTE_FR = "Mise en veille dans 1 minute\nAppuyez sur n'importe quel bouton pour continuer à regarder"
+    private fun defaultNote(c: Context) = Lang.t(c, DEFAULT_NOTE, DEFAULT_NOTE_FR)
     private var note = DEFAULT_NOTE
 
     /** Starts (or replaces) the timer. 0 minutes turns it off. */
-    fun start(c: Context, minutes: Int, message: String = DEFAULT_NOTE) {
+    fun start(c: Context, minutes: Int, message: String? = null) {
         app = c.applicationContext
         if (minutes <= 0) return cancel(c)
-        note = message
+        note = message ?: defaultNote(c)
         schedule(c, System.currentTimeMillis() + minutes * 60_000L)
     }
 
     /** For a remote button: off -> 30 min, on -> 30 more (up to 3 hours). */
     fun bump(c: Context) {
         val now = System.currentTimeMillis()
-        note = DEFAULT_NOTE
+        note = defaultNote(c)
         val left = if (endAt > now) endAt - now else 0L
         val next = ((left + 30 * 60_000L).coerceAtMost(180 * 60_000L))
         schedule(c, now + next)
-        toast(c, "Sleep timer: ${(next / 60_000L)} minutes")
+        toast(c, Lang.t(c, "Sleep timer: ${(next / 60_000L)} minutes", "Minuterie de sommeil : ${(next / 60_000L)} minutes"))
     }
 
     fun cancel(c: Context) {
@@ -95,7 +97,7 @@ object SleepTimer {
     fun onKey(c: Context): Boolean {
         if (!warning) return false
         cancel(c)
-        toast(c, "Sleep timer off. Enjoy the show.")
+        toast(c, Lang.t(c, "Sleep timer off. Enjoy the show.", "Minuterie de sommeil désactivée. Bonne écoute."))
         HomeKeyService.instance?.refreshFilter()
         return true
     }

@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'dart:io' show File, NetworkInterface, InternetAddressType, Process;
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
 import 'server.dart';
+import 'sync.dart';
 import 'sports.dart';
 import 'system.dart';
 import 'sounds.dart';
@@ -306,7 +308,7 @@ class _AskTextDialogState extends State<_AskTextDialog> {
                 textInputAction: TextInputAction.done,
                 onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
                 style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w600),
-                decoration: _fieldDeco().copyWith(hintText: widget.hint),
+                decoration: _fieldDeco().copyWith(hintText: tr(widget.hint)),
               ),
             ),
             if (!showQr) ...[
@@ -519,6 +521,15 @@ final List<_Group> _groups = [
         () => _push(c, const ServerScreen())),
   ]),
   _Group(Icons.palette_rounded, 'Appearance', 'Glass style, wallpaper, holidays, sounds', (c, s) => [
+    HubEntry(Icons.translate_rounded, 'Language', s.lang == 'fr' ? 'Français' : 'English', () {
+      showMenu2(c, 'Language', [
+        MenuChoice('English', () => s.change(() => s.lang = 'en')),
+        MenuChoice('Français', () => s.change(() {
+              s.lang = 'fr';
+              s.clock24 = true;
+            })),
+      ]);
+    }),
     HubEntry(
         Icons.blur_on_rounded,
         'Glass style',
@@ -624,6 +635,11 @@ final List<_Group> _groups = [
     HubEntry(Icons.backup_rounded, 'Backup and restore',
         'Save your settings to a file, or load them back',
         () => _push(c, const BackupScreen())),
+    HubEntry(Icons.devices_rounded, 'Settings follow you',
+        s.serverToken.isEmpty
+            ? 'Link Foyer Drop, and a new box can copy this one'
+            : (s.syncOn ? 'On: a copy is kept on Foyer Drop for your other boxes' : 'Off'),
+        () => _push(c, const SyncScreen())),
     HubEntry(Icons.card_giftcard_rounded, 'Reset for someone new',
         'Giving this box away? Clears your accounts and settings, keeps the TV set up', () {
       showMenu2(c, 'Reset for someone new?', [
@@ -1333,11 +1349,6 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
 
 // ───────────────────────── screensaver ─────────────────────────
 
-const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const _months = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
 
 class _Shot {
   _Shot(this.src, this.net, [this.caption = '', this.token = '']);
@@ -1442,7 +1453,7 @@ class _ScreensaverViewState extends State<ScreensaverView> with SingleTickerProv
         ? '${_now.hour.toString().padLeft(2, '0')}:$m'
         : '${_now.hour % 12 == 0 ? 12 : _now.hour % 12}:$m';
     final ampm = h24 ? '' : (_now.hour < 12 ? ' AM' : ' PM');
-    final date = '${_weekdays[_now.weekday - 1]}, ${_months[_now.month - 1]} ${_now.day}';
+    final date = longDate(_now);
     final w = widget.weather;
     final shot = _shots.isNotEmpty ? _shots[_photoIdx % _shots.length] : null;
 

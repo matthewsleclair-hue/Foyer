@@ -4,7 +4,8 @@
 // Anything Android keeps locked away opens the stock page, and Back or Home
 // comes straight back to Foyer.
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
 import 'screens.dart';
@@ -1572,7 +1573,7 @@ class _GoogleTuneUpScreenState extends State<GoogleTuneUpScreen> {
           icon: Icons.cleaning_services_rounded,
           title: g.title,
           subtitle: g.note,
-          value: off == items.length ? 'All off' : (off == 0 ? 'On' : '$off of ${items.length} off'),
+          value: off == items.length ? 'All off' : (off == 0 ? 'On' : tr('{} of {} off').replaceFirst('{}', '$off').replaceFirst('{}', '${items.length}')),
           autofocus: first,
           onSelect: () => _groupMenu(g)));
       first = false;

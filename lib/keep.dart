@@ -8,7 +8,8 @@
 // at the top left of the home screen; pick one to switch.
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'main.dart';
 import 'screens.dart';
 import 'plex.dart';

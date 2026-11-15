@@ -72,6 +72,8 @@ with closing(db()) as _c, _c:
         CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
         CREATE TABLE IF NOT EXISTS games(id TEXT PRIMARY KEY, user_id INTEGER, name TEXT, size INTEGER,
           sender TEXT, created REAL);
+        CREATE TABLE IF NOT EXISTS tv_settings(tv_id TEXT PRIMARY KEY, user_id INTEGER, name TEXT,
+          platform TEXT, settings TEXT, updated REAL);
         """
     )
 
@@ -1052,6 +1054,86 @@ def delete_game(game_id: str, w: Who = Depends(who)):
     if cur.rowcount and game_id.isalnum():
         (GAMES / game_id).unlink(missing_ok=True)
     bump(w.user_id)
+    return {"ok": True}
+
+
+# ── Settings follow you ──
+# Each TV and PC keeps a copy of its settings here (apps, teams, people, look; never Plex or
+# other sign-ins: the TV leaves those out). A new box, or one reset for someone new, can then
+# set itself up like any other box in the same household. The copy stays after a TV is
+# unlinked, so a replacement box can still copy the old one.
+MAX_SETTINGS = 256 * 1024
+
+
+def _tv_only(w: Who):
+    if w.kind != "tv":
+        raise HTTPException(403, "Only a TV or PC uses this")
+
+
+@app.post("/api/tv/settings")
+def save_settings(body: dict, w: Who = Depends(who)):
+    _tv_only(w)
+    data = body.get("settings")
+    if not isinstance(data, dict):
+        raise HTTPException(400, "settings missing")
+    raw = json.dumps(data)
+    if len(raw) > MAX_SETTINGS:
+        raise HTTPException(413, "settings too big")
+    platform = "pc" if body.get("platform") == "pc" else "tv"
+    name = str(body.get("name") or "")[:60]
+    with closing(db()) as c, c:
+        if not name:
+            r = c.execute("SELECT label FROM tokens WHERE hash=?", (w.token_hash,)).fetchone()
+            name = (r["label"] if r else "") or "TV"
+        c.execute(
+            "INSERT OR REPLACE INTO tv_settings(tv_id,user_id,name,platform,settings,updated) VALUES(?,?,?,?,?,?)",
+            (w.token_id, w.user_id, name, platform, raw, time.time()),
+        )
+        # the same box linked again gets a new id: drop its old copy
+        c.execute(
+            "DELETE FROM tv_settings WHERE user_id=? AND name=? AND tv_id!=? "
+            "AND tv_id NOT IN (SELECT id FROM tokens WHERE kind='tv')",
+            (w.user_id, name, w.token_id),
+        )
+    return {"ok": True}
+
+
+@app.get("/api/tv/settings")
+def list_settings(w: Who = Depends(who)):
+    """The other boxes in this household this one could copy, newest first."""
+    _tv_only(w)
+    with closing(db()) as c:
+        rows = c.execute(
+            "SELECT tv_id,name,platform,updated FROM tv_settings WHERE user_id=? ORDER BY updated DESC",
+            (w.user_id,),
+        ).fetchall()
+    return {
+        "copies": [
+            {"id": r["tv_id"], "name": r["name"], "platform": r["platform"], "updated": r["updated"],
+             "mine": r["tv_id"] == w.token_id}
+            for r in rows
+        ]
+    }
+
+
+@app.get("/api/tv/settings/{tv_id}")
+def get_settings(tv_id: str, w: Who = Depends(who)):
+    _tv_only(w)
+    with closing(db()) as c:
+        r = c.execute(
+            "SELECT name,platform,settings,updated FROM tv_settings WHERE tv_id=? AND user_id=?",
+            (tv_id, w.user_id),
+        ).fetchone()
+    if not r:
+        raise HTTPException(404, "No settings from that TV")
+    return {"name": r["name"], "platform": r["platform"], "updated": r["updated"],
+            "settings": json.loads(r["settings"] or "{}")}
+
+
+@app.delete("/api/tv/settings/{tv_id}")
+def delete_settings(tv_id: str, w: Who = Depends(who)):
+    with closing(db()) as c, c:
+        c.execute("DELETE FROM tv_settings WHERE tv_id=? AND user_id=?", (tv_id, w.user_id))
     return {"ok": True}
 
 

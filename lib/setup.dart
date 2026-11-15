@@ -3,7 +3,8 @@
 //   Wi-Fi (only if offline) > About your home > Make it yours > Your apps > Extras > Done.
 // Every choice is saved as it's made. Settings can still open each part on its own.
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'main.dart';
 import 'scenes.dart';
 import 'remote.dart';
@@ -192,7 +193,7 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
         _tunedUp = true;
         _homeMsg = _isHome
             ? 'All done. The Home button now opens Foyer, and Google\'s ads are off.'
-            : 'Almost there. Press Home on the remote; if the TV asks which home app to use, pick Foyer and Always.';
+            : 'Almost there. Press Home on the remote; if the TV asks which home app to use, pick Foyer TV and Always.';
         _homeMsgColor = _isHome ? _good : Colors.white70;
       }
     });
@@ -278,7 +279,7 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
   Widget _rail() {
     final steps = _steps;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Foyer setup', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.white54)),
+      const Text('Foyer TV setup', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.white54)),
       const SizedBox(height: 28),
       for (final s in steps)
         Padding(
@@ -397,13 +398,30 @@ class _FirstRunSetupState extends State<FirstRunSetup> {
           child: const Icon(Icons.door_front_door_rounded, size: 92, color: Color(0xFFFFE8CC)),
         ),
         const SizedBox(height: 40),
-        const Text('Welcome to Foyer',
+        const Text('Welcome to Foyer TV',
             style: TextStyle(fontSize: 84, fontWeight: FontWeight.w700, letterSpacing: -1.5)),
         const SizedBox(height: 16),
         const Text('A calm, ad-free home screen for your TV. Setup takes about 5 minutes.', style: _body),
         const SizedBox(height: 12),
         Text('Setting up: $device', style: _small),
-      ]),
+        const SizedBox(height: 40),
+        // the language first, so the rest of setup is in it (French also uses the 24-hour clock)
+        Builder(builder: (context) {
+          final st = SettingsScope.of(context);
+          return Row(mainAxisSize: MainAxisSize.min, children: [
+            for (final l in const [('en', 'English'), ('fr', 'Français')])
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: PillButton(
+                    label: l.$2,
+                    primary: st.lang == l.$1,
+                    onSelect: () => st.change(() {
+                          st.lang = l.$1;
+                          st.clock24 = l.$1 == 'fr';
+                        })),
+              ),
+          ]);
+        }),
     );
   }
 

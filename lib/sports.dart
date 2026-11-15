@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'main.dart';
 import 'screens.dart';
 
@@ -77,8 +78,7 @@ String _clockText(DateTime utc, bool h24) {
     t = '$h:$m ${d.hour < 12 ? 'AM' : 'PM'}';
   }
   if (d.year == now.year && d.month == now.month && d.day == now.day) return t;
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  return '${days[d.weekday - 1]} $t';
+  return '${shortDay(d.weekday)} $t';
 }
 
 String _scoreOf(Object? v) {
@@ -476,7 +476,7 @@ void showScoreAlert({
 }) =>
     kChannel.invokeMethod('alert', {
       'emoji': _leagueEmoji[league] ?? '🏆',
-      'event': event,
+      'event': tr(event),
       'away': away,
       'awayScore': awayScore,
       'home': home,

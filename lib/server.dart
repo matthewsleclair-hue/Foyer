@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'i18n.dart';
 import 'main.dart';
 import 'games.dart';
 import 'screens.dart';
+import 'sync.dart';
 
 /// Talks to your own Foyer Drop server (the Docker app in /server):
 /// notes show on the home screen, photos can be used as the screensaver.
@@ -56,6 +58,23 @@ class DropApi {
     } finally {
       c.close(force: true);
     }
+  }
+
+  // ── settings that follow you (see sync.dart) ──
+  static Future<void> saveSettings(String url, String token, Map<String, dynamic> settings, String platform) =>
+      _send(url, '/api/tv/settings',
+          token: token, post: {'settings': settings, 'platform': platform}, waitSeconds: 20);
+
+  static Future<List<Map<String, dynamic>>> settingsCopies(String url, String token) async {
+    final j = await _get(url, token, '/api/tv/settings');
+    final l = j is Map ? j['copies'] : null;
+    return [if (l is List) for (final x in l) if (x is Map) Map<String, dynamic>.from(x)];
+  }
+
+  static Future<Map<String, dynamic>> settingsCopy(String url, String token, String id) async {
+    final j = await _get(url, token, '/api/tv/settings/${Uri.encodeComponent(id)}');
+    if (j is! Map || j['settings'] is! Map) throw const HttpException('No settings from that TV');
+    return Map<String, dynamic>.from(j);
   }
 
   /// Returns null when fine, or a plain-English problem.
@@ -479,6 +498,8 @@ class _ServerScreenState extends State<ServerScreen> {
     if (!mounted || account == null) return;
     setState(() => _msg = 'Linked to $account. Notes and drawings will show on the home screen.');
     kDrop.refresh(s.serverUrl, s.serverToken, force: true);
+    // another TV or PC in this household already set up? offer to set this one up the same way
+    await offerSettingsCopy(context);
   }
 
   Future<void> _test() async {
