@@ -3,6 +3,13 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.33.0
+**Added**
+- **Christmas lights:** during Christmas week, a string of coloured lights swags along the top of the home screen, glowing and twinkling, above the falling snow.
+- **Valentine's Day** (Feb 8 to 14): pink hearts float up the screen, with "Happy Valentine's Day".
+- **St. Patrick's Day** (Mar 11 to 17): shamrocks drift down with a little gold sparkle, with "Happy St. Patrick's Day".
+Try them any day in Settings → Appearance → Seasonal themes.
+
 ## 1.32.0
 **Added**
 - Three new photo scenes: a **palm beach** at sunset (the palm leans over the clock), **starry badlands** (rock towers under the Milky Way) and a **mountain lake** in summer. Follow the sun uses them too: the mountain lake or the Matterhorn at midday, the volcano or the palm beach at golden hour, the starry lake or the badlands at night, taking turns by the day. They're in the Aerial screensaver as well.

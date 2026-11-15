@@ -29,7 +29,7 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - **Photo backgrounds** with a big clock tucked behind the mountains and trees: a misty meadow, the Matterhorn, a volcano at dusk, a starry lake, a misty forest, a palm beach, starry badlands and a mountain lake. They take turns, or **follow the sun**: the real sunrise and sunset where you live decide which one shows
 - Rain, snow or fog drifting over the background when that's the weather outside
 - "Good evening · 4° Cloudy", and glass that warms up at sunset and dims late at night
-- Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
+- Holiday looks that switch on by themselves: Valentine's Day (floating hearts), St. Patrick's Day (shamrocks), Easter, Halloween, Christmas (snow and twinkling lights) and New Year (with a midnight countdown)
 - **Search everything:** type a show or movie and see which of your apps have it (Netflix, Crave, Disney+, Prime Video…), plus your Plex, apps and games. One press opens it there
 - **Rearrange like an iPhone:** hold OK on an app and the tiles wiggle; Left and Right move it
 - **Aerial screensaver:** the photo scenes drifting slowly, Apple TV style, with the time and the place's name

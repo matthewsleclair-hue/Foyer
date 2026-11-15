@@ -1,5 +1,6 @@
-// Seasonal home screen: Halloween, Christmas, New Year and Easter each get their own
-// colours, gently falling particles and a greeting for the week around the day.
+// Seasonal home screen: Valentine's Day, St. Patrick's Day, Easter, Halloween, Christmas and
+// New Year each get their own colours, gently moving particles and a greeting for the week
+// around the day. Christmas also strings coloured lights along the top of the screen.
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart' hide Text;
@@ -7,7 +8,7 @@ import 'i18n.dart';
 import 'main.dart';
 import 'screens.dart';
 
-enum Season { none, halloween, christmas, newYear, easter }
+enum Season { none, halloween, christmas, newYear, easter, valentines, stPatricks }
 
 class SeasonLook {
   const SeasonLook(this.name, this.greeting, this.tint, this.icon, this.iconColor);
@@ -19,14 +20,18 @@ class SeasonLook {
 }
 
 const Map<Season, SeasonLook> kSeasonLooks = {
+  Season.valentines: SeasonLook('Valentine\'s Day', 'Happy Valentine\'s Day', Color(0xFFE64980),
+      Icons.favorite_rounded, Color(0xFFFF8FAB)),
+  Season.stPatricks: SeasonLook('St. Patrick\'s Day', 'Happy St. Patrick\'s Day', Color(0xFF2B8A3E),
+      Icons.eco_rounded, Color(0xFF8CE99A)),
+  Season.easter: SeasonLook('Easter', 'Happy Easter', Color(0xFF9775FA),
+      Icons.egg_rounded, Color(0xFFFCC2D7)),
   Season.halloween: SeasonLook('Halloween', 'Happy Halloween', Color(0xFFE8590C),
       Icons.nights_stay_rounded, Color(0xFFFF922B)),
   Season.christmas: SeasonLook('Christmas', 'Merry Christmas', Color(0xFFC92A2A),
       Icons.ac_unit_rounded, Color(0xFFE7F5FF)),
   Season.newYear: SeasonLook('New Year', 'Happy New Year', Color(0xFFF08C00),
       Icons.celebration_rounded, Color(0xFFFFD43B)),
-  Season.easter: SeasonLook('Easter', 'Happy Easter', Color(0xFF9775FA),
-      Icons.egg_rounded, Color(0xFFFCC2D7)),
 };
 
 /// Easter Sunday (Gregorian), by the Anonymous Gregorian algorithm.
@@ -45,10 +50,12 @@ bool _between(DateTime d, DateTime from, DateTime to) {
 }
 
 /// The week around each day:
-///   Halloween Oct 25–31, Christmas Dec 19–26, New Year Dec 27–Jan 2,
-///   Easter from Palm Sunday to Easter Monday.
+///   Valentine's Day Feb 8–14, St. Patrick's Day Mar 11–17, Halloween Oct 25–31,
+///   Christmas Dec 19–26, New Year Dec 27–Jan 2, Easter from Palm Sunday to Easter Monday.
 Season seasonFor(DateTime d) {
   final y = d.year;
+  if (_between(d, DateTime(y, 2, 8), DateTime(y, 2, 14))) return Season.valentines;
+  if (_between(d, DateTime(y, 3, 11), DateTime(y, 3, 17))) return Season.stPatricks;
   if (_between(d, DateTime(y, 10, 25), DateTime(y, 10, 31))) return Season.halloween;
   if (_between(d, DateTime(y, 12, 19), DateTime(y, 12, 26))) return Season.christmas;
   if (_between(d, DateTime(y, 12, 27), DateTime(y, 12, 31)) || _between(d, DateTime(y, 1, 1), DateTime(y, 1, 2))) {
@@ -83,6 +90,10 @@ String seasonDates(Season s, int year) {
     case Season.easter:
       final e = easterSunday(year);
       return _range(e.subtract(const Duration(days: 7)), e.add(const Duration(days: 1)));
+    case Season.valentines:
+      return _range(DateTime(year, 2, 8), DateTime(year, 2, 14));
+    case Season.stPatricks:
+      return _range(DateTime(year, 3, 11), DateTime(year, 3, 17));
     case Season.none:
       return '';
   }
@@ -202,6 +213,9 @@ class _SeasonPainter extends CustomPainter {
   static const _leaf = [Color(0xFFE8590C), Color(0xFFF08C00), Color(0xFFC2410C), Color(0xFF8B4513), Color(0xFFFFA94D)];
   static const _confetti = [Color(0xFFFFD43B), Color(0xFFE9ECEF), Color(0xFFFF6B6B), Color(0xFF74C0FC), Color(0xFFB197FC)];
   static const _petal = [Color(0xFFFCC2D7), Color(0xFFFFEC99), Color(0xFFD0BFFF), Color(0xFFB2F2BB), Color(0xFFA5D8FF)];
+  static const _hearts = [Color(0xFFFF6B8B), Color(0xFFE64980), Color(0xFFFFA8C5), Color(0xFFFF8787), Color(0xFFFFFFFF)];
+  static const _greens = [Color(0xFF51CF66), Color(0xFF2F9E44), Color(0xFF8CE99A), Color(0xFF37B24D), Color(0xFF69DB7C)];
+  static const _bulbs = [Color(0xFFFF4D4D), Color(0xFF51CF66), Color(0xFF4DABF7), Color(0xFFFFD43B), Color(0xFFFF922B), Color(0xFFDA77F2)];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -210,6 +224,14 @@ class _SeasonPainter extends CustomPainter {
     for (var i = 0; i < parts.length; i++) {
       final p = parts[i];
       switch (season) {
+        case Season.valentines:
+          _heart(canvas, size, p, t, paint, _hearts[p.hue]);
+        case Season.stPatricks:
+          if (i % 9 == 0) {
+            _sparkle(canvas, size, p, t, paint); // a little gold
+          } else {
+            _shamrock(canvas, size, p, t, paint, _greens[p.hue]);
+          }
         case Season.christmas:
           _snow(canvas, size, p, t, paint);
         case Season.halloween:
@@ -228,6 +250,103 @@ class _SeasonPainter extends CustomPainter {
           _flake(canvas, size, p, t, paint, _petal[p.hue], fall: 30, w: 14, h: 9);
         case Season.none:
           break;
+      }
+    }
+    // Christmas: a string of coloured lights along the top, drawn over the snow
+    if (season == Season.christmas) _lights(canvas, size, t, paint);
+  }
+
+  /// Hearts float up slowly, swaying and gently turning.
+  void _heart(Canvas c, Size s, _P p, double t, Paint paint, Color col) {
+    final h = s.height + 80;
+    final y = s.height + 40 - ((p.y * h + t * 26 * p.speed) % h);
+    final x = p.x * s.width + sin(t * 0.5 * p.speed + p.sway) * 34;
+    final k = 9 + p.size * 14;
+    final path = Path()
+      ..moveTo(0, k * 0.35)
+      ..cubicTo(-k * 1.3, -k * 0.45, -k * 0.55, -k * 1.25, 0, -k * 0.5)
+      ..cubicTo(k * 0.55, -k * 1.25, k * 1.3, -k * 0.45, 0, k * 0.35)
+      ..close();
+    c.save();
+    c.translate(x, y);
+    c.rotate(sin(t * 0.8 + p.sway) * 0.25);
+    paint.color = col.withAlpha((150 + p.size * 90).round());
+    c.drawPath(path, paint);
+    c.restore();
+  }
+
+  /// Shamrocks drift down, turning: three heart-shaped leaves and a little stem.
+  void _shamrock(Canvas c, Size s, _P p, double t, Paint paint, Color col) {
+    final o = _fall(s, p, t, 34, 38);
+    final k = 6 + p.size * 9;
+    c.save();
+    c.translate(o.dx, o.dy);
+    c.rotate(t * p.spin * 0.4 + p.sway);
+    paint.color = col.withAlpha(215);
+    for (var leaf = 0; leaf < 3; leaf++) {
+      c.save();
+      c.rotate(leaf * 2 * pi / 3);
+      final path = Path()
+        ..moveTo(0, 0)
+        ..cubicTo(-k * 1.1, -k * 0.6, -k * 0.75, -k * 1.9, 0, -k * 1.25)
+        ..cubicTo(k * 0.75, -k * 1.9, k * 1.1, -k * 0.6, 0, 0)
+        ..close();
+      c.drawPath(path, paint);
+      c.restore();
+    }
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = max(1.5, k * 0.22)
+      ..strokeCap = StrokeCap.round;
+    c.drawLine(Offset.zero, Offset(k * 0.35, k * 1.5), paint);
+    paint.style = PaintingStyle.fill;
+    c.restore();
+  }
+
+  /// Christmas lights: a dark wire that swags across the top of the screen, with coloured
+  /// bulbs hanging from it that glow and twinkle softly, each at its own pace.
+  void _lights(Canvas c, Size s, double t, Paint paint) {
+    const swags = 4, dip = 34.0, top = 8.0, perSwag = 9;
+    final w = s.width / swags;
+    final wire = Path()..moveTo(0, top);
+    for (var i = 0; i < swags; i++) {
+      wire.quadraticBezierTo(w * i + w / 2, top + dip * 2, w * (i + 1), top);
+    }
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = const Color(0xCC1E2B1E);
+    c.drawPath(wire, paint);
+    paint.style = PaintingStyle.fill;
+    var n = 0;
+    for (var i = 0; i < swags; i++) {
+      for (var j = 1; j < perSwag; j++) {
+        final u = j / perSwag;
+        // point and slope on this swag's curve
+        final x = w * i + w * u;
+        final y = top + dip * 4 * u * (1 - u);
+        final slope = dip * 4 * (1 - 2 * u) / w;
+        final col = _bulbs[n % _bulbs.length];
+        final glow = 0.55 + 0.45 * sin(t * (1.1 + (n % 5) * 0.23) + n * 1.7);
+        c.save();
+        c.translate(x, y);
+        c.rotate(atan(slope));
+        // the soft glow around the bulb
+        paint
+          ..color = col.withAlpha((glow * 120).round())
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
+        c.drawCircle(const Offset(0, 20), 21, paint);
+        paint.maskFilter = null;
+        // the cap, then the bulb itself
+        paint.color = const Color(0xFF2B2F2B);
+        c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-5, 0, 10, 8), const Radius.circular(2)), paint);
+        paint.color = Color.lerp(col.withAlpha(255), Colors.white, 0.12 * glow)!.withAlpha((170 + glow * 85).round());
+        c.drawOval(const Rect.fromLTWH(-8.5, 6, 17, 28), paint);
+        // a little shine
+        paint.color = Colors.white.withAlpha((90 * glow).round());
+        c.drawOval(const Rect.fromLTWH(-4.5, 10, 4.5, 9), paint);
+        c.restore();
+        n++;
       }
     }
   }
@@ -334,7 +453,7 @@ class _SeasonsScreenState extends State<SeasonsScreen> {
     return SettingsPage(
       title: 'Seasonal themes',
       subtitle: 'For the week around each holiday, the home screen gets its own colours, a greeting '
-          'and gently falling leaves and bats, snow, confetti or petals.',
+          'and gently moving hearts, shamrocks, petals, leaves and bats, snow with Christmas lights, or confetti.',
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

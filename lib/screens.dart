@@ -565,7 +565,7 @@ final List<_Group> _groups = [
         s.weatherFx ? 'On: rain, snow and fog when it\'s like that outside' : 'Off',
         () => _push(c, const WeatherFxScreen())),
     HubEntry(Icons.celebration_rounded, 'Seasonal themes',
-        s.seasonal ? 'On: Halloween, Christmas, New Year and Easter' : 'Off',
+        s.seasonal ? 'On: Valentine\'s, St. Patrick\'s, Easter, Halloween, Christmas and New Year' : 'Off',
         () => _push(c, const SeasonsScreen())),
     if (!kIsPc)
     HubEntry(Icons.music_note_rounded, 'Sounds',
