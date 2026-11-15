@@ -3,6 +3,13 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.29.0
+**Added**
+- **Open apps, like on an Apple TV:** press Back twice on the home screen and the apps that are open show as big cards. OK jumps back into one, Up swipes it away and closes it, and Close all closes them all.
+
+**Changed**
+- Recent apps became Open apps: it only shows apps that are still running, and closing one really stops it.
+
 ## 1.28.0
 **Added**
 - **No internet?** An orange Wi-Fi button shows on the home screen when the internet drops. It says what's wrong and offers Reconnect Wi-Fi, Wi-Fi settings or Check again.
