@@ -126,6 +126,10 @@ class MainActivity : FlutterActivity() {
                 }.start()
                 "launch" -> result.success(launch(call.argument<String>("package")))
                 "openUrl" -> result.success(openUrl(call.argument<String>("url")))
+                "batteries" -> Thread {
+                    val l = Batteries.read(this)
+                    runOnUiThread { result.success(l) }
+                }.start()
                 "searchInApp" -> result.success(
                     searchInApp(call.argument<String>("package") ?: "", call.argument<String>("query") ?: "",
                         call.argument<String>("key") ?: "")

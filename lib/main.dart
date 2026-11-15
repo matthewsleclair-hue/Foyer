@@ -11,6 +11,7 @@ import 'games.dart';
 import 'idle.dart';
 import 'keep.dart';
 import 'plex.dart';
+import 'qol.dart';
 import 'screens.dart';
 import 'seasons.dart';
 import 'setup.dart';
@@ -171,6 +172,13 @@ class Settings extends ChangeNotifier {
   String get lang => _lang;
   /// keep a copy of these settings on Foyer Drop, for other boxes to copy (sync.dart)
   bool syncOn = true;
+  /// apps opened from Foyer, newest first (Back twice on home)
+  List<String> recentApps = [];
+  void noteRecent(String pkg) {
+    if (pkg.isEmpty || pkg == kGamesTile) return;
+    recentApps = [pkg, ...recentApps.where((p) => p != pkg)].take(8).toList();
+    _persist();
+  }
   set lang(String v) {
     final was = _lang;
     _lang = v == 'fr' ? 'fr' : 'en';
@@ -310,6 +318,7 @@ class Settings extends ChangeNotifier {
         'clock24': clock24,
         'lang': lang,
         'syncOn': syncOn,
+        'recentApps': recentApps,
         'pinned': pinned,
         'weatherCity': weatherCity,
         'weatherLat': weatherLat,
@@ -371,6 +380,8 @@ class Settings extends ChangeNotifier {
     clock24 = _b(j['clock24'], clock24);
     lang = _s(j['lang'], lang);
     syncOn = _b(j['syncOn'], syncOn);
+    final ra = j['recentApps'];
+    if (ra is List) recentApps = ra.whereType<String>().take(8).toList();
     final pin = j['pinned'];
     if (pin is List) {
       pinned = pin.whereType<String>().take(kMaxPinned).toList();
@@ -578,8 +589,12 @@ class SettingsScope extends InheritedNotifier<Settings> {
       c.getInheritedWidgetOfExactType<SettingsScope>()!.notifier!;
 }
 
-Future<bool> launchPackage(String pkg) async =>
-    (await kChannel.invokeMethod<bool>('launch', {'package': pkg})) ?? false;
+Future<bool> launchPackage(String pkg) async {
+  final ok = (await kChannel.invokeMethod<bool>('launch', {'package': pkg})) ?? false;
+  final ctx = kNavKey.currentContext;
+  if (ok && ctx != null) SettingsScope.read(ctx).noteRecent(pkg);
+  return ok;
+}
 
 // ───────────────────────── app shell ─────────────────────────
 
@@ -1848,8 +1863,7 @@ class _AllAppsScreenState extends State<AllAppsScreen> {
     final full = !pinned && s.pinned.length >= kMaxPinned;
     showMenu2(context, a.label, [
       if (pinned)
-        MenuChoice('Remove from home',
-            () => s.setPinned(s.pinned.where((p) => p != a.package).toList()))
+        MenuChoice('Remove from home', () => removeFromHome(context, a.package, a.label))
       else if (full)
         MenuChoice('Home screen is full ($kMaxPinned apps)', null)
       else
@@ -2049,6 +2063,8 @@ class _HomeScreenState extends State<HomeScreen>
     kUpdate.addListener(_onUpdateFound);
     HardwareKeyboard.instance.addHandler(_onAnyKey);
     _idleTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkIdle());
+    startNetWatch();
+    startBatteryWatch();
     // games: look for them now and then, and show the Games tile once there are some
     kGames.addListener(_onGames);
     makeGamesTileArt().then((_) => scanGames());
@@ -2239,6 +2255,7 @@ class _HomeScreenState extends State<HomeScreen>
       if (_leaving) setState(() => _leaving = false);
       _load();
       _checkUpdate(force: true);
+      checkNetNow();
     }
   }
 
@@ -2457,8 +2474,7 @@ class _HomeScreenState extends State<HomeScreen>
       MenuChoice('Close app', () => closeApp(context, a.package, a.label)),
       MenuChoice('Clear data…', () => clearAppData(context, a.package, a.label)),
       MenuChoice('Uninstall', () => kChannel.invokeMethod('uninstall', {'package': a.package})),
-      MenuChoice('Remove from home',
-          () => s.setPinned(s.pinned.where((p) => p != a.package).toList())),
+      MenuChoice('Remove from home', () => removeFromHome(context, a.package, a.label)),
       MenuChoice('Cancel', () {}),
     ]);
   }
@@ -2469,6 +2485,10 @@ class _HomeScreenState extends State<HomeScreen>
     final apps = _shown(settings.pinned);
     return PopScope(
       canPop: false,
+      // Back twice quickly: recent apps
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) homeBack(context);
+      },
       child: Focus(
         canRequestFocus: false,
         skipTraversal: true,
@@ -2598,6 +2618,7 @@ class _HomeScreenState extends State<HomeScreen>
             onGoodnight: () => goodnightMenu(context),
             onSearch: () => Navigator.of(context)
                 .push(MaterialPageRoute<void>(builder: (_) => const SearchScreen())),
+            onOffline: () => netMenu(context),
           ),
         ),
       ),

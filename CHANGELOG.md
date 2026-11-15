@@ -3,6 +3,13 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.28.0
+**Added**
+- **No internet?** An orange Wi-Fi button shows on the home screen when the internet drops. It says what's wrong and offers Reconnect Wi-Fi, Wi-Fi settings or Check again.
+- **Recent apps:** press Back twice on the home screen to jump back to the last few apps you opened.
+- **Battery warnings:** a note over whatever is playing when the remote or a game controller gets low (15%, then 5%). Battery levels show next to paired devices in TV settings → Bluetooth.
+- **Undo:** removing an app from the home screen shows an Undo button for a few seconds.
+
 ## 1.27.1
 **Changed**
 - Search everything works without Foyer Drop: the TMDB key can be built into Foyer TV (bash tools/set-tmdb-key.sh puts it on GitHub, never in the code), or typed in Developer options.

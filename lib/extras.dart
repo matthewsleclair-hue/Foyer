@@ -5,19 +5,37 @@ import 'i18n.dart';
 import 'idle.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
+import 'qol.dart';
 import 'update.dart';
 
 // ───────────────────────── the two small buttons on the home screen ─────────────────────────
 
 class HomeSideButtons extends StatelessWidget {
-  const HomeSideButtons({super.key, required this.onSettings, required this.onGoodnight, this.onSearch});
+  const HomeSideButtons(
+      {super.key, required this.onSettings, required this.onGoodnight, this.onSearch, this.onOffline});
   final VoidCallback onSettings;
   final VoidCallback? onSearch;
+  final VoidCallback? onOffline;
   final VoidCallback onGoodnight;
 
   @override
   Widget build(BuildContext context) => FocusTraversalGroup(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
+          // no internet: an orange button that explains and offers a fix
+          if (onOffline != null)
+            ValueListenableBuilder<bool?>(
+              valueListenable: kOnline,
+              builder: (_, on, __) => on != false
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 18),
+                      child: _RoundButton(
+                          icon: Icons.wifi_off_rounded,
+                          tooltip: 'No internet',
+                          color: const Color(0xFFFF9F0A),
+                          onSelect: onOffline!),
+                    ),
+            ),
           if (onSearch != null) ...[
             _RoundButton(icon: Icons.search_rounded, tooltip: 'Search', color: Colors.white, onSelect: onSearch!),
             const SizedBox(height: 18),

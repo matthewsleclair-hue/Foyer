@@ -31,6 +31,7 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - "Good evening · 4° Cloudy", and glass that warms up at sunset and dims late at night
 - Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
 - **Search everything:** type a show or movie and see which of your apps have it (Netflix, Crave, Disney+, Prime Video…), plus your Plex, apps and games. One press opens it there
+- **Little helpers:** press Back twice for recent apps; an orange button when the internet drops, with a fix; a note when the remote or a controller battery is low; Undo after removing an app
 - **In English or in French** (Français), picked on the first setup screen or in Settings → Appearance → Language
 - **Settings follow you:** a new box (or the PC) can set itself up like any of your other boxes, through Foyer Drop: apps, people, teams, look and weather in one step
 

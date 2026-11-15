@@ -8,6 +8,7 @@ import 'package:flutter/material.dart' hide Text;
 import 'i18n.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
+import 'qol.dart';
 import 'screens.dart';
 import 'vpn.dart';
 import 'controllers.dart';
@@ -578,6 +579,9 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
   }
 
   Future<void> _load({bool grant = false}) async {
+    checkBatteries(warn: false).then((_) {
+      if (mounted) setState(() {});
+    });
     var s = await sysCall('btState');
     if (grant && s['present'] == true && s['allowed'] == false) {
       setState(() => _msg = 'Giving Foyer Bluetooth access…');
@@ -652,6 +656,16 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
         MenuChoice('Cancel', () {}),
       ]);
 
+  /// "Paired · battery 45%" when the device shares its level
+  String _batteryOf(String name) {
+    for (final b in kBatteries.value) {
+      if (b.name.toLowerCase() == name.toLowerCase()) {
+        return '${tr('Paired')} · ${batteryIcon(b.level)} ${b.level}%';
+      }
+    }
+    return 'Paired';
+  }
+
   @override
   Widget build(BuildContext context) {
     final paired = [for (final m in (_s['paired'] as List? ?? const [])) _Dev.from(m as Map)];
@@ -695,7 +709,8 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                 _load();
               }),
         if (on && paired.isNotEmpty) _heading('Paired'),
-        for (final d in paired) SysRow(icon: d.icon, title: d.name, subtitle: 'Paired', onSelect: () => _pairedMenu(d)),
+        for (final d in paired)
+          SysRow(icon: d.icon, title: d.name, subtitle: _batteryOf(d.name), onSelect: () => _pairedMenu(d)),
         if (on && (_scanning || _found.isNotEmpty)) _heading('Found nearby'),
         for (final d in _found.values)
           SysRow(icon: d.icon, title: d.name, subtitle: 'Select to pair', onSelect: () => _pair(d)),

@@ -16,7 +16,7 @@ String _sentSig = '';
 String get _platform => kIsPc ? 'pc' : 'tv';
 
 /// Settings that belong to this one box and are never copied.
-const _thisBoxOnly = ['setupDone', 'serverUrl', 'devMode', 'updateUrl', 'syncOn', 'v'];
+const _thisBoxOnly = ['setupDone', 'serverUrl', 'devMode', 'updateUrl', 'syncOn', 'recentApps', 'v'];
 
 /// Called whenever settings are saved: sends the copy a little later, once things settle.
 void syncSoon(Settings s, {Duration soon = const Duration(seconds: 20)}) {
