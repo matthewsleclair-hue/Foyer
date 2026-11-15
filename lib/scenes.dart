@@ -23,11 +23,13 @@ class PhotoScene {
 }
 
 const Map<String, PhotoScene> kPhotoScenes = {
-  'meadow': PhotoScene('Misty meadow', 330, frontTop: 310),
-  'matterhorn': PhotoScene('Matterhorn', 200),
-  'volcano': PhotoScene('Volcano at dusk', 420, frontTop: 400),
-  'starlake': PhotoScene('Starry lake', 170, frontTop: 150),
-  'mistforest': PhotoScene('Misty forest', 150, frontTop: 130),
+  // clocks sit high enough to read at a glance; the scenery only tucks under the bottom of the
+  // digits (the starry lake's and misty forest's cut-outs fade out above that line)
+  'meadow': PhotoScene('Misty meadow', 305, frontTop: 310),
+  'matterhorn': PhotoScene('Matterhorn', 150),
+  'volcano': PhotoScene('Volcano at dusk', 280, frontTop: 400),
+  'starlake': PhotoScene('Starry lake', 120, frontTop: 150),
+  'mistforest': PhotoScene('Misty forest', 120, frontTop: 130),
 };
 
 /// The scenes that take turns: the photos.
@@ -473,7 +475,7 @@ class _PhotoClockState extends State<_PhotoClock> {
       Positioned(
         left: 0,
         right: 0,
-        top: top - 110,
+        top: top - 95,
         child: Text(date,
             textAlign: TextAlign.center,
             style: const TextStyle(

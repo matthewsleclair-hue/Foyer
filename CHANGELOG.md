@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.31.2
+**Changed**
+- The big clock on the photo scenes sits higher, so the time is easier to read at a glance. The mountains, the volcano and the trees still tuck under the bottom of the digits.
+
 ## 1.31.1
 **Added**
 - **Automatic updates:** new versions install by themselves when the TV has sat on the home screen for 10 minutes, or in the middle of the night, never while you're using it. On to start; Settings → Backup and updates → Updates turns it off. Foyer for PC too. (Fire TV always asks first, so it still waits there.)
