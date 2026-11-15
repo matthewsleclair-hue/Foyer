@@ -306,7 +306,8 @@ class _SeasonPainter extends CustomPainter {
   /// Christmas lights: a dark wire that swags across the top of the screen, with coloured
   /// bulbs hanging from it that glow and twinkle softly, each at its own pace.
   void _lights(Canvas c, Size s, double t, Paint paint) {
-    const swags = 4, dip = 34.0, top = 8.0, perSwag = 9;
+    // kept to a thin band at the very top, above the date on the photo scenes
+    const swags = 4, dip = 16.0, top = 2.0, perSwag = 9;
     final w = s.width / swags;
     final wire = Path()..moveTo(0, top);
     for (var i = 0; i < swags; i++) {

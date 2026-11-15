@@ -3,6 +3,11 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.33.1
+**Fixed**
+- The Christmas lights hang in a thin band at the very top, and the date on the photo scenes always sits below them.
+- The starry badlands, mountain lake and palm beach scenes: the rocks, peaks and shore in front of the clock have clean edges now (the time looked chopped up, especially a 1).
+
 ## 1.33.0
 **Added**
 - **Christmas lights:** during Christmas week, a string of coloured lights swags along the top of the home screen, glowing and twinkling, above the falling snow.

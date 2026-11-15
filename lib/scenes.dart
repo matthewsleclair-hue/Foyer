@@ -486,7 +486,8 @@ class _PhotoClockState extends State<_PhotoClock> {
       Positioned(
         left: 0,
         right: 0,
-        top: top - 95,
+        // never up in the band where the Christmas lights hang
+        top: max(top - 95, 74),
         child: Text(date,
             textAlign: TextAlign.center,
             style: const TextStyle(
