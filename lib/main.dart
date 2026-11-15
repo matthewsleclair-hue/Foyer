@@ -2632,6 +2632,10 @@ class _HomeScreenState extends State<HomeScreen>
     // room on the left for the two round buttons
     const avail = 1920.0 - 200 - 100 - 80;
     final tileW = ((avail - 28.0 * (count - 1)) / count).clamp(120.0, 240.0).toDouble();
+    // the app tray is centred between x 200 and 1820; Keep watching starts at its left edge,
+    // so the two always line up, however many apps there are
+    final trayW = count * tileW + 28.0 * (count - 1) + 80;
+    final keepLeft = 200 + max(0.0, (1620 - trayW) / 2);
     return Stack(children: [
       Positioned(
           left: 84,
@@ -2685,8 +2689,8 @@ class _HomeScreenState extends State<HomeScreen>
               opacity: _fadeLate,
               child: const DropCorner())),
       Positioned(
-          // lined up with the app row, clear of the round buttons on the left
-          left: 200,
+          // lined up with the left edge of the app tray, clear of the round buttons
+          left: keepLeft,
           bottom: 300,
           child: FadeTransition(
               opacity: _fadeLate,
@@ -2716,9 +2720,7 @@ class _HomeScreenState extends State<HomeScreen>
         left: 200,
         right: 100,
         bottom: 56,
-        // starts at the same left edge as Keep watching, so the two line up
-        child: Align(
-          alignment: Alignment.centerLeft,
+        child: Center(
           child: FadeTransition(
             opacity: _fadeEarly,
             child: SlideTransition(
@@ -2752,8 +2754,7 @@ class _HomeScreenState extends State<HomeScreen>
               opacity: _fadeLate,
               child: ValueListenableBuilder<String?>(
                 valueListenable: kJiggle,
-                builder: (_, j, __) => Row(children: [
-                  const SizedBox(width: 34), // under the first app
+                builder: (_, j, __) => Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   if (j == null) ...[
                     const Icon(Icons.keyboard_arrow_down_rounded, size: 30, color: Colors.white54),
                     const SizedBox(width: 4),

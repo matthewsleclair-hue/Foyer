@@ -5,7 +5,7 @@ GitHub release shows the part of this list it brings.
 
 ## 1.33.3
 **Changed**
-- The app row and Keep watching start at the same left edge on the home screen, so they line up.
+- Keep watching starts at the left edge of the app tray on the home screen, so they line up. The tray stays centred, and Keep watching moves with it when you add or remove apps.
 
 ## 1.33.2
 **Changed**
