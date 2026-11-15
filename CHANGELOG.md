@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.34.1
+**Fixed**
+- Jiggle mode: the app you're moving no longer has its top cut off by the edge of the app tray.
+
 ## 1.34.0
 **Added**
 - **Search opens the show itself:** picking Netflix, Disney+, Prime Video or another app under a result opens that show's own page in the app (from JustWatch), not just the app's search. If an app won't take the link, it opens on its search as before. On Foyer for PC, the show's page opens in the service's window.

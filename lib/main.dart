@@ -3183,12 +3183,13 @@ class _TileState extends State<_Tile> with TickerProviderStateMixin {
                   final turn = _jiggling && !_picked
                       ? (_wig.value - 0.5) * 0.035 * (widget.index.isEven ? 1 : -1)
                       : 0.0;
+                  // (kept small: the tray clips anything that rises past its edge)
                   return Transform.translate(
-                    offset: Offset(0, -16 * _f.value + 30 * (1 - _intro.value) - 14 * lift),
+                    offset: Offset(0, -16 * _f.value + 30 * (1 - _intro.value) - 4 * lift),
                     child: Transform.rotate(
                       angle: turn,
                       child: Transform.scale(
-                          scale: (0.86 + 0.14 * _intro.value) * (1 + 0.14 * _f.value) * (1 + 0.06 * lift),
+                          scale: (0.86 + 0.14 * _intro.value) * (1 + 0.14 * _f.value) * (1 + 0.03 * lift),
                           child: child),
                     ),
                   );
