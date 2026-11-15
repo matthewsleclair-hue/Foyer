@@ -26,18 +26,29 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - **Keep watching:** the shows you're part way through, in Plex, Netflix, Disney+, Prime Video, Fibe TV, YouTube and more, with how far in you are. One press picks up right where you left off. Hold OK on one to hide it
 - **Now playing:** when Spotify or another music app is playing, the song, artist and cover show first in that row, with play, pause and skip
 - **People:** everyone in the house gets their own apps and sports teams. Their names sit under the greeting; pick one to switch, and Foyer says "Good evening, Sarah"
-- **Photo backgrounds** with a big clock tucked behind the mountains and trees: a misty meadow, the Matterhorn, a volcano at dusk, a starry lake, a misty forest, a palm beach, starry badlands and a mountain lake. They take turns, or **follow the sun**: the real sunrise and sunset where you live decide which one shows
-- Rain, snow or fog drifting over the background when that's the weather outside
 - "Good evening · 4° Cloudy", and glass that warms up at sunset and dims late at night
-- Holiday looks that switch on by themselves: Valentine's Day (floating hearts), St. Patrick's Day (shamrocks), Easter, Halloween, Christmas (snow and twinkling lights) and New Year (with a midnight countdown)
-- **Put on a show from your phone:** type "Bluey" in Foyer Drop and the TV opens it in one of your apps
-- **Glass app icons** and a **video background**, if you like the Apple TV look
-- **Search everything:** type a show or movie and see which of your apps have it (Netflix, Crave, Disney+, Prime Video…), plus your Plex, apps and games. One press opens the show itself in that app
-- **Rearrange like an iPhone:** hold OK on an app and the tiles wiggle; Left and Right move it
-- **Aerial screensaver:** the photo scenes drifting slowly, Apple TV style, with the time and the place's name
-- **Little helpers:** press Back twice for your open apps as big cards (Up swipes one away to close it, like on an Apple TV); an orange button when the internet drops, with a fix; a note when the remote or a controller battery is low; Undo after removing an app
 - **In English or in French** (Français), picked on the first setup screen or in Settings → Appearance → Language
-- **Settings follow you:** a new box (or the PC) can set itself up like any of your other boxes, through Foyer Drop: apps, people, teams, look and weather in one step
+
+**Find something to watch**
+- **Search everything** (the magnifying glass on the home screen): type a show or movie and see which of your apps have it where you live (Netflix, Crave, Disney+, Prime Video, Apple TV and more), plus what's on your Plex, and your apps and games. Pick an app and **the show itself opens** in it, not just the app
+- **Put on a show from your phone:** type "Bluey" in Foyer Drop and the TV finds it in one of your apps and opens it, even while something else is on
+
+**Beautiful to look at**
+- **Eight photo scenes** with a big clock tucked behind the scenery: a misty meadow, the Matterhorn, a volcano at dusk, a starry lake, a misty forest, a palm beach, starry badlands and a mountain lake. They take turns, or **follow the sun**: the real sunrise and sunset where you live decide which one shows
+- Rain, snow or fog drifting over the background when that's the weather outside
+- **Glass app icons:** every logo in clear glass, and the app you're on in its own colours
+- **Video background:** a muted clip that loops behind the home screen
+- **Aerial screensaver:** the photo scenes drifting slowly, Apple TV style, with the time and the place's name
+- **Holidays** switch on by themselves: Valentine's Day (floating hearts), St. Patrick's Day (shamrocks), Easter, Halloween, Christmas (snow and twinkling lights along the top) and New Year (with a midnight countdown)
+
+**Little things that make it easy**
+- **Open apps, like on an Apple TV:** press Back twice on the home screen to see the apps that are open as big cards. Up swipes one away and closes it
+- **Rearrange like an iPhone:** hold OK on an app and the tiles wiggle; Left and Right move it
+- **No internet?** An orange button shows up on the home screen, says what's wrong and fixes it
+- A note when the **remote or a controller battery** is getting low
+- **Undo** after removing an app by mistake
+- **Updates install by themselves** when nobody's watching (you can turn that off)
+- **Settings follow you:** a new box (or the PC) sets itself up like any of your other boxes through Foyer Drop: apps, people, teams, look and weather in one step
 
 **No ads, no clutter**
 - Google's ad-filled home screen is switched off
@@ -47,6 +58,7 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - Your own Game Boy Advance, Game Boy, NES, SNES, N64, Sega and GameCube/Wii games, with box art, played in RetroArch or Dolphin
 - Send game files from your phone with Foyer Drop (Games tab) and they show up on the TV by themselves
 - Pick up the game you played last, right from Keep watching
+- **Add a game controller** (PS5, PS4, Xbox, Switch Pro, 8BitDo): Foyer shows which buttons to hold and pairs it by itself
 
 **Sports**
 - Live scores for your teams (NHL, MLB, NBA, NFL and Formula 1)
@@ -63,11 +75,10 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - Sections on the left, their options on the right, in plain words
 - Wi-Fi, Bluetooth headphones, picture, sound, apps and storage, all inside Foyer
 - The **star button** on the remote opens whatever you want (Plex, say), and soft click sounds as you move around (or none)
-- Updates install with one press
 - If Foyer ever keeps crashing, the TV's own home screen steps in by itself for a few minutes, so the TV never gets stuck
 
 **The Foyer companion app on your phone**
-- A remote with a real keyboard, plus photos, notes and drawings sent to the TV. [More below](#the-foyer-companion-app).
+- A remote with a real keyboard, "put on a show", plus photos, notes, drawings and games sent to the TV. [More below](#the-foyer-companion-app).
 
 <table>
   <tr>
@@ -112,33 +123,34 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
   </tr>
 </table>
 
-**The photo backgrounds.** They take turns, or follow the sun: the meadow at sunrise, the forest in the morning mist, the Matterhorn at midday, the volcano at dusk and the starry lake at night.
+**The photo scenes.** They take turns, or follow the sun: the meadow at sunrise, the forest in the morning mist, the Matterhorn or the mountain lake at midday, the volcano or the palm beach at golden hour, and the starry lake or the badlands at night.
 
 <table>
   <tr>
     <td><img src="docs/screenshots/scene-meadow.jpg" alt="Misty meadow"></td>
     <td><img src="docs/screenshots/scene-matterhorn.jpg" alt="Matterhorn"></td>
   </tr>
-  <tr>
-    <td align="center">Misty meadow</td>
-    <td align="center">Matterhorn</td>
-  </tr>
+  <tr><td align="center">Misty meadow</td><td align="center">Matterhorn</td></tr>
   <tr>
     <td><img src="docs/screenshots/scene-volcano.jpg" alt="Volcano at dusk"></td>
     <td><img src="docs/screenshots/scene-starlake.jpg" alt="Starry lake"></td>
   </tr>
-  <tr>
-    <td align="center">Volcano at dusk</td>
-    <td align="center">Starry lake</td>
-  </tr>
+  <tr><td align="center">Volcano at dusk</td><td align="center">Starry lake</td></tr>
   <tr>
     <td><img src="docs/screenshots/scene-mistforest.jpg" alt="Misty forest"></td>
-    <td><img src="docs/screenshots/holiday.png" alt="Holiday theme"></td>
+    <td><img src="docs/screenshots/scene-beach.jpg" alt="Palm beach"></td>
   </tr>
+  <tr><td align="center">Misty forest</td><td align="center">Palm beach</td></tr>
   <tr>
-    <td align="center">Misty forest</td>
-    <td align="center">Holiday themes switch on by themselves</td>
+    <td><img src="docs/screenshots/scene-badlands.jpg" alt="Starry badlands"></td>
+    <td><img src="docs/screenshots/scene-lakeland.jpg" alt="Mountain lake"></td>
   </tr>
+  <tr><td align="center">Starry badlands</td><td align="center">Mountain lake</td></tr>
+  <tr>
+    <td><img src="docs/screenshots/holiday.png" alt="Holiday theme"></td>
+    <td></td>
+  </tr>
+  <tr><td align="center">Holiday themes switch on by themselves</td><td></td></tr>
 </table>
 
 ## Where things are in Settings
@@ -148,18 +160,18 @@ Press the **gear** at the bottom left of the home screen (or the remote's menu b
 | Section | What's in it |
 |---|---|
 | **TV settings** | Network and Wi-Fi, VPN, Bluetooth and remotes, picture and resolution, sound, apps, storage, the TV's name, power |
-| **Home screen** | Name and clock, your apps, **People**, **Plex**, **Keep watching** (on or off), weather, sports and score alerts, Foyer Drop |
-| **Appearance** | **Language (English or Français)**, glass style, wallpaper and **scenes**, performance mode, light that follows the day, **weather on the background**, holiday themes, sounds |
-| **Screensaver and power** | Screensaver, **Smart idle**, **Screen off**, start on boot, restart or sleep |
+| **Home screen** | Name and clock, your apps, **People**, **Plex**, **Keep watching** (on or off), **Games**, weather, sports and score alerts, Foyer Drop |
+| **Appearance** | **Language (English or Français)**, glass style, **app icons (glass)**, wallpaper and **scenes**, **video background**, performance mode, light that follows the day, **weather on the background**, holiday themes, sounds |
+| **Screensaver and power** | Screensaver (including **Aerial**), **Smart idle**, **Screen off**, start on boot, restart or sleep |
 | **TV tools** | Home button, Tune-up, remote buttons |
-| **Backup and updates** | Updates, backup and restore, **settings follow you**, reset for someone new, run setup again |
+| **Backup and updates** | Updates (**automatic** or by hand), backup and restore, **settings follow you**, reset for someone new, run setup again |
 
 ## Foyer for PC
 
 Got a small Windows PC by the TV (a Lenovo ThinkCentre Tiny, an Intel NUC, any mini PC)? **Foyer for PC** is the same home
 screen, photo scenes, sports, Plex Keep watching and Foyer Drop, full screen on Windows. Netflix (in 4K), Prime Video,
 Disney+, Crave and YouTube open as their own full-screen windows; Plex, Spotify, Kodi and Steam open as themselves.
-An air-mouse remote's **Home** button brings you back to Foyer from anywhere, and the phone remote drives the PC too.
+An air-mouse remote's **Home** button brings you back to Foyer from anywhere, and the phone remote drives the PC too. It plays your games too (an Xbox-style controller works everywhere), Search opens shows straight on their service's page, and it updates itself.
 
 Download `Foyer-PC-….zip` from the newest **Foyer for PC** release, unzip it and double-click **Install Foyer.cmd**.
 
@@ -174,7 +186,9 @@ Your phone becomes Foyer's best friend. The companion app works on **iPhone and 
 
 - 🎮 **Remote:** arrows, OK, Back, Home and play/pause, from your phone. Handy when the real remote is lost in the couch.
 - ⌨️ **Type with your phone:** passwords, searches and Wi-Fi names, typed on your phone's keyboard instead of letter by letter with the remote.
+- 🍿 **Put on a show:** type a show or movie and the TV opens it in one of your apps.
 - 📺 **Open on TV:** tap Netflix, Plex or any app on your phone and it opens on the TV.
+- 🎮 **Games:** send your own game files and they show up on the TV.
 - 📸 **Photos:** send pictures to the TV, where they show up in the corner of the home screen and in the screensaver.
 - 📝 **Notes and drawings:** leave a note ("Pizza's in the fridge") or a doodle, and it pops up on the TV for everyone to see.
 - 👨‍👩‍👧 **Everyone in the house:** each person gets their own login for the same TV, and notes show who sent them.
@@ -200,7 +214,7 @@ Foyer isn't in the Play Store. It's shared with friends and family:
 - **Easiest:** ask whoever gave you Foyer to set up your box. They can hand it to you ready to go, and the first time you turn it on, Foyer walks you through the rest with just the remote: Wi-Fi, your name, how it looks and your apps.
 - **Doing it yourself:** follow the [step-by-step guide](GUIDE.md). You'll need a computer once, for about 10 minutes.
 
-After that, updates come with one press: **Settings → Backup and updates → Updates → Download and install**.
+After that, updates install by themselves when nobody's using the TV. You can also update with one press: **Settings → Backup and updates → Updates**.
 
 ## Common questions
 
@@ -227,6 +241,6 @@ Yes.
 
 ---
 
-<sub>For the person who builds Foyer: build, signing and publishing notes are in [docs/DEVELOPING.md](docs/DEVELOPING.md). Foyer uses the font Plus Jakarta Sans (SIL Open Font License). Smart idle, Screen off, the weather effects, the crash safety net and the settings layout were inspired by [couch-tv](https://github.com/Seagey/couch-tv) (MIT).</sub>
+<sub>For the person who builds Foyer: build, signing and publishing notes are in [docs/DEVELOPING.md](docs/DEVELOPING.md). Foyer uses the font Plus Jakarta Sans (SIL Open Font License). Smart idle, Screen off, the weather effects, the crash safety net, the settings layout, glass icons, video backgrounds and opening a show from search were inspired by [couch-tv](https://github.com/Seagey/couch-tv) (MIT). Where to watch comes from TMDB and JustWatch; this product uses the TMDB API but is not endorsed or certified by TMDB.</sub>
 
 Photo scenes include photos by Christian Joudrey, John Fowler and Jonny Gios on Unsplash.
