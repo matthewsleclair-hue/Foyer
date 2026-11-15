@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.33.3
+**Changed**
+- The app row and Keep watching start at the same left edge on the home screen, so they line up.
+
 ## 1.33.2
 **Changed**
 - Search only shows shows and movies you can stream where you are. Foyer works out the country from the internet connection, so a box in the US shows what's on in the US. Titles you can only rent or buy are left out too.

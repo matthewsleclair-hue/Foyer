@@ -2716,7 +2716,9 @@ class _HomeScreenState extends State<HomeScreen>
         left: 200,
         right: 100,
         bottom: 56,
-        child: Center(
+        // starts at the same left edge as Keep watching, so the two line up
+        child: Align(
+          alignment: Alignment.centerLeft,
           child: FadeTransition(
             opacity: _fadeEarly,
             child: SlideTransition(
@@ -2750,7 +2752,8 @@ class _HomeScreenState extends State<HomeScreen>
               opacity: _fadeLate,
               child: ValueListenableBuilder<String?>(
                 valueListenable: kJiggle,
-                builder: (_, j, __) => Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                builder: (_, j, __) => Row(children: [
+                  const SizedBox(width: 34), // under the first app
                   if (j == null) ...[
                     const Icon(Icons.keyboard_arrow_down_rounded, size: 30, color: Colors.white54),
                     const SizedBox(width: 4),
