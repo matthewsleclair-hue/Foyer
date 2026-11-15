@@ -1418,7 +1418,7 @@ def search(q: str = "", country: str = "CA", lang: str = "en", w: Who = Depends(
                             else f"TMDB answered {e.code}")
     except Exception:
         raise HTTPException(502, "Couldn't reach TMDB. Try again in a moment.")
-    items = [r for r in (j.get("results") or []) if r.get("media_type") in ("movie", "tv")][:10]
+    items = [r for r in (j.get("results") or []) if r.get("media_type") in ("movie", "tv")][:20]
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(5) as ex:
         provs = list(ex.map(lambda r: _providers(r["media_type"], r["id"], country), items))

@@ -74,6 +74,8 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _busy = false;
   String _note = '';
   int _run = 0;
+  String _country = 'CA';
+  int _hidden = 0; // results left out because they aren't streaming here
   List<InstalledApp> _installed = const [];
   List<Map<String, dynamic>> _watch = const [];
   List<PlexItem> _plex = const [];
@@ -124,6 +126,7 @@ class _SearchScreenState extends State<SearchScreen> {
       _note = '';
       _watch = const [];
       _plex = const [];
+      _hidden = 0;
     });
     _local(q);
     final jobs = <Future<void>>[];
@@ -137,11 +140,22 @@ class _SearchScreenState extends State<SearchScreen> {
     final key = s.tmdbKey.isNotEmpty ? s.tmdbKey : kBuiltInTmdbKey;
     final linked = s.serverUrl.isNotEmpty && s.serverToken.isNotEmpty;
     if (key.isNotEmpty || linked) {
-      final ask = key.isNotEmpty
-          ? tmdbSearch(key, q, s.lang)
-          : DropApi.search(s.serverUrl, s.serverToken, q, s.lang);
-      jobs.add(ask.then((l) {
-        if (mounted && run == _run) setState(() => _watch = l);
+      jobs.add(myCountry().then((country) async {
+        _country = country;
+        final l = key.isNotEmpty
+            ? await tmdbSearch(key, q, s.lang, country: country)
+            : await DropApi.search(s.serverUrl, s.serverToken, q, s.lang, country: country);
+        // only what's streaming here: at least one service that includes it (not just rent or buy)
+        final here = [
+          for (final r in l)
+            if ((r['providers'] as List? ?? const []).any((p) => p is Map && p['how'] == 'included')) r
+        ];
+        if (mounted && run == _run) {
+          setState(() {
+            _watch = here;
+            _hidden = l.length - here.length;
+          });
+        }
       }).catchError((Object e) {
         if (mounted && run == _run) {
           setState(() => _note = e is HttpException ? e.message : 'Couldn\'t search the streaming apps right now.');
@@ -300,7 +314,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               if (mine.isEmpty)
                 _chip(
-                  sv.isEmpty ? 'Not streaming in Canada right now' : 'Not on your apps',
+                  'Not on your apps',
                   () {},
                   autofocus: first,
                 ),
@@ -389,7 +403,19 @@ class _SearchScreenState extends State<SearchScreen> {
                   _chip('${g.name} · ${g.system.short}', () => playGame(context, g), autofocus: takeFirst()),
               ]),
             ]),
-          if (nothing) Text('Nothing found for “$_q”.', style: const TextStyle(fontSize: 28, color: Colors.white70)),
+          if (nothing)
+            Text(
+                _hidden > 0
+                    ? '${tr('Nothing for “{}” is streaming in {} right now.').replaceFirst('{}', _q).replaceFirst('{}', tr(countryName(_country)))}'
+                    : 'Nothing found for “$_q”.',
+                style: const TextStyle(fontSize: 28, color: Colors.white70)),
+          if (!_busy && _hidden > 0 && !nothing)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                  tr('Only showing what\'s streaming in {}.').replaceFirst('{}', tr(countryName(_country))),
+                  style: _dim),
+            ),
           if (_note.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_note, style: _dim)),
           // TMDB's terms ask apps using its data to say so
           if (_watch.isNotEmpty)

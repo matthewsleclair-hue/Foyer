@@ -69,9 +69,10 @@ class DropApi {
   }
 
   // ── search everything (see search.dart) ──
-  static Future<List<Map<String, dynamic>>> search(String url, String token, String q, String lang) async {
+  static Future<List<Map<String, dynamic>>> search(String url, String token, String q, String lang,
+      {String country = 'CA'}) async {
     final j = await _get(url, token,
-        '/api/search?q=${Uri.encodeQueryComponent(q)}&lang=$lang&country=CA');
+        '/api/search?q=${Uri.encodeQueryComponent(q)}&lang=$lang&country=$country');
     final l = j is Map ? j['results'] : null;
     return [if (l is List) for (final x in l) if (x is Map) Map<String, dynamic>.from(x)];
   }
