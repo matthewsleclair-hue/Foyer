@@ -193,6 +193,22 @@ class PlexApi {
     return items;
   }
 
+  /// Movies and shows on your server whose name matches (Search everything).
+  Future<List<PlexItem>> search(PlexServer s, String query, {int max = 8}) async {
+    final mid = await machineId(s);
+    final uri = Uri.parse('${s.baseUrl}/hubs/search').replace(queryParameters: {'query': query, 'limit': '$max'});
+    final j = await _json('GET', uri, headers: {'X-Plex-Token': s.token}, timeout: const Duration(seconds: 8));
+    final hubs = (j?['MediaContainer']?['Hub'] as List?) ?? const [];
+    final out = <PlexItem>[];
+    for (final h in hubs.whereType<Map>()) {
+      if (h['type'] != 'movie' && h['type'] != 'show') continue;
+      for (final m in ((h['Metadata'] as List?) ?? const []).whereType<Map>()) {
+        out.add(_item(m, s, mid, thumb: true));
+      }
+    }
+    return out.take(max).toList();
+  }
+
   PlexItem _item(Map m, PlexServer s, String mid, {bool thumb = false}) {
     final type = (m['type'] as String?) ?? '';
     String title;

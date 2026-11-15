@@ -126,6 +126,10 @@ class MainActivity : FlutterActivity() {
                 }.start()
                 "launch" -> result.success(launch(call.argument<String>("package")))
                 "openUrl" -> result.success(openUrl(call.argument<String>("url")))
+                "searchInApp" -> result.success(
+                    searchInApp(call.argument<String>("package") ?: "", call.argument<String>("query") ?: "",
+                        call.argument<String>("key") ?: "")
+                )
                 "openLink" -> result.success(
                     try {
                         startActivity(
@@ -901,4 +905,32 @@ class MainActivity : FlutterActivity() {
         if (wsum == 0.0) return 0xFF3B5BDB.toInt()
         return Color.rgb((r / wsum).toInt(), (g / wsum).toInt(), (bl / wsum).toInt())
     }
+
+    /** Search everything: open a streaming app on its search for this show. "search" when the
+     *  app took the search, "opened" when it only opened (then Foyer says what to look for). */
+    private fun searchInApp(pkg: String, query: String, key: String): String {
+        if (pkg.isEmpty()) return ""
+        fun go(i: Intent): Boolean = try {
+            if (packageManager.queryIntentActivities(i, 0).isEmpty()) false
+            else { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); true }
+        } catch (_: Exception) { false }
+        // 1. the app's own search screen (what Google TV's voice search uses)
+        if (go(Intent(Intent.ACTION_SEARCH).setPackage(pkg).putExtra(android.app.SearchManager.QUERY, query))) return "search"
+        if (go(Intent("com.google.android.gms.actions.SEARCH_ACTION").setPackage(pkg).putExtra(android.app.SearchManager.QUERY, query))) return "search"
+        // 2. the website's search link, which some TV apps open themselves
+        val q = Uri.encode(query)
+        val url = when (key) {
+            "netflix" -> "https://www.netflix.com/search?q=$q"
+            "youtube" -> "https://www.youtube.com/results?search_query=$q"
+            "disneyplus" -> "https://www.disneyplus.com/search?q=$q"
+            "primevideo" -> "https://app.primevideo.com/search?phrase=$q"
+            "crave" -> "https://www.crave.ca/en/search?q=$q"
+            "appletv" -> "https://tv.apple.com/search?term=$q"
+            else -> ""
+        }
+        if (url.isNotEmpty() && go(Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(pkg))) return "search"
+        // 3. just the app
+        return if (launch(pkg)) "opened" else ""
+    }
+
 }

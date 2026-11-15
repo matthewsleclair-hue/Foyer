@@ -15,6 +15,7 @@ import 'screens.dart';
 import 'seasons.dart';
 import 'setup.dart';
 import 'sounds.dart';
+import 'search.dart';
 import 'server.dart';
 import 'sports.dart';
 import 'sync.dart';
@@ -2591,6 +2592,8 @@ class _HomeScreenState extends State<HomeScreen>
           child: HomeSideButtons(
             onSettings: widget.onOpenSettings,
             onGoodnight: () => goodnightMenu(context),
+            onSearch: () => Navigator.of(context)
+                .push(MaterialPageRoute<void>(builder: (_) => const SearchScreen())),
           ),
         ),
       ),

@@ -73,3 +73,10 @@ Each account has its own TVs, notes, drawings and photos.
 - Notes disappear after 24 hours by default (`NOTE_HOURS`), or choose how long on the page.
 - Away from home: put it behind HTTPS (for example a Cloudflare Tunnel). Do not open the port raw to the internet.
 - Upgrading from the first version (the one with `FOYER_TOKEN`): the token is no longer used. Photos already sent move to the first account you create. Old notes are not kept.
+
+## Search on the TVs
+
+Search on the TV shows which streaming apps have a show, using TMDB's "where to watch" lists
+(from JustWatch). It needs a free TMDB key: make an account at themoviedb.org, go to
+Settings → API, create a key, and paste it on this server's TVs page (owner only) under
+"Search on your TVs". Or set `TMDB_KEY` in `.env`. The TVs never see the key.

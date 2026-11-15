@@ -91,6 +91,24 @@ Future<dynamic> pcChannel(String channel, String method, dynamic args) async {
       return openWeb('${a['url']}');
     case 'openLink':
       return false; // Plex links: Foyer then just opens Plex
+    case 'searchInApp':
+      {
+        // Search everything: the service's own search page, in its full-screen window
+        final q = Uri.encodeQueryComponent('${a['query'] ?? ''}');
+        final url = switch ('${a['key']}') {
+          'netflix' => 'https://www.netflix.com/search?q=$q',
+          'youtube' => 'https://www.youtube.com/results?search_query=$q',
+          'disneyplus' => 'https://www.disneyplus.com/search?q=$q',
+          'primevideo' => 'https://www.primevideo.com/search/ref=atv_nb_sug?phrase=$q',
+          'crave' => 'https://www.crave.ca/en/search?q=$q',
+          'appletv' => 'https://tv.apple.com/search?term=$q',
+          'paramountplus' => 'https://www.paramountplus.com/search/?q=$q',
+          'plex' => 'https://app.plex.tv/desktop/#!/search?query=$q',
+          _ => '',
+        };
+        if (url.isNotEmpty && await openWeb(url)) return 'search';
+        return await launchPcApp('${a['package']}') ? 'opened' : '';
+      }
     case 'closeAllApps':
       await closeWebApps();
       return 0;

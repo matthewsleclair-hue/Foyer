@@ -283,6 +283,14 @@ section{animation:rise .35s ease-out}
       <p class="msg" id="mGh"></p>
       <p class="msg" style="font-size:13px">GitHub builds Foyer for TVs and PCs whenever there's a new version. With a token, this server fetches each one by itself (every 10 minutes) and your TVs and PCs update from here. Make one at github.com → Settings → Developer settings → Fine-grained tokens: only the Foyer repository, Contents: Read-only.</p>
     </div>
+    <div class="card hide" id="tmdbCard">
+      <label>Search on your TVs</label>
+      <div id="tmdbStatus" class="msg" style="margin:0 0 12px"></div>
+      <input id="tmdbKey" type="password" autocomplete="off" spellcheck="false" placeholder="TMDB API key or read access token">
+      <button class="btn" onclick="tmdbSave()">Save key</button>
+      <p class="msg" id="mTmdb"></p>
+      <p class="msg" style="font-size:13px">Search on the TV shows which of your apps have a show or movie (Netflix, Crave, Disney+, Prime Video…). That list comes from TMDB, which is free: make an account at themoviedb.org, then Settings → API → create a key (personal use). Paste it here once; your TVs never need it.</p>
+    </div>
     <div class="card hide" id="acctCard">
       <label>Accounts. Someone forgot their password? Make them a reset code.</label>
       <div id="accts"></div>
@@ -535,8 +543,8 @@ async function loadTvs(){
     const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Unlink this TV');
     x.onclick=async()=>{if(!confirm('Unlink '+(t.label||'this TV')+'?'))return;await api('/api/tvs/'+t.id,{method:'DELETE'});loadTvs()};
     row.append(a);if(mine)row.append(x);box.appendChild(row)});
-  $('inviteCard').classList.toggle('hide',!j.owner);$('acctCard').classList.toggle('hide',!j.owner);$('ghCard').classList.toggle('hide',!j.owner);
-  if(j.owner){$('invite').textContent=j.invite;loadAccts().catch(()=>{});loadGh().catch(()=>{})}}
+  $('inviteCard').classList.toggle('hide',!j.owner);$('acctCard').classList.toggle('hide',!j.owner);$('ghCard').classList.toggle('hide',!j.owner);$('tmdbCard').classList.toggle('hide',!j.owner);
+  if(j.owner){$('invite').textContent=j.invite;loadAccts().catch(()=>{});loadGh().catch(()=>{});loadTmdb().catch(()=>{})}}
 // ── updates from GitHub (owner) ──
 function paintGh(s){
   const parts=[];
@@ -551,6 +559,12 @@ async function ghSave(){
   try{paintGh(await getJSON('/api/admin/github',{method:'POST',json:{token:t},noHome:true}));$('ghToken').value=''}catch(e){say('mGh',e.message,true)}}
 async function ghCheck(){say('mGh','Checking GitHub…');
   try{paintGh(await getJSON('/api/admin/github/check',{method:'POST',noHome:true}))}catch(e){say('mGh',e.message,true)}}
+// ── search key (owner) ──
+function paintTmdb(s){$('tmdbStatus').textContent=s.key?'Key saved. Search works on your TVs and PCs.':'No key yet, so search on the TV only finds your apps, Plex and games.';
+  if(s.message)say('mTmdb',s.message)}
+async function loadTmdb(){paintTmdb(await getJSON('/api/admin/search',{noHome:true}))}
+async function tmdbSave(){const k=$('tmdbKey').value.trim();say('mTmdb',k?'Saving…':'Removing…');
+  try{paintTmdb(await getJSON('/api/admin/search',{method:'POST',json:{key:k},noHome:true}));$('tmdbKey').value=''}catch(e){say('mTmdb',e.message,true)}}
 // ── households ──
 function paintHomeBar(){
   const bar=$('homeBar');bar.innerHTML='';bar.classList.toggle('hide',HOMES.length<2||$('app').classList.contains('hide'));

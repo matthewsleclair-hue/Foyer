@@ -10,13 +10,18 @@ import 'update.dart';
 // ───────────────────────── the two small buttons on the home screen ─────────────────────────
 
 class HomeSideButtons extends StatelessWidget {
-  const HomeSideButtons({super.key, required this.onSettings, required this.onGoodnight});
+  const HomeSideButtons({super.key, required this.onSettings, required this.onGoodnight, this.onSearch});
   final VoidCallback onSettings;
+  final VoidCallback? onSearch;
   final VoidCallback onGoodnight;
 
   @override
   Widget build(BuildContext context) => FocusTraversalGroup(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (onSearch != null) ...[
+            _RoundButton(icon: Icons.search_rounded, tooltip: 'Search', color: Colors.white, onSelect: onSearch!),
+            const SizedBox(height: 18),
+          ],
           // settings, with an orange dot when an update is ready
           ValueListenableBuilder<UpdateInfo?>(
             valueListenable: kUpdate,

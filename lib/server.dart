@@ -53,11 +53,27 @@ class DropApi {
       final body = await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 15));
       if (res.statusCode == 401) throw const HttpException('unlinked');
       if (res.statusCode == 429) throw const HttpException('Too many tries. Wait a few minutes.');
-      if (res.statusCode != 200) throw HttpException('Server answered ${res.statusCode}');
+      if (res.statusCode != 200) {
+        // the server's own plain-English reason, when it gave one
+        String? why;
+        try {
+          final d = jsonDecode(body);
+          if (d is Map && d['detail'] is String) why = d['detail'] as String;
+        } catch (_) {}
+        throw HttpException(why ?? 'Server answered ${res.statusCode}');
+      }
       return jsonDecode(body);
     } finally {
       c.close(force: true);
     }
+  }
+
+  // ── search everything (see search.dart) ──
+  static Future<List<Map<String, dynamic>>> search(String url, String token, String q, String lang) async {
+    final j = await _get(url, token,
+        '/api/search?q=${Uri.encodeQueryComponent(q)}&lang=$lang&country=CA');
+    final l = j is Map ? j['results'] : null;
+    return [if (l is List) for (final x in l) if (x is Map) Map<String, dynamic>.from(x)];
   }
 
   // ── settings that follow you (see sync.dart) ──

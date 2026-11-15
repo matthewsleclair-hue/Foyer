@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.27.0
+**Added**
+- **Search everything:** the new magnifying glass on the home screen (above the gear). Type a show or a movie and Foyer shows which of your apps have it in Canada (Netflix, Crave, Disney+, Prime Video, Apple TV, Paramount+, YouTube and more), what's on your Plex, and matching apps and games. Pick an app and it opens on that show's search. The streaming part needs a free TMDB key, added once on Foyer Drop's TVs page.
+
 ## 1.26.0
 **Added**
 - **Français:** Foyer TV in French, from the first setup screen (English / Français) or Settings → Appearance → Language. It switches at once, and French also turns on the 24-hour clock.

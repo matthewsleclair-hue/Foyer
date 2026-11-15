@@ -1190,6 +1190,7 @@ def update_pc_zip(w: Who = Depends(who)):
 # read-only GitHub token (owner: TVs page → Updates from GitHub, or GITHUB_TOKEN in .env),
 # this server fetches each new release by itself, so publishing needs no computer at all.
 import urllib.request
+import urllib.parse
 import urllib.error
 
 GH_REPO = os.environ.get("GITHUB_REPO", "matthewsleclair-hue/Foyer")
@@ -1346,6 +1347,117 @@ def gh_check(w: Who = Depends(web)):
     _owner(w)
     msg = github_sync()
     return {**_gh_status(), "message": msg}
+
+
+# ── Search everything ──
+# The TV asks "where can I watch X?". This server asks TMDB (free, needs a key from
+# themoviedb.org), whose "where to watch" lists come from JustWatch, for the country the TV
+# is in. The key stays here, so no TV ever needs one. Answers are kept for 6 hours.
+TMDB = "https://api.themoviedb.org/3"
+_search_cache: dict = {}
+_search_lock = threading.Lock()
+
+
+def _tmdb_key() -> str:
+    return (_meta_get("tmdb_key") or os.environ.get("TMDB_KEY", "")).strip()
+
+
+def _tmdb(path: str, params: dict) -> dict:
+    key = _tmdb_key()
+    headers = {"Accept": "application/json", "User-Agent": "FoyerDrop"}
+    q = dict(params)
+    if key.startswith("eyJ"):  # a v4 "read access token"
+        headers["Authorization"] = "Bearer " + key
+    else:  # a v3 "API key"
+        q["api_key"] = key
+    url = TMDB + path + "?" + urllib.parse.urlencode(q)
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return json.loads(r.read().decode())
+
+
+def _providers(kind: str, tid: int, country: str) -> list:
+    try:
+        j = _tmdb(f"/{kind}/{tid}/watch/providers", {})
+    except Exception:
+        return []
+    c = (j.get("results") or {}).get(country) or {}
+    out, seen = [], set()
+    # included with a subscription first, then free, then to rent or buy
+    for how in ("flatrate", "free", "ads", "rent", "buy"):
+        for p in c.get(how) or []:
+            name = str(p.get("provider_name", ""))
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            out.append({"name": name, "how": "included" if how in ("flatrate", "free", "ads") else how,
+                        "logo": ("https://image.tmdb.org/t/p/w92" + p["logo_path"]) if p.get("logo_path") else ""})
+    return out
+
+
+@app.get("/api/search")
+def search(q: str = "", country: str = "CA", lang: str = "en", w: Who = Depends(who)):
+    q = q.strip()[:80]
+    country = re.sub(r"[^A-Z]", "", country.upper())[:2] or "CA"
+    lang = "fr-CA" if lang.startswith("fr") else "en-CA"
+    if len(q) < 2:
+        return {"results": []}
+    if not _tmdb_key():
+        raise HTTPException(503, "Search isn't set up on Foyer Drop yet: add a TMDB key on its TVs page.")
+    if _limited(f"search:{w.token_id}", 60, 60):
+        raise HTTPException(429, "Too many searches. Wait a minute.")
+    ck = (q.lower(), country, lang)
+    with _search_lock:
+        hit = _search_cache.get(ck)
+        if hit and time.time() - hit[0] < 6 * 3600:
+            return {"results": hit[1]}
+    try:
+        j = _tmdb("/search/multi", {"query": q, "language": lang, "region": country, "include_adult": "false"})
+    except urllib.error.HTTPError as e:
+        raise HTTPException(502, "TMDB refused the key. Check it on Foyer Drop's TVs page." if e.code == 401
+                            else f"TMDB answered {e.code}")
+    except Exception:
+        raise HTTPException(502, "Couldn't reach TMDB. Try again in a moment.")
+    items = [r for r in (j.get("results") or []) if r.get("media_type") in ("movie", "tv")][:10]
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(5) as ex:
+        provs = list(ex.map(lambda r: _providers(r["media_type"], r["id"], country), items))
+    out = []
+    for r, pv in zip(items, provs):
+        date = r.get("release_date") or r.get("first_air_date") or ""
+        out.append({
+            "id": r["id"], "kind": r["media_type"],
+            "title": r.get("title") or r.get("name") or "",
+            "year": date[:4], "overview": (r.get("overview") or "")[:300],
+            "poster": ("https://image.tmdb.org/t/p/w342" + r["poster_path"]) if r.get("poster_path") else "",
+            "providers": pv,
+        })
+    with _search_lock:
+        if len(_search_cache) > 500:
+            _search_cache.clear()
+        _search_cache[ck] = (time.time(), out)
+    return {"results": out}
+
+
+@app.get("/api/admin/search")
+def search_status(w: Who = Depends(web)):
+    _owner(w)
+    return {"key": bool(_tmdb_key())}
+
+
+@app.post("/api/admin/search")
+def search_set(body: dict, w: Who = Depends(web)):
+    _owner(w)
+    key = str(body.get("key", "")).strip()
+    if key and not re.fullmatch(r"[A-Za-z0-9._\-]{20,400}", key):
+        raise HTTPException(400, "That doesn't look like a TMDB key")
+    _meta_set("tmdb_key", key)
+    if key:
+        try:
+            _tmdb("/configuration", {})
+        except Exception:
+            return {"key": True, "message": "Saved, but TMDB didn't accept it. Check you copied the whole key."}
+    return {"key": bool(key), "message": "Saved. Search works on your TVs and PCs now." if key else "Key removed."}
 
 
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="static")
