@@ -31,8 +31,9 @@ Future<dynamic> _get(String key, String path, Map<String, String> q) async {
 Future<List<Map<String, dynamic>>> _providers(String key, String kind, int id, String country) async {
   try {
     final j = await _get(key, '/$kind/$id/watch/providers', const {});
-    final c = (j is Map ? (j['results'] as Map?)?[country] : null) as Map?;
-    if (c == null) return const [];
+    final results = j is Map ? j['results'] : null;
+    final c = results is Map ? results[country] : null;
+    if (c is! Map) return const [];
     final out = <Map<String, dynamic>>[];
     final seen = <String>{};
     for (final how in const ['flatrate', 'free', 'ads', 'rent', 'buy']) {
