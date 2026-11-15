@@ -18,6 +18,9 @@ const Map<String, String> _where = {
   'volcano': 'A volcano at dusk',
   'starlake': 'A mountain lake under the stars',
   'mistforest': 'A misty forest in the morning',
+  'beach': 'A palm beach at sunset',
+  'badlands': 'Rock towers under the Milky Way',
+  'lakeland': 'A mountain lake in summer',
 };
 
 class AerialView extends StatefulWidget {

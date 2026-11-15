@@ -30,10 +30,16 @@ const Map<String, PhotoScene> kPhotoScenes = {
   'volcano': PhotoScene('Volcano at dusk', 280, frontTop: 400),
   'starlake': PhotoScene('Starry lake', 120, frontTop: 150),
   'mistforest': PhotoScene('Misty forest', 120, frontTop: 130),
+  // photos by Christian Joudrey, John Fowler and Jonny Gios on Unsplash
+  'beach': PhotoScene('Palm beach', 310, frontTop: 280),
+  'badlands': PhotoScene('Starry badlands', 120, frontTop: 300),
+  'lakeland': PhotoScene('Mountain lake', 175, frontTop: 150),
 };
 
 /// The scenes that take turns: the photos.
-const List<String> kSceneTurns = ['meadow', 'matterhorn', 'volcano', 'starlake', 'mistforest'];
+const List<String> kSceneTurns = [
+  'meadow', 'matterhorn', 'volcano', 'starlake', 'mistforest', 'beach', 'badlands', 'lakeland'
+];
 
 /// Every scene, photos first, then the painted ones.
 const List<String> kSceneOrder = [...kSceneTurns, 'night', 'golden', 'waterline', 'fog', 'dawn'];
@@ -315,21 +321,26 @@ String sceneForNow() {
   // sunrise/sunset are today's; move them onto today's date in case the app ran past midnight
   DateTime today(DateTime t) => DateTime(now.year, now.month, now.day, t.hour, t.minute);
   final rise = today(sun.rise), set = today(sun.set);
-  if (now.isBefore(rise.subtract(const Duration(minutes: 45)))) return 'starlake';
+  final night = _alt(now, 'starlake', 'badlands');
+  if (now.isBefore(rise.subtract(const Duration(minutes: 45)))) return night;
   if (now.isBefore(rise.add(const Duration(minutes: 90)))) return 'meadow';
   if (now.isBefore(DateTime(now.year, now.month, now.day, 11))) return 'mistforest';
-  if (now.isBefore(set.subtract(const Duration(minutes: 100)))) return 'matterhorn';
-  if (now.isBefore(set.add(const Duration(minutes: 40)))) return 'volcano';
-  return 'starlake';
+  if (now.isBefore(set.subtract(const Duration(minutes: 100)))) return _alt(now, 'matterhorn', 'lakeland');
+  if (now.isBefore(set.add(const Duration(minutes: 40)))) return _alt(now, 'volcano', 'beach');
+  return night;
 }
+
+/// Two scenes for the same time of day: one on even days, the other on odd days.
+String _alt(DateTime d, String a, String b) => d.day.isEven ? a : b;
 
 /// Which scene suits the hour (when the sunrise and sunset aren't known).
 String sceneForHour(int h) {
   if (h >= 5 && h < 8) return 'meadow';
   if (h >= 8 && h < 11) return 'mistforest';
-  if (h >= 11 && h < 16) return 'matterhorn';
-  if (h >= 16 && h < 20) return 'volcano';
-  return 'starlake';
+  final now = DateTime.now();
+  if (h >= 11 && h < 16) return _alt(now, 'matterhorn', 'lakeland');
+  if (h >= 16 && h < 20) return _alt(now, 'volcano', 'beach');
+  return _alt(now, 'starlake', 'badlands');
 }
 
 /// One scene, or all of them taking turns every 20 seconds.

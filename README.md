@@ -26,7 +26,7 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - **Keep watching:** the shows you're part way through, in Plex, Netflix, Disney+, Prime Video, Fibe TV, YouTube and more, with how far in you are. One press picks up right where you left off. Hold OK on one to hide it
 - **Now playing:** when Spotify or another music app is playing, the song, artist and cover show first in that row, with play, pause and skip
 - **People:** everyone in the house gets their own apps and sports teams. Their names sit under the greeting; pick one to switch, and Foyer says "Good evening, Sarah"
-- **Photo backgrounds** with a big clock tucked behind the mountains and trees: a misty meadow, the Matterhorn, a volcano at dusk, a starry lake and a misty forest. They take turns, or **follow the sun**: the real sunrise and sunset where you live decide which one shows
+- **Photo backgrounds** with a big clock tucked behind the mountains and trees: a misty meadow, the Matterhorn, a volcano at dusk, a starry lake, a misty forest, a palm beach, starry badlands and a mountain lake. They take turns, or **follow the sun**: the real sunrise and sunset where you live decide which one shows
 - Rain, snow or fog drifting over the background when that's the weather outside
 - "Good evening · 4° Cloudy", and glass that warms up at sunset and dims late at night
 - Holiday looks that switch on by themselves: Halloween, Christmas, New Year (with a midnight countdown) and Easter
@@ -226,3 +226,5 @@ Yes.
 ---
 
 <sub>For the person who builds Foyer: build, signing and publishing notes are in [docs/DEVELOPING.md](docs/DEVELOPING.md). Foyer uses the font Plus Jakarta Sans (SIL Open Font License). Smart idle, Screen off, the weather effects, the crash safety net and the settings layout were inspired by [couch-tv](https://github.com/Seagey/couch-tv) (MIT).</sub>
+
+Photo scenes include photos by Christian Joudrey, John Fowler and Jonny Gios on Unsplash.

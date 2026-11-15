@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.32.0
+**Added**
+- Three new photo scenes: a **palm beach** at sunset (the palm leans over the clock), **starry badlands** (rock towers under the Milky Way) and a **mountain lake** in summer. Follow the sun uses them too: the mountain lake or the Matterhorn at midday, the volcano or the palm beach at golden hour, the starry lake or the badlands at night, taking turns by the day. They're in the Aerial screensaver as well.
+
 ## 1.31.2
 **Changed**
 - The big clock on the photo scenes sits higher, so the time is easier to read at a glance. The mountains, the volcano and the trees still tuck under the bottom of the digits.

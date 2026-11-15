@@ -1227,7 +1227,7 @@ class _WallpaperScreenState extends State<WallpaperScreen> {
               child: Text(
                   s.weatherCity.isEmpty
                       ? 'Set a weather place (Home screen → Weather) and the scenes follow the real sunrise and sunset there. Until then, they go by the clock.'
-                      : 'The meadow at sunrise, the misty forest in the morning, the Matterhorn at midday, the volcano at golden hour and the starry lake after dark, using today\'s sunrise and sunset in ${s.weatherCity}.',
+                      : 'The meadow at sunrise, the misty forest in the morning, the Matterhorn or the mountain lake at midday, the volcano or the palm beach at golden hour, and the starry lake or the badlands after dark (the pairs take turns by the day), using today\'s sunrise and sunset in ${s.weatherCity}.',
                   style: const TextStyle(fontSize: 23, color: Colors.white54)),
             ),
           const SizedBox(height: 20),
