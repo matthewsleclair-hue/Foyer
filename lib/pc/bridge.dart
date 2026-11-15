@@ -91,6 +91,13 @@ Future<dynamic> pcChannel(String channel, String method, dynamic args) async {
       return openWeb('${a['url']}');
     case 'openLink':
       return false; // Plex links: Foyer then just opens Plex
+    case 'openTitle':
+      {
+        // the show's own page on the service's website, in its full-screen window
+        final web = '${a['web'] ?? ''}';
+        if (web.startsWith('https://') && await openWeb(web)) return 'title';
+        return pcChannel(channel, 'searchInApp', a);
+      }
     case 'searchInApp':
       {
         // Search everything: the service's own search page, in its full-screen window

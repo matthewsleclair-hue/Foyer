@@ -765,7 +765,10 @@ def tv_send(tv_id: str, body: dict, w: Who = Depends(web)):
         raise HTTPException(404, "That TV is not linked any more")
     pkg = str(body.get("package", "")).strip()
     url = str(body.get("url", "")).strip()
-    if pkg and re.match(r"^[A-Za-z0-9._]{1,150}$", pkg):
+    play = re.sub(r"\s+", " ", str(body.get("play", ""))).strip()[:80]
+    if play:
+        cmd = {"type": "play", "value": play}  # "put on Bluey": the TV finds it in an app it has
+    elif pkg and re.match(r"^[A-Za-z0-9._]{1,150}$", pkg):
         cmd = {"type": "open", "value": pkg}
     elif url:
         if not re.match(r"^https?://[^\s]{3,800}$", url):

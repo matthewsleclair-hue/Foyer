@@ -25,6 +25,7 @@ import 'weatherfx.dart';
 import 'online.dart';
 import 'update.dart';
 import 'weather.dart';
+import 'videobg.dart';
 
 const String kAppPackage = 'com.leclair.leclair_home';
 
@@ -77,12 +78,20 @@ const List<WallPreset> kWallPresets = [
 
 /// Home-screen wallpaper: follows the focused app by default, or a preset / your photo.
 class Wallpaper extends StatelessWidget {
-  const Wallpaper({super.key, required this.tint});
+  const Wallpaper({super.key, required this.tint, this.video = false});
   final Color tint;
+  final bool video; // the home screen's: plays the video background when one is set
 
   @override
   Widget build(BuildContext context) {
     final s = SettingsScope.of(context);
+    final base = _base(context, s);
+    if (!video || !videoWanted(s)) return base;
+    // the clip plays over the wallpaper, which shows until it starts (and if it won't)
+    return Stack(fit: StackFit.expand, children: [base, VideoBackground(url: s.videoUrl)]);
+  }
+
+  Widget _base(BuildContext context, Settings s) {
     // painted scenes with the big clock behind the scenery
     if (s.wallMode == 'scenes') return SceneView(which: s.wallValue);
     // holidays tint the wallpaper (your own photo stays as it is)
@@ -550,6 +559,14 @@ final List<_Group> _groups = [
                 ? kWallPresets[clampIdx(int.tryParse(s.wallValue) ?? 0, kWallPresets.length - 1)].name
                 : 'Follows the selected app'),
         () => _push(c, const WallpaperScreen())),
+    HubEntry(Icons.auto_awesome_rounded, 'App icons',
+        s.glassIcons ? 'Glass: logos in clear glass, the app you\'re on in colour' : 'Their own colours',
+        () => s.change(() => s.glassIcons = !s.glassIcons)),
+    HubEntry(Icons.movie_filter_rounded, 'Video background',
+        kIsPc
+            ? 'On the TV version of Foyer'
+            : (s.videoUrl.isEmpty ? 'A muted clip that loops behind the home screen' : (s.videoOn ? 'On' : 'Off')),
+        () => videoMenu(c)),
     HubEntry(Icons.speed_rounded, 'Performance mode',
         s.perfMode ? 'On: no blur, lighter animations' : 'Off',
         () => s.change(() => s.perfMode = !s.perfMode)),

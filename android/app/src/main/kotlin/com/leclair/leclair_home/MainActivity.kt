@@ -27,6 +27,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 
 class MainActivity : FlutterActivity() {
+    private var videoBg: VideoBg? = null
     private val prefs by lazy { getSharedPreferences("leclair_home", Context.MODE_PRIVATE) }
     private val service by lazy { ComponentName(this, HomeKeyService::class.java) }
     private var channel: MethodChannel? = null
@@ -83,6 +84,8 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         val ch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/launcher")
         channel = ch
+        videoBg?.stop()
+        videoBg = VideoBg(flutterEngine)
         navChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "leclair/nav")
         // load the sounds now so the first one plays on time
         try { if (sounds == null) sounds = UiSounds(this) } catch (e: Exception) { }
@@ -130,6 +133,11 @@ class MainActivity : FlutterActivity() {
                     val l = Batteries.read(this)
                     runOnUiThread { result.success(l) }
                 }.start()
+                "openTitle" -> result.success(
+                    openTitle(call.argument<String>("package") ?: "", call.argument<String>("uri") ?: "",
+                        call.argument<String>("web") ?: "", call.argument<String>("query") ?: "",
+                        call.argument<String>("key") ?: "")
+                )
                 "searchInApp" -> result.success(
                     searchInApp(call.argument<String>("package") ?: "", call.argument<String>("query") ?: "",
                         call.argument<String>("key") ?: "")
@@ -260,6 +268,10 @@ class MainActivity : FlutterActivity() {
                     SleepTimer.restore(this)
                     result.success(SleepTimer.endAt)
                 }
+                "videoStart" -> videoBg?.start(call.argument<String>("url") ?: "", result) ?: result.success(null)
+                "videoPause" -> { videoBg?.pause(); result.success(true) }
+                "videoResume" -> { videoBg?.resume(); result.success(true) }
+                "videoStop" -> { videoBg?.stop(); result.success(true) }
                 "alert" -> {
                     @Suppress("UNCHECKED_CAST")
                     Alerts.show(this, (call.arguments as? Map<String, Any?>) ?: emptyMap())
@@ -935,6 +947,30 @@ class MainActivity : FlutterActivity() {
         if (url.isNotEmpty() && go(Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(pkg))) return "search"
         // 3. just the app
         return if (launch(pkg)) "opened" else ""
+    }
+
+
+    /** Opens a show or movie's own page in a streaming app, from JustWatch's link for it.
+     *  Only ever starts the app that was picked: a link that would open anything else is
+     *  ignored. Falls back to the app's search ("search"), then the app itself ("opened"). */
+    private fun openTitle(pkg: String, uri: String, web: String, query: String, key: String): String {
+        if (pkg.isEmpty()) return ""
+        fun start(i: Intent): Boolean = try {
+            i.selector = null
+            if (i.`package` == null && i.component == null) i.setPackage(pkg)
+            val target = packageManager.resolveActivity(i, 0)?.activityInfo?.packageName
+            if (target != pkg) false
+            else { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)); true }
+        } catch (_: Exception) { false }
+        if (uri.isNotEmpty()) {
+            val i = try {
+                if (uri.startsWith("intent:")) Intent.parseUri(uri, Intent.URI_INTENT_SCHEME)
+                else Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+            } catch (_: Exception) { null }
+            if (i != null && start(i)) return "title"
+        }
+        if (web.startsWith("http") && start(Intent(Intent.ACTION_VIEW, Uri.parse(web)))) return "title"
+        return searchInApp(pkg, query, key)
     }
 
 }

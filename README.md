@@ -30,7 +30,9 @@ Everything you already use keeps working exactly as before: **Netflix, Prime Vid
 - Rain, snow or fog drifting over the background when that's the weather outside
 - "Good evening · 4° Cloudy", and glass that warms up at sunset and dims late at night
 - Holiday looks that switch on by themselves: Valentine's Day (floating hearts), St. Patrick's Day (shamrocks), Easter, Halloween, Christmas (snow and twinkling lights) and New Year (with a midnight countdown)
-- **Search everything:** type a show or movie and see which of your apps have it (Netflix, Crave, Disney+, Prime Video…), plus your Plex, apps and games. One press opens it there
+- **Put on a show from your phone:** type "Bluey" in Foyer Drop and the TV opens it in one of your apps
+- **Glass app icons** and a **video background**, if you like the Apple TV look
+- **Search everything:** type a show or movie and see which of your apps have it (Netflix, Crave, Disney+, Prime Video…), plus your Plex, apps and games. One press opens the show itself in that app
 - **Rearrange like an iPhone:** hold OK on an app and the tiles wiggle; Left and Right move it
 - **Aerial screensaver:** the photo scenes drifting slowly, Apple TV style, with the time and the place's name
 - **Little helpers:** press Back twice for your open apps as big cards (Up swipes one away to close it, like on an Apple TV); an orange button when the internet drops, with a fix; a note when the remote or a controller battery is low; Undo after removing an app

@@ -11,6 +11,7 @@ import 'plex.dart';
 import 'screens.dart';
 import 'server.dart';
 import 'tmdb.dart';
+import 'jw.dart';
 
 /// Streaming services: their name on TMDB (squashed, see _squash) → the app on a TV and on a PC.
 const Map<String, List<String>> _tvApps = {
@@ -53,6 +54,82 @@ String _keyFor(String provider) {
     if (p.startsWith(k)) return k;
   }
   return '';
+}
+
+/// The app on this box for a streaming service ('netflix'), if it's installed.
+InstalledApp? appForService(String key, List<InstalledApp> installed) {
+  if (key.isEmpty) return null;
+  final want = kIsPc ? [if (_pcApps[key] != null) _pcApps[key]!] : (_tvApps[key] ?? const <String>[]);
+  for (final p in want) {
+    for (final a in installed) {
+      if (a.package == p) return a;
+    }
+  }
+  // an app with the same name, under a package Foyer doesn't know
+  for (final a in installed) {
+    if (_squash(a.label).startsWith(key)) return a;
+  }
+  return null;
+}
+
+/// "Put on Bluey" from the phone (Foyer Drop): finds the show, picks a service that includes it
+/// and that this box has (the apps on the home screen first), and opens the show there.
+/// When none of the apps has it, a note on the TV says where it is.
+Future<void> putOn(String name, Settings s) async {
+  void note(String event, String line) => kChannel.invokeMethod('alert', {
+        'emoji': '🔎',
+        'event': tr(event),
+        'line': line,
+        'color': '74C0FC',
+        'size': 1,
+      }).catchError((_) => null);
+  List<JwTitle> found;
+  try {
+    found = await jwFind(name, lang: s.lang);
+  } catch (_) {
+    note('Couldn\'t search right now', name);
+    return;
+  }
+  if (found.isEmpty) {
+    note('Nothing found', name);
+    return;
+  }
+  // the exact name first (Bluey, not "Bluey's Big Play"), then JustWatch's order
+  final want = _squash(name);
+  final titles = [...found]..sort((a, b) => (_squash(a.title) == want ? 0 : 1) - (_squash(b.title) == want ? 0 : 1));
+  final installed = await fetchInstalledApps();
+  final pinned = s.pinned;
+  for (final t in titles.take(3)) {
+    final offers = [
+      for (final o in t.offers)
+        if (o.kind == 'included') (o, appForService(_keyFor(o.service), installed))
+    ];
+    final mine = [for (final x in offers) if (x.$2 != null) x]
+      // apps on the home screen first, in their order
+      ..sort((a, b) {
+        int rank(InstalledApp app) {
+          final i = pinned.indexOf(app.package);
+          return i < 0 ? 999 : i;
+        }
+        return rank(a.$2!) - rank(b.$2!);
+      });
+    if (mine.isNotEmpty) {
+      final (o, app) = mine.first;
+      final key = _keyFor(o.service);
+      final how = await openTitleIn(app!.package, key, t.title, t, sameService: (n) => n == o.service);
+      if (how.isNotEmpty) {
+        s.noteRecent(app.package);
+        if (how == 'opened') note('Search for it there', '${t.title} · ${app.label}');
+        return;
+      }
+    }
+    if (offers.isNotEmpty && _squash(t.title) == want) {
+      final where = {for (final x in offers) x.$1.service}.take(3).join(', ');
+      note('Not on your apps', '${t.title} · $where');
+      return;
+    }
+  }
+  note('Not streaming here', titles.first.title);
 }
 
 class _Service {
@@ -168,20 +245,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (mounted && run == _run) setState(() => _busy = false);
   }
 
-  InstalledApp? _appFor(String key) {
-    if (key.isEmpty) return null;
-    final want = kIsPc ? [if (_pcApps[key] != null) _pcApps[key]!] : (_tvApps[key] ?? const <String>[]);
-    for (final p in want) {
-      for (final a in _installed) {
-        if (a.package == p) return a;
-      }
-    }
-    // an app with the same name, under a package Foyer doesn't know
-    for (final a in _installed) {
-      if (_squash(a.label).startsWith(key)) return a;
-    }
-    return null;
-  }
+  InstalledApp? _appFor(String key) => appForService(key, _installed);
 
   List<_Service> _services(Map<String, dynamic> r) {
     final out = <_Service>[];
@@ -199,19 +263,23 @@ class _SearchScreenState extends State<SearchScreen> {
     return out;
   }
 
-  Future<void> _openService(_Service sv) async {
+  Future<void> _openService(_Service sv, Map<String, dynamic> r) async {
     final app = sv.app;
     if (app == null) return;
-    var how = '';
+    final s = SettingsScope.read(context);
+    final title = '${r['title'] ?? _q}';
+    // the show's own page in the app, from JustWatch; the app's search if there's no link
+    JwTitle? jw;
     try {
-      how = (await kChannel.invokeMethod<String>(
-              'searchInApp', {'package': app.package, 'query': _q, 'key': sv.key})) ??
-          '';
+      jw = jwMatch(await jwFind(title, lang: s.lang), title, int.tryParse('${r['year']}') ?? 0, r['kind'] == 'tv');
     } catch (_) {}
+    var how = await openTitleIn(app.package, sv.key, title, jw,
+        sameService: (n) => n == sv.name || (sv.key.isNotEmpty && _keyFor(n) == sv.key));
     if (how.isEmpty) how = await launchPackage(app.package) ? 'opened' : '';
+    if (how.isNotEmpty) s.noteRecent(app.package);
     if (!mounted) return;
     if (how == 'opened') {
-      showInfo(context, app.label, 'Search for “$_q” there: ${app.label} doesn\'t let Foyer type it in for you.');
+      showInfo(context, app.label, 'Search for “$title” there: ${app.label} doesn\'t let Foyer type it in for you.');
     } else if (how.isEmpty) {
       showInfo(context, app.label, 'Couldn\'t open ${app.label}.');
     }
@@ -304,7 +372,7 @@ class _SearchScreenState extends State<SearchScreen> {
               for (var i = 0; i < mine.length; i++)
                 _chip(
                   mine[i].app!.label,
-                  () => _openService(mine[i]),
+                  () => _openService(mine[i], r),
                   autofocus: first && i == 0,
                   leading: mine[i].app!.icon.isEmpty
                       ? null

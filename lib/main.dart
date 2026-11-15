@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'aerial.dart';
 import 'extras.dart';
 import 'games.dart';
+import 'glass.dart';
 import 'idle.dart';
 import 'keep.dart';
 import 'plex.dart';
@@ -24,6 +25,7 @@ import 'sync.dart';
 import 'update.dart';
 import 'weather.dart';
 import 'weatherfx.dart';
+import 'videobg.dart';
 
 const FoyerChannel kChannel = FoyerChannel('leclair/launcher');
 
@@ -179,6 +181,11 @@ class Settings extends ChangeNotifier {
   String get lang => _lang;
   /// keep a copy of these settings on Foyer Drop, for other boxes to copy (sync.dart)
   bool syncOn = true;
+  /// app logos in clear glass, the focused one in colour (Appearance → App icons)
+  bool glassIcons = false;
+  /// a muted looping clip behind the home screen (videobg.dart)
+  bool videoOn = false;
+  String videoUrl = '';
   /// install new versions by themselves, when nobody is using the TV
   bool autoUpdate = true;
   /// apps opened from Foyer, newest first (Back twice on home)
@@ -327,6 +334,9 @@ class Settings extends ChangeNotifier {
         'clock24': clock24,
         'lang': lang,
         'syncOn': syncOn,
+        'glassIcons': glassIcons,
+        'videoOn': videoOn,
+        'videoUrl': videoUrl,
         'autoUpdate': autoUpdate,
         'recentApps': recentApps,
         'pinned': pinned,
@@ -390,6 +400,9 @@ class Settings extends ChangeNotifier {
     clock24 = _b(j['clock24'], clock24);
     lang = _s(j['lang'], lang);
     syncOn = _b(j['syncOn'], syncOn);
+    glassIcons = _b(j['glassIcons'], glassIcons);
+    videoOn = _b(j['videoOn'], videoOn);
+    videoUrl = _s(j['videoUrl'], videoUrl);
     autoUpdate = _b(j['autoUpdate'], autoUpdate);
     final ra = j['recentApps'];
     if (ra is List) recentApps = ra.whereType<String>().take(8).toList();
@@ -2069,8 +2082,10 @@ class _HomeScreenState extends State<HomeScreen>
             {'package': a.package, 'label': a.label, 'icon': base64Encode(a.icon)}
       ];
     };
+    var dropTick = 0;
     _dropTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!mounted || !_fg) return;
+      // on the home screen every 5 seconds; behind another app every 15, for "put on …"
+      if (!mounted || (!_fg && dropTick++ % 3 != 0)) return;
       final s = SettingsScope.read(context);
       kDrop.refresh(s.serverUrl, s.serverToken);
     });
@@ -2114,7 +2129,13 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// "Open on TV" from the phone page. Only acts while Foyer is on screen.
   void _onDropCommand(String type, String value) {
-    if (!mounted || !_fg) return;
+    if (!mounted) return;
+    // "put on Bluey" from the phone works even while another app is on screen
+    if (type == 'play') {
+      putOn(value, SettingsScope.read(context));
+      return;
+    }
+    if (!_fg) return;
     if (type == 'open') {
       _openPkg(value);
     } else if (type == 'url') {
@@ -2597,6 +2618,7 @@ class _HomeScreenState extends State<HomeScreen>
                 child: ValueListenableBuilder<int>(
                   valueListenable: _focus,
                   builder: (_, i, __) => Wallpaper(
+                      video: true,
                       tint: (apps.isEmpty || i >= apps.length)
                           ? kDefaultTint
                           : apps[clampIdx(i, apps.length - 1)].glow),
@@ -2643,7 +2665,14 @@ class _HomeScreenState extends State<HomeScreen>
           child: FadeTransition(
               opacity: _fadeEarly,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                _HomeHeader(season: activeSeason(settings), weather: _weather, clock: settings.wallMode != 'scenes'),
+                // a scene has its own big clock, unless a video background is playing over it
+                ValueListenableBuilder<bool>(
+                  valueListenable: kVideoPlaying,
+                  builder: (_, video, __) => _HomeHeader(
+                      season: activeSeason(settings),
+                      weather: _weather,
+                      clock: settings.wallMode != 'scenes' || video),
+                ),
                 // who's watching: under the greeting, clear of the scene's date in the middle
                 if (settings.profiles.length > 1) ...[
                   const SizedBox(height: 18),
@@ -2936,6 +2965,9 @@ class _Dock extends StatelessWidget {
                   onActivate: () => onOpen(apps[i]),
                   onLongPress: () => onMenu(apps[i], i),
                   pkg: apps[i].package,
+                  glass: SettingsScope.of(context).glassIcons && apps[i].package != kGamesTile
+                      ? GlassArt(app: apps[i])
+                      : null,
                   onMove: (dir) => onMove(apps[i].package, dir),
                   onMore: () => onMore(apps[i], i),
                 ),
@@ -2978,6 +3010,7 @@ class _Tile extends StatefulWidget {
       required this.onActivate,
       this.onLongPress,
       this.pkg = '',
+      this.glass,
       this.onMove,
       this.onMore});
   final int index;
@@ -2988,6 +3021,7 @@ class _Tile extends StatefulWidget {
   final VoidCallback onActivate;
   final VoidCallback? onLongPress;
   final String pkg;
+  final Widget? glass; // glass app icons: this shows until the tile is focused
   final ValueChanged<int>? onMove; // jiggle mode: -1 left, 1 right
   final VoidCallback? onMore; // jiggle mode: Down for the app's options
   @override
@@ -3194,7 +3228,13 @@ class _TileState extends State<_Tile> with TickerProviderStateMixin {
           child: ClipRRect(
             borderRadius: r,
             child: Stack(fit: StackFit.expand, children: [
-              widget.art,
+              if (widget.glass == null)
+                widget.art
+              else ...[
+                widget.glass!,
+                // the app you're on shows its own colours
+                FadeTransition(opacity: _f, child: widget.art),
+              ],
               const DecoratedBox(
                   decoration: BoxDecoration(
                       gradient: LinearGradient(

@@ -3,6 +3,13 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.34.0
+**Added**
+- **Search opens the show itself:** picking Netflix, Disney+, Prime Video or another app under a result opens that show's own page in the app (from JustWatch), not just the app's search. If an app won't take the link, it opens on its search as before. On Foyer for PC, the show's page opens in the service's window.
+- **Put on a show from your phone:** Foyer Drop's Apps tab has "Put on a show or movie". Type "Bluey" and the TV finds it in one of your apps (the ones on your home screen first) and opens it, even while another app is on screen. If none of your apps has it, a note on the TV says where it is.
+- **Glass app icons:** Settings → Appearance → App icons → Glass. Each app's logo in clear glass over a frosted tile, and the app you're on in its own colours, like Apple's clear icons.
+- **Video background:** Settings → Appearance → Video background. A muted clip (an .mp4 link) loops behind the home screen instead of the photo, with the clock on top; the photo stays until it plays, and it pauses while another app is open. On the TV for now.
+
 ## 1.33.3
 **Changed**
 - Keep watching starts at the left edge of the app tray on the home screen, so they line up. The tray stays centred, and Keep watching moves with it when you add or remove apps.

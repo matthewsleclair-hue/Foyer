@@ -204,6 +204,11 @@ section{animation:rise .35s ease-out}
     <div class="tools hide" id="tvPick"></div>
     <p class="msg" id="tvState" style="margin:0 2px 14px"></p>
     <div class="card">
+      <label for="play">Put on a show or movie</label>
+      <div class="row"><input id="play" maxlength="80" autocomplete="off" placeholder="Bluey, The Office, Dune…" style="margin:0"><button class="btn" style="flex:none;width:auto;padding:0 20px" onclick="sendPlay()">Put on</button></div>
+      <p class="msg" style="font-size:13px;margin-top:8px">The TV finds it in one of its apps (Netflix, Crave, Disney+, Prime Video…) and opens it there.</p>
+    </div>
+    <div class="card">
       <label for="url">Send a link (a YouTube video, for example)</label>
       <div class="row"><input id="url" type="url" inputmode="url" autocapitalize="none" spellcheck="false" placeholder="https://…" style="margin:0"><button class="btn" style="flex:none;width:auto;padding:0 20px" onclick="sendUrl()">Open</button></div>
       <p class="msg" id="mApps"></p>
@@ -497,6 +502,10 @@ async function sendUrl(){
   if(!/^https?:\/\//i.test(u))u='https://'+u;
   if(await sendTv({url:u},'Opening the link on the TV…'))$('url').value=''}
 $('url').addEventListener('keydown',e=>{if(e.key==='Enter')sendUrl()});
+async function sendPlay(){
+  const q=$('play').value.trim();if(!q){say('mApps','Type a show or movie first.',true);return}
+  if(await sendTv({play:q},'Looking for “'+q+'” on the TV…'))$('play').value=''}
+$('play').addEventListener('keydown',e=>{if(e.key==='Enter')sendPlay()});
 setInterval(()=>{if(T&&!$('p-apps').classList.contains('hide')&&!$('app').classList.contains('hide'))loadApps().catch(()=>{})},8000);
 
 // ── remote ──
