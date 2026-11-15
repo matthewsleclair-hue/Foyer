@@ -940,6 +940,7 @@ const Map<String, String> kFr = {
   'When pressed…': 'Quand on appuie…',
   'When Spotify or another music app is playing, its song shows first, with play, pause and skip.': 'Quand Spotify ou une autre appli de musique joue, sa chanson s\'affiche en premier, avec lecture, pause et suivante.',
   'Where to watch': 'Où regarder',
+  'Where to watch comes from TMDB (themoviedb.org) and JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.': '« Où regarder » vient de TMDB (themoviedb.org) et de JustWatch. Ce produit utilise l\'API de TMDB, mais n\'est ni approuvé ni certifié par TMDB.',
   'Where updates come from, GitHub repo and access token': 'D\'où viennent les mises à jour, le dépôt GitHub et le jeton d\'accès',
   'Which controller is it? Foyer shows you which buttons to hold, then pairs it by itself.': 'Quelle manette est-ce? Foyer vous montre quels boutons tenir, puis la jumelle tout seul.',
   'Who else watches?': 'Qui d\'autre regarde?',

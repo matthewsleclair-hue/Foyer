@@ -391,6 +391,14 @@ class _SearchScreenState extends State<SearchScreen> {
             ]),
           if (nothing) Text('Nothing found for “$_q”.', style: const TextStyle(fontSize: 28, color: Colors.white70)),
           if (_note.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_note, style: _dim)),
+          // TMDB's terms ask apps using its data to say so
+          if (_watch.isNotEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 18),
+              child: Text(
+                  'Where to watch comes from TMDB (themoviedb.org) and JustWatch. This product uses the TMDB API but is not endorsed or certified by TMDB.',
+                  style: TextStyle(fontSize: 18, color: Colors.white38, height: 1.3)),
+            ),
         ]),
       ),
     );
