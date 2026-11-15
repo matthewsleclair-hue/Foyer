@@ -2919,9 +2919,11 @@ class _Dock extends StatelessWidget {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             for (var i = 0; i < apps.length; i++)
               Padding(
+                // the key goes on the outer widget, so a moved app keeps its tile (and the
+                // remote's focus) instead of the row rebuilding tiles by position
+                key: ValueKey(apps[i].package),
                 padding: EdgeInsets.only(left: i == 0 ? 0 : 28),
                 child: _Tile(
-                  key: ValueKey(apps[i].package),
                   index: i,
                   w: tileW,
                   intro: intro,
@@ -3041,6 +3043,12 @@ class _TileState extends State<_Tile> with TickerProviderStateMixin {
     if (old.index != widget.index && _node.hasFocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) widget.onFocused(widget.index);
+      });
+    }
+    // jiggle mode: the app being moved always keeps the remote's focus
+    if (_picked && !_node.hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _picked) _node.requestFocus();
       });
     }
   }

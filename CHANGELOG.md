@@ -3,12 +3,13 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
-## 1.31.0
+## 1.31.1
 **Added**
 - **Automatic updates:** new versions install by themselves when the TV has sat on the home screen for 10 minutes, or in the middle of the night, never while you're using it. On to start; Settings → Backup and updates → Updates turns it off. Foyer for PC too. (Fire TV always asks first, so it still waits there.)
 
 **Fixed**
 - Keep watching no longer runs into the round buttons on the left: it lines up with the app row.
+- Jiggle mode: moving an app a few times no longer loses track of it (it kept moving only once or twice).
 
 ## 1.30.0
 **Added**
