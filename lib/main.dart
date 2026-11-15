@@ -37,6 +37,9 @@ bool kIsPc = false;
 /// Foyer for PC's own Updates page (it updates from a zip, not an APK). Set by lib/pc.
 Widget Function()? kPcUpdateScreen;
 
+/// Foyer for PC: checks for and installs an update without asking (set by main_pc.dart).
+Future<bool> Function(Settings)? kPcAutoUpdate;
+
 /// Back to the home screen from anywhere (Home on a PC remote). Set by the app shell.
 VoidCallback? kGoHome;
 
@@ -176,6 +179,8 @@ class Settings extends ChangeNotifier {
   String get lang => _lang;
   /// keep a copy of these settings on Foyer Drop, for other boxes to copy (sync.dart)
   bool syncOn = true;
+  /// install new versions by themselves, when nobody is using the TV
+  bool autoUpdate = true;
   /// apps opened from Foyer, newest first (Back twice on home)
   List<String> recentApps = [];
   void noteRecent(String pkg) {
@@ -322,6 +327,7 @@ class Settings extends ChangeNotifier {
         'clock24': clock24,
         'lang': lang,
         'syncOn': syncOn,
+        'autoUpdate': autoUpdate,
         'recentApps': recentApps,
         'pinned': pinned,
         'weatherCity': weatherCity,
@@ -384,6 +390,7 @@ class Settings extends ChangeNotifier {
     clock24 = _b(j['clock24'], clock24);
     lang = _s(j['lang'], lang);
     syncOn = _b(j['syncOn'], syncOn);
+    autoUpdate = _b(j['autoUpdate'], autoUpdate);
     final ra = j['recentApps'];
     if (ra is List) recentApps = ra.whereType<String>().take(8).toList();
     final pin = j['pinned'];
@@ -2041,7 +2048,10 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _weatherTimer = Timer.periodic(const Duration(minutes: 20), (_) => _loadWeather(force: true));
-    _updateTimer = Timer.periodic(const Duration(minutes: 30), (_) => _checkUpdate(force: true));
+    _updateTimer = Timer.periodic(const Duration(minutes: 30), (_) {
+      _checkUpdate(force: true);
+      _maybeAutoUpdate();
+    });
     _sportsTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadSports());
     kDrop.onCommand = _onDropCommand;
     kDrop.appsProvider = () async {
@@ -2130,6 +2140,7 @@ class _HomeScreenState extends State<HomeScreen>
   BuildContext? _saverCtx;
 
   void _checkIdle() {
+    _maybeAutoUpdate();
     if (!mounted || !_fg || _leaving) return;
     final s = SettingsScope.read(context);
     // Smart idle: a long while with nobody pressing anything on the home screen
@@ -2320,6 +2331,47 @@ class _HomeScreenState extends State<HomeScreen>
         for (final p in pinned)
           if (_cache[p] != null && _cache[p] != _missingMarker) _cache[p]!
       ];
+
+  bool _autoBusy = false;
+  DateTime? _autoTried;
+
+  /// Updates install by themselves (Settings → Backup and updates → Updates): when the home
+  /// screen has sat untouched for 10 minutes, or in the middle of the night. Never while
+  /// you're using Foyer. Fire TV always asks first, so it's left to the Updates page there.
+  Future<void> _maybeAutoUpdate() async {
+    if (!mounted || _autoBusy) return;
+    final s = SettingsScope.read(context);
+    if (!s.autoUpdate || !s.setupDone) return;
+    final now = DateTime.now();
+    final night = now.hour >= 2 && now.hour < 5;
+    final idleHome = _fg &&
+        !_leaving &&
+        (_saverUp || ModalRoute.of(context)?.isCurrent == true) &&
+        now.difference(_lastKey) >= const Duration(minutes: 10);
+    if (!night && !idleHome) return;
+    final tried = _autoTried;
+    if (tried != null && now.difference(tried) < const Duration(hours: 3)) return;
+    if (kIsPc) {
+      final f = kPcAutoUpdate;
+      if (f == null) return;
+      _autoBusy = true;
+      _autoTried = now;
+      try {
+        await f(s);
+      } catch (_) {}
+      _autoBusy = false;
+      return;
+    }
+    if (kIsFireTv) return;
+    final u = kUpdate.value;
+    if (u == null) return;
+    _autoBusy = true;
+    _autoTried = now;
+    try {
+      await autoInstallUpdate(s, u);
+    } catch (_) {}
+    _autoBusy = false;
+  }
 
   Future<void> _checkUpdate({bool force = false}) async {
     if (kIsPc) return; // Foyer for PC updates from its own download, not the TV's
@@ -2633,7 +2685,8 @@ class _HomeScreenState extends State<HomeScreen>
               opacity: _fadeLate,
               child: const DropCorner())),
       Positioned(
-          left: 96,
+          // lined up with the app row, clear of the round buttons on the left
+          left: 200,
           bottom: 300,
           child: FadeTransition(
               opacity: _fadeLate,

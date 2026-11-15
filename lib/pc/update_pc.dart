@@ -209,6 +209,19 @@ class _PcUpdateScreenState extends State<PcUpdateScreen> {
             autofocus: true,
             onSelect: () => _found != null ? _install() : _check(),
           ),
+          const SizedBox(height: 16),
+          Builder(builder: (context) {
+            final st = SettingsScope.of(context);
+            return Row(mainAxisSize: MainAxisSize.min, children: [
+              PillButton(
+                  label: st.autoUpdate ? 'Automatic updates: On' : 'Automatic updates: Off',
+                  onSelect: () => st.change(() => st.autoUpdate = !st.autoUpdate)),
+              const SizedBox(width: 20),
+              Text(st.autoUpdate ? 'Installs by itself when Foyer sits on its home screen, or at night.' : 'New versions wait for you to install them here.',
+                  style: const TextStyle(fontSize: 22, color: Colors.white54)),
+            ]);
+          }),
+
           if (_prog != null) ...[
             const SizedBox(height: 22),
             SizedBox(

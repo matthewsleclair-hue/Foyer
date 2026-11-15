@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'main.dart';
 
 class UpdateInfo {
   UpdateInfo(this.version, this.build, this.url, this.notes);
@@ -203,4 +204,15 @@ String plainNotes(String md) {
     out.add(line.replaceAll('**', ''));
   }
   return out.join('\n').replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
+}
+
+
+/// Downloads and installs an update with nobody watching (the TV's debugging link installs it
+/// without a "Do you want to update?" box). Returns what the TV said: 'started' when it's on its way.
+Future<String> autoInstallUpdate(Settings cfg, UpdateInfo u) async {
+  final path = (await kChannel.invokeMethod<String>('updatePath')) ?? '';
+  if (path.isEmpty) return 'error';
+  final viaDrop = cfg.updateUrl.trim() == UpdateApi.dropSource;
+  await UpdateApi.download(u.url, path, viaDrop ? cfg.serverToken : cfg.updateToken, (_) {});
+  return (await kChannel.invokeMethod<String>('installApk', {'path': path})) ?? 'error';
 }

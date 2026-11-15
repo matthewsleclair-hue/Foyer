@@ -16,6 +16,12 @@ Future<void> main() async {
   kSuggested = kPcSuggested;
   kChannelOverride = pcChannel;
   kPcUpdateScreen = () => const PcUpdateScreen();
+  kPcAutoUpdate = (s) async {
+    final u = await checkPcUpdate(s);
+    if (u == null) return false;
+    await installPcUpdate(u, s, (_) {}); // closes Foyer for a moment and opens the new one
+    return true;
+  };
   await PcBridge.init();
   runApp(SettingsScope(settings: Settings(), child: const PcShell(child: LauncherApp())));
   // borderless full screen once the window exists, and again a moment later in case Windows moved it

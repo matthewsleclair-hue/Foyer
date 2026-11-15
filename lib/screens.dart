@@ -2090,6 +2090,18 @@ class _UpdateScreenState extends State<UpdateScreen> {
               primary: true,
               autofocus: true,
               onSelect: () => _found != null ? _install() : _check()),
+          const SizedBox(height: 16),
+          Builder(builder: (context) {
+            final st = SettingsScope.of(context);
+            return Row(mainAxisSize: MainAxisSize.min, children: [
+              PillButton(
+                  label: st.autoUpdate ? 'Automatic updates: On' : 'Automatic updates: Off',
+                  onSelect: () => st.change(() => st.autoUpdate = !st.autoUpdate)),
+              const SizedBox(width: 20),
+              Text(st.autoUpdate ? (kIsFireTv ? 'Fire TV asks first, so updates still wait here.' : 'Installs by itself when the TV sits on the home screen, or at night.') : 'New versions wait for you to install them here.',
+                  style: const TextStyle(fontSize: 22, color: Colors.white54)),
+            ]);
+          }),
           const SizedBox(height: 26),
           if (_prog != null)
             SizedBox(
