@@ -249,6 +249,6 @@ Yes.
 
 ---
 
-<sub>For the person who builds Foyer: build, signing and publishing notes are in [docs/DEVELOPING.md](docs/DEVELOPING.md). Foyer uses the font Plus Jakarta Sans (SIL Open Font License). Smart idle, Screen off, the weather effects, the crash safety net, the settings layout, glass icons, video backgrounds and opening a show from search were inspired by [couch-tv](https://github.com/Seagey/couch-tv) (MIT). Where to watch comes from TMDB and JustWatch; this product uses the TMDB API but is not endorsed or certified by TMDB.</sub>
+<sub>Foyer TV is open source under the [MIT License](LICENSE). For the person who builds Foyer: build, signing and publishing notes are in [docs/DEVELOPING.md](docs/DEVELOPING.md). Foyer uses the font Plus Jakarta Sans (SIL Open Font License). Smart idle, Screen off, the weather effects, the crash safety net, the settings layout, glass icons, video backgrounds and opening a show from search were inspired by [couch-tv](https://github.com/Seagey/couch-tv) (MIT). Where to watch comes from TMDB and JustWatch; this product uses the TMDB API but is not endorsed or certified by TMDB.</sub>
 
 Photo scenes include photos by Christian Joudrey, John Fowler and Jonny Gios on Unsplash.
