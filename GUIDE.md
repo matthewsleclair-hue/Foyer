@@ -1,6 +1,6 @@
 # Setting up Foyer TV with a computer
 
-On a Google TV you don't need a computer: see "How do I get it?" in the [README](README.md). This guide is for a
+On a Google TV you don't need a computer: install the **Downloader** app and type the code **5700702** (see "How do I get it?" in the [README](README.md)). This guide is for a
 Fire TV Stick, or if you'd rather install with adb.
 
 You need: the TV box, a Mac or Windows computer on the same Wi-Fi, and `Foyer.apk` from the

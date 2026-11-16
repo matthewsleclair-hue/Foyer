@@ -213,9 +213,10 @@ Foyer TV isn't in the Play Store; it comes from this page, free. Everything belo
 
 **On a Google TV (Streamer, Chromecast with Google TV, Onn 4K Pro, a Google TV built into the TV):**
 1. On the TV: **Settings → System → About**, then press **Android TV OS build** 7 times until it says you're a developer.
-2. Install **Downloader** (by AFTVnews) from the Play Store, open it, and type this address:
-   `https://github.com/matthewsleclair-hue/Foyer/releases/latest/download/Foyer.apk`
-   When it's downloaded, choose **Install** (the first time, the TV asks you to allow Downloader to install apps: say yes).
+2. Install **Downloader** (by AFTVnews) from the Play Store, open it, and type the code **5700702**.
+   It always downloads the newest Foyer TV. When it's downloaded, choose **Install** (the first time, the TV asks you
+   to allow Downloader to install apps: say yes).
+   <sub>The code is short for `https://github.com/matthewsleclair-hue/Foyer/releases/latest/download/Foyer.apk`, if you'd rather type that.</sub>
 3. Open **Foyer TV**. Its welcome setup walks you through the rest with the remote: making it your home screen (it shows you which buttons to press, including turning on USB debugging), Wi-Fi, your name, the look and your apps.
 
 **With a computer** (also works for Fire TV): install it with adb, as in the [step-by-step guide](GUIDE.md).
