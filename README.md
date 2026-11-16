@@ -193,9 +193,9 @@ Your phone becomes Foyer's best friend. The companion app works on **iPhone and 
 - 📝 **Notes and drawings:** leave a note ("Pizza's in the fridge") or a doodle, and it pops up on the TV for everyone to see.
 - 👨‍👩‍👧 **Everyone in the house:** each person gets their own login for the same TV, and notes show who sent them.
 
-**Getting it:** whoever set up Foyer for you sends you an invite. Open the link, make an account, and on the TV go to **Settings → Home screen → Foyer Drop** and enter the short code it shows. On iPhone, tap **Share → Add to Home Screen**; on Android, **⋮ → Add to Home screen**.
+**Getting it:** Foyer Drop is optional: it's a small server you run at home (in Docker, see [server/README.md](server/README.md)), or a friend runs for you and sends you an invite. Open the link, make an account, and on the TV go to **Settings → Home screen → Foyer Drop** and enter the short code it shows. On iPhone, tap **Share → Add to Home Screen**; on Android, **⋮ → Add to Home screen**.
 
-The companion app runs on a small server that belongs to whoever set up Foyer for you (that's what *Foyer Drop* is). Your photos and notes go there, not to some company.
+The companion app runs on that small server (that's what *Foyer Drop* is). Your photos and notes go there, not to some company. Foyer TV works fine without it; updates come from GitHub either way.
 
 ## What TV do I need?
 
@@ -209,12 +209,20 @@ Got a Samsung or LG? Plug a Google TV box into it and turn on HDMI-CEC (Samsung 
 
 ## How do I get it?
 
-Foyer isn't in the Play Store. It's shared with friends and family:
+Foyer TV isn't in the Play Store; it comes from this page, free. Everything below uses just the remote, except one optional step.
 
-- **Easiest:** ask whoever gave you Foyer to set up your box. They can hand it to you ready to go, and the first time you turn it on, Foyer walks you through the rest with just the remote: Wi-Fi, your name, how it looks and your apps.
-- **Doing it yourself:** follow the [step-by-step guide](GUIDE.md). You'll need a computer once, for about 10 minutes.
+**On a Google TV (Streamer, Chromecast with Google TV, Onn 4K Pro, a Google TV built into the TV):**
+1. On the TV: **Settings → System → About**, then press **Android TV OS build** 7 times until it says you're a developer.
+2. Install **Downloader** (by AFTVnews) from the Play Store, open it, and type this address:
+   `https://github.com/matthewsleclair-hue/Foyer/releases/latest/download/Foyer.apk`
+   When it's downloaded, choose **Install** (the first time, the TV asks you to allow Downloader to install apps: say yes).
+3. Open **Foyer TV**. Its welcome setup walks you through the rest with the remote: making it your home screen (it shows you which buttons to press, including turning on USB debugging), Wi-Fi, your name, the look and your apps.
 
-After that, updates install by themselves when nobody's using the TV. You can also update with one press: **Settings → Backup and updates → Updates**.
+**With a computer** (also works for Fire TV): install it with adb, as in the [step-by-step guide](GUIDE.md).
+
+**Foyer for PC:** download `Foyer-PC-….zip` from the newest **Foyer for PC** release on the [Releases page](https://github.com/matthewsleclair-hue/Foyer/releases), unzip it and double-click **Install Foyer.cmd**.
+
+After that, **updates install by themselves** from this page when nobody's using the TV. No account, key or server needed. You can also update with one press: **Settings → Backup and updates → Updates**.
 
 ## Common questions
 
@@ -225,7 +233,7 @@ Yes. They're the same apps from the Play Store. Foyer only replaces the home scr
 Yes, any time: **Settings → TV tools → Home button → Bring back the TV's own home screen**.
 
 **Does Foyer collect anything about me?**
-No. Foyer has no ads and no tracking. Weather and scores come from public sources; Foyer Drop runs on a server that belongs to whoever set it up for you.
+No. Foyer has no ads and no tracking, and no account. Weather, scores and "where to watch" come from public sources; updates come from this GitHub page. Foyer Drop (the phone companion) is optional and runs on a server you or a friend set up.
 
 **Is Foyer TV available in French?**
 Yes. Pick **Français** on the first setup screen, or go to **Settings → Appearance → Language**. Everything switches at once, and the clock goes to 24 hours.
@@ -234,7 +242,7 @@ Yes. Pick **Français** on the first setup screen, or go to **Settings → Appea
 No. Link it to Foyer Drop during setup and it asks whether to copy one of your other boxes. You can also do it later in **Settings → Backup and updates → Settings follow you**. Sign-ins like Plex aren't copied, so link those again.
 
 **Something looks wrong. What do I do?**
-Press **Home** to come back to Foyer. If it ever keeps crashing, the TV's own home screen takes over for a few minutes by itself. If that doesn't help, try **Settings → Screensaver and power → Restart or sleep → Restart**, then tell whoever set up Foyer for you.
+Press **Home** to come back to Foyer. If it ever keeps crashing, the TV's own home screen takes over for a few minutes by itself. If that doesn't help, try **Settings → Screensaver and power → Restart or sleep → Restart**, then [open an issue](https://github.com/matthewsleclair-hue/Foyer/issues) with a photo of the screen.
 
 **Is it free?**
 Yes.

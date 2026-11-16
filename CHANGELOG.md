@@ -3,6 +3,12 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.35.0
+**Changed**
+- **Foyer TV is public on GitHub.** Every TV and PC now gets updates straight from GitHub: no account, no key and no Foyer Drop needed. Boxes that got updates from Foyer Drop switch over by themselves (you can still pick Foyer Drop in Developer options).
+- Foyer Drop no longer needs a GitHub token to keep its copy of new versions.
+- Install it yourself: the README shows how, with the Downloader app and just the remote.
+
 ## 1.34.2
 **Fixed**
 - Open apps (Back twice on the home screen) was nearly always empty: it only knew apps opened from Foyer's own tiles. It now uses the TV's own list of recent apps, so it shows what you've been using however you opened it (Keep watching, Search, the remote's app buttons, your phone). An app you close there stays gone until you use it again.

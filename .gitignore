@@ -5,3 +5,7 @@ key.properties
 update.json
 .DS_Store
 update-drop.json
+
+# never commit the Foyer Drop server data or its settings
+server/data/
+.env

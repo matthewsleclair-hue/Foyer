@@ -6,16 +6,17 @@ GitHub builds everything. When `VERSION` changes on `main`:
 
 - **Foyer for TV** (`.github/workflows/foyer-android.yml`) builds and signs `Foyer.apk` and publishes it as a release.
 - **Foyer for PC** (`.github/workflows/foyer-pc.yml`) builds the Windows zip and publishes a "Foyer for PC" pre-release.
-- **Foyer Drop** checks GitHub every 10 minutes (with a read-only token, set on its web page: TVs → Foyer updates from
-  GitHub) and fetches both, so linked TVs and PCs update from it.
+- **TVs and PCs** update straight from the public releases (no token, no server): the TV reads `releases/latest`, the PC
+  the newest `pc-v…` pre-release.
+- **Foyer Drop** also keeps a copy (it checks GitHub every 10 minutes, no token needed), for boxes set to update from it.
 
 So publishing is: change the code, `bash tools/bump.sh small|medium|large`, add the CHANGELOG entry, push. From any
 computer, or none (a Claude session can do it).
 
 One-time setup:
 1. On the Mac with the signing key: `bash tools/setup-ci.sh` (puts the key in the repo's secrets).
-2. Update Foyer Drop: `bash tools/deploy-drop.sh`, then on its web page (owner): TVs → Foyer updates from GitHub → paste a
-   fine-grained token (only the Foyer repository, Contents: Read-only) → Save token.
+2. Optional: update Foyer Drop with `bash tools/deploy-drop.sh` (it asks once for its SSH address and keeps it in
+   `~/.foyer-drop-ssh`, outside the repo).
 
 The older way below (building on the Mac with `tools/publish.sh`) still works.
 

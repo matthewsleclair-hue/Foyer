@@ -1221,8 +1221,10 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def _gh_get(url: str, token: str, accept: str = "application/vnd.github+json"):
-    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}", "Accept": accept,
-                                               "User-Agent": "foyer-drop"})
+    headers = {"Accept": accept, "User-Agent": "foyer-drop"}
+    if token:  # only for a private copy of the repo; Foyer TV's own repo is public
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url, headers=headers)
     return urllib.request.build_opener(_NoRedirect).open(req, timeout=30)
 
 
@@ -1254,9 +1256,7 @@ def _local_build(folder: Path) -> int:
 
 def github_sync() -> str:
     """Fetches the newest TV release and the newest Foyer for PC release, if they're newer."""
-    token = _gh_token()
-    if not token:
-        return "No GitHub token yet."
+    token = _gh_token()  # empty is fine: the repo is public
     if _gh["checking"]:
         return "Already checking."
     _gh["checking"] = True
@@ -1290,7 +1290,8 @@ def github_sync() -> str:
                 break
         _gh["error"] = ""
     except urllib.error.HTTPError as e:
-        _gh["error"] = "GitHub refused the token (check it can read the Foyer repo)" if e.code in (401, 403, 404) \
+        _gh["error"] = ("GitHub refused the token (check it can read the Foyer repo, or remove it)" if token
+                        else "GitHub didn't find the Foyer repo (is it public?)") if e.code in (401, 403, 404) \
             else f"GitHub said {e.code}"
     except Exception as e:
         _gh["error"] = f"Couldn't reach GitHub: {e}"
@@ -1303,8 +1304,7 @@ def github_sync() -> str:
 def _gh_loop():
     while True:
         try:
-            if _gh_token():
-                github_sync()
+            github_sync()  # public repo: no token needed
         except Exception:
             pass
         time.sleep(600)  # every 10 minutes

@@ -5,7 +5,8 @@
 set -e
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 REPO="${FOYER_REPO:-matthewsleclair-hue/Foyer}"
-DROP_SSH="${FOYER_DROP_SSH:-cardtracker@192.168.2.24}"
+DROP_SSH_ASK=0; . "$HERE/tools/drop-ssh.sh"
+[ -n "$DROP_SSH" ] || { echo "No Foyer Drop server set (FOYER_DROP_SSH or ~/.foyer-drop-ssh), so nothing to copy. PCs update from GitHub."; exit 0; }
 DROP_DIR="${FOYER_DROP_DIR:-foyer-drop/data/releases}/pc"
 TAG="$(gh api "repos/$REPO/releases?per_page=30" --jq '[.[] | select(.tag_name | startswith("pc-v"))][0].tag_name')"
 [ -n "$TAG" ] && [ "$TAG" != "null" ] || { echo "No Foyer for PC release on GitHub yet."; exit 0; }

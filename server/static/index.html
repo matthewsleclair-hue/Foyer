@@ -283,10 +283,13 @@ section{animation:rise .35s ease-out}
     <div class="card hide" id="ghCard">
       <label>Foyer updates from GitHub</label>
       <div id="ghStatus" class="msg" style="margin:0 0 12px"></div>
-      <input id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="GitHub token (read-only, Foyer repo)">
-      <div class="row"><button class="btn" onclick="ghSave()">Save token</button><button class="btn ghost" onclick="ghCheck()">Check now</button></div>
+      <div class="row"><button class="btn ghost" onclick="ghCheck()">Check now</button></div>
       <p class="msg" id="mGh"></p>
-      <p class="msg" style="font-size:13px">GitHub builds Foyer for TVs and PCs whenever there's a new version. With a token, this server fetches each one by itself (every 10 minutes) and your TVs and PCs update from here. Make one at github.com → Settings → Developer settings → Fine-grained tokens: only the Foyer repository, Contents: Read-only.</p>
+      <p class="msg" style="font-size:13px">Foyer TV is public on GitHub, so TVs and PCs get new versions from there by themselves. This server also keeps a copy (it checks every 10 minutes, no key needed), for boxes set to get updates from Foyer Drop in Developer options.</p>
+      <details style="margin-top:8px"><summary class="msg" style="font-size:13px;cursor:pointer">Using a private copy of the repo?</summary>
+        <input id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="GitHub token (read-only)" style="margin-top:10px">
+        <button class="btn" onclick="ghSave()">Save token</button>
+      </details>
     </div>
     <div class="card hide" id="tmdbCard">
       <label>Search on your TVs</label>
@@ -557,7 +560,7 @@ async function loadTvs(){
 // ── updates from GitHub (owner) ──
 function paintGh(s){
   const parts=[];
-  parts.push(s.token?'Token saved.':'No token yet.');
+  if(s.token)parts.push('Token saved.');
   parts.push('On this server: TV '+(s.tv||'none')+' · PC '+(s.pc||'none')+'.');
   if(s.last)parts.push('Checked '+when(s.last)+'.');
   $('ghStatus').textContent=parts.join(' ');

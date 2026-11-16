@@ -12,9 +12,9 @@ docker compose up -d --build
 
 Open `http://<your-server-ip>:8080` (or your own domain) and create the first account. That account is the owner.
 
-**Foyer updates from GitHub:** as the owner, open **TVs → Foyer updates from GitHub** and paste a read-only GitHub
-token (fine-grained, only the Foyer repository, Contents: Read-only). The server then fetches each new Foyer for TVs and
-Foyer for PC by itself every 10 minutes, and linked TVs and PCs update from it. (`GITHUB_TOKEN` in `.env` works too.)
+**Foyer updates:** TVs and PCs update straight from GitHub, so the server isn't needed for that. It still keeps a copy
+of each new version (it checks GitHub every 10 minutes, no token needed), for any box set to update from Foyer Drop in
+Developer options. A token (TVs → Foyer updates from GitHub, or `GITHUB_TOKEN` in `.env`) is only for a private fork.
 
 **Updating it later:** from the computer with this repo, run `bash tools/deploy-drop.sh`. It copies the new page and
 server over and restarts it; accounts, TVs, notes and photos (in `data/`) are left alone.

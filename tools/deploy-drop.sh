@@ -4,7 +4,7 @@
 # Your accounts, TVs, notes, photos and Foyer updates live in foyer-drop/data and are never touched.
 set -e
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
-DROP_SSH="${FOYER_DROP_SSH:-cardtracker@192.168.2.24}"
+. "$HERE/tools/drop-ssh.sh"
 DROP_HOME="${FOYER_DROP_HOME:-foyer-drop}"
 echo "Copying Foyer Drop to $DROP_SSH:$DROP_HOME …"
 ssh -o ConnectTimeout=5 "$DROP_SSH" "mkdir -p $DROP_HOME"

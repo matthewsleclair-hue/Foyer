@@ -65,6 +65,9 @@ class UpdateApi {
   /// "drop" = your own Foyer Drop server: only TVs signed in to it can update.
   static const String dropSource = 'drop';
 
+  /// Foyer TV's public GitHub repo: where every box gets its updates by default, no key needed.
+  static const String publicRepo = 'matthewsleclair-hue/Foyer';
+
   static Future<UpdateInfo?> _checkDrop(String dropUrl, String dropToken, int currentBuild) async {
     if (dropUrl.isEmpty || dropToken.isEmpty) {
       throw const FormatException('Link Foyer Drop first (Settings › Home screen › Foyer Drop). Updates come from there.');
@@ -93,6 +96,9 @@ class UpdateApi {
       {String dropUrl = '', String dropToken = ''}) async {
     if (source.trim() == dropSource) return _checkDrop(dropUrl, dropToken, currentBuild);
     final repo = githubRepo(source);
+    // Foyer TV's own repo is public: never send an old access token there (a deleted one
+    // would only get the check refused)
+    if (repo != null && repo.toLowerCase() == publicRepo.toLowerCase()) token = '';
     if (repo != null) {
       final j = await _getJson(Uri.https('api.github.com', '/repos/$repo/releases/latest'), token);
       if (j is! Map) throw const FormatException('Unexpected reply from GitHub');
@@ -129,7 +135,8 @@ class UpdateApi {
 
   static Future<void> download(
       String url, String path, String token, void Function(double) onProgress) async {
-    token = cleanToken(token);
+    // a public release file needs no key (and an old one could only get it refused)
+    token = url.contains('/releases/download/') ? '' : cleanToken(token);
     final c = _client();
     try {
       var uri = Uri.parse(url);

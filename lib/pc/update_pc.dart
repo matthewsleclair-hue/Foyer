@@ -13,10 +13,10 @@ import 'bridge.dart';
 
 /// Checks for a newer Foyer for PC. Null when up to date. Throws if it can't check.
 Future<UpdateInfo?> checkPcUpdate(Settings s) async {
-  final src = s.updateUrl.trim();
+  final src = s.updateUrl.trim().isEmpty ? UpdateApi.publicRepo : s.updateUrl.trim();
   final c = HttpClient()..connectionTimeout = const Duration(seconds: 8);
   try {
-    if (src.isEmpty || src == UpdateApi.dropSource) {
+    if (src == UpdateApi.dropSource) {
       if (s.serverUrl.isEmpty || s.serverToken.isEmpty) {
         throw const FormatException('Link Foyer Drop first (Settings › Home screen › Foyer Drop). Updates come from there.');
       }
@@ -37,7 +37,7 @@ Future<UpdateInfo?> checkPcUpdate(Settings s) async {
     if (repo == null) throw const FormatException('Updates come from Foyer Drop or a GitHub repo');
     final req = await c.getUrl(Uri.https('api.github.com', '/repos/$repo/releases', {'per_page': '30'}));
     req.headers.set('Accept', 'application/vnd.github+json');
-    final tok = UpdateApi.cleanToken(s.updateToken);
+    final tok = repo.toLowerCase() == UpdateApi.publicRepo.toLowerCase() ? '' : UpdateApi.cleanToken(s.updateToken);
     if (tok.isNotEmpty) req.headers.set('Authorization', 'Bearer $tok');
     final res = await req.close().timeout(const Duration(seconds: 12));
     final body = await res.transform(utf8.decoder).join();
@@ -81,7 +81,7 @@ Future<void> installPcUpdate(UpdateInfo u, Settings s, void Function(double) onP
   if (await dir.exists()) await dir.delete(recursive: true);
   await dir.create(recursive: true);
   final zip = '${dir.path}\\Foyer-PC.zip';
-  final token = u.url.contains('api.github.com') ? s.updateToken : s.serverToken;
+  final token = u.url.contains('api.github.com') ? s.updateToken : (u.url.contains('github.com') ? '' : s.serverToken);
   await UpdateApi.download(u.url, zip, token, onProgress);
   final appDir = File(Platform.resolvedExecutable).parent.path;
   final script = File('${dir.path}\\update.ps1');
@@ -187,7 +187,7 @@ class _PcUpdateScreenState extends State<PcUpdateScreen> {
   @override
   Widget build(BuildContext context) {
     final s = SettingsScope.of(context);
-    final fromDrop = s.updateUrl.trim().isEmpty || s.updateUrl.trim() == UpdateApi.dropSource;
+    final fromDrop = s.updateUrl.trim() == UpdateApi.dropSource;
     return SettingsPage(
       title: 'Updates',
       subtitle: 'Foyer for PC updates itself: it downloads the new version, closes for a moment and opens again. '

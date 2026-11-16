@@ -249,7 +249,7 @@ class Settings extends ChangeNotifier {
   Map<String, String> remoteKeys = {};
   /// Where updates come from. New boxes use your Foyer Drop server ("drop"): only TVs
   /// signed in to it can download Foyer, and no GitHub token is needed.
-  String updateUrl = UpdateApi.dropSource;
+  String updateUrl = UpdateApi.publicRepo;
   String updateToken = '';
   /// TMDB key for Search everything, typed in Developer options (else the one built in)
   String tmdbKey = '';
@@ -375,6 +375,7 @@ class Settings extends ChangeNotifier {
         'quietHours': quietHours,
         'remoteKeys': remoteKeys,
         'updateUrl': updateUrl,
+        'updatesV': 2,
         'sportsTeams': [for (final t in sportsTeams) t.toJson()],
         'serverUrl': serverUrl,
         'dropHidden': dropHidden,
@@ -474,6 +475,12 @@ class Settings extends ChangeNotifier {
     final rk = j['remoteKeys'];
     if (rk is Map) remoteKeys = {for (final e in rk.entries) '${e.key}': '${e.value}'};
     updateUrl = _s(j['updateUrl'], updateUrl);
+    // Foyer TV went public on GitHub (1.35): boxes that got updates from Foyer Drop switch to
+    // GitHub once, so updates no longer need a server or a key. Choosing Foyer Drop again
+    // in Developer options sticks.
+    if ((j['updatesV'] as num? ?? 0) < 2 && (updateUrl == UpdateApi.dropSource || updateUrl.trim().isEmpty)) {
+      updateUrl = UpdateApi.publicRepo;
+    }
     final st = j['sportsTeams'];
     if (st is List) {
       sportsTeams = [for (final x in st) if (FollowedTeam.fromJson(x) != null) FollowedTeam.fromJson(x)!];
@@ -572,7 +579,7 @@ class Settings extends ChangeNotifier {
     dropHidden = [];
     serverUrl = '';
     serverToken = '';
-    updateUrl = UpdateApi.dropSource;
+    updateUrl = UpdateApi.publicRepo;
     updateToken = '';
     final r = Random.secure();
     clientId = List.generate(16, (_) => r.nextInt(256).toRadixString(16).padLeft(2, '0')).join();

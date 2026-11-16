@@ -2074,7 +2074,7 @@ class _UpdateScreenState extends State<UpdateScreen> {
     return SettingsPage(
       title: 'Updates',
       subtitle:
-          'New versions come from your Foyer Drop server (only signed-in TVs can get them), or from a GitHub repo.',
+          'New versions come straight from Foyer TV\'s page on GitHub.',
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2282,7 +2282,7 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
               value: drop ? 'Foyer Drop' : 'GitHub',
               autofocus: true,
               onSelect: () {
-                s.change(() => s.updateUrl = drop ? 'matthewsleclair-hue/Foyer' : UpdateApi.dropSource);
+                s.change(() => s.updateUrl = drop ? UpdateApi.publicRepo : UpdateApi.dropSource);
                 _changed();
               }),
           if (!drop) ...[

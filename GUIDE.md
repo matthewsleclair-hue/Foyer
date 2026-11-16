@@ -1,6 +1,10 @@
-# Setting up Foyer on a Fire TV Stick (no coding needed)
+# Setting up Foyer TV with a computer
 
-You need: a Fire TV Stick, a Mac or Windows computer on the same Wi-Fi, and the `Foyer.apk` file you were sent.
+On a Google TV you don't need a computer: see "How do I get it?" in the [README](README.md). This guide is for a
+Fire TV Stick, or if you'd rather install with adb.
+
+You need: the TV box, a Mac or Windows computer on the same Wi-Fi, and `Foyer.apk` from the
+[latest release](https://github.com/matthewsleclair-hue/Foyer/releases/latest).
 This takes about 10 minutes. Nothing here is permanent: the clean-up can be undone.
 
 ## 1. Turn on ADB debugging on the stick
@@ -37,14 +41,15 @@ In the Foyer folder (from the project download):
 
     bash tools/tuneup.sh 192.168.1.25
 
-Windows users: run the same commands from Git Bash, or ask whoever gave you Foyer to run it for you.
+Windows users: run the same commands from Git Bash.
 To undo everything:
 
     bash tools/tuneup.sh 192.168.1.25 undo
 
 ## 6. Updates
-Foyer checks for updates itself. If a new version is available, the Settings icon on the home screen gets an orange dot.
-Open **Settings > Backup and updates > Updates** and choose **Download and install**.
+Updates come from the GitHub releases page by themselves: Foyer installs a new version when the TV has sat on the home
+screen for a while, or at night. (Fire TV asks first: when the Settings icon gets an orange dot, open
+**Settings > Backup and updates > Updates** and choose **Download and install**.)
 
 ## Troubleshooting
 - **"unauthorized" or no Allow prompt:** on the stick, turn ADB debugging off and on, then run `adb connect` again.
@@ -158,15 +163,7 @@ When one of the teams you follow scores, a small note pops up in the top corner 
 
 ## Setting up a box for a friend (Onn 4K Pro, Chromecast, any Google TV)
 
-Foyer is never public. Friends' boxes get updates from **your Foyer Drop server**, and only TVs signed in to it (people you invited) can download Foyer.
-
-**One time:**
-1. Update the Foyer Drop server (it has the new update endpoints): copy `server/` to the VM and `docker compose up -d --build`.
-2. On the VM, make the releases folder yours so publishing can copy into it:
-   ```bash
-   sudo mkdir -p ~/foyer-drop/data/releases && sudo chown $USER ~/foyer-drop/data/releases
-   ```
-3. Publish as usual with `tools/publish.sh`. It now also copies Foyer.apk to the server. (`FOYER_DROP_SSH` changes the address if the VM moves; default `cardtracker@192.168.2.24`.)
+Friends' boxes update straight from GitHub, like yours. Foyer Drop is optional (the phone remote, notes, photos, games).
 
 **Preparing the box:**
 1. Unbox it and do Google's setup **with your friend's Google account** (see below).
@@ -177,7 +174,7 @@ Foyer is never public. Friends' boxes get updates from **your Foyer Drop server*
 6. Restart the box once and check it starts in Foyer.
 7. Foyer > Settings > Backup and updates > **Reset for someone new**. The welcome setup appears. Unplug.
 
-**At his place:** Foyer's welcome setup asks for his Wi-Fi, name, look and apps. In **Extras > Foyer Drop** he links the TV with the account you invited him to (Foyer Drop page > TVs > Add a person, or an invite code). That link is also where his updates come from: Settings > Updates works with one press, no token. Until he links Foyer Drop, he gets no updates (and nobody else can either).
+**At his place:** Foyer's welcome setup asks for his Wi-Fi, name, look and apps. If you run Foyer Drop, in **Extras > Foyer Drop** he links the TV with the account you invited him to (Foyer Drop page > TVs > Add a person, or an invite code). Updates come from GitHub by themselves either way.
 
 **The Google account:** the box needs his account for the Play Store and his apps. Do Google's setup while he's there or on a call; if Google TV offers to sign in with a phone and a code, send him the code. Or make a new Gmail for the box and give him the password. Don't use your own: your purchases, YouTube history and payment details would come with it.
 
@@ -187,7 +184,7 @@ Foyer uses **Plus Jakarta Sans** (in `fonts/`, free under the SIL Open Font Lice
 
 ### Developer options
 
-Settings > Updates only shows the one **Check now / Download and install** button, so nobody changes where updates come from by accident. To get the rest, press the **Version** line on the Updates page 7 times (like Android's build number). **Developer options** then appears at the bottom of Settings with: where updates come from (Foyer Drop or GitHub), the GitHub repo, the access token, and loading the token from a file. **Turn off developer options** hides it again; **Reset for someone new** turns it off too.
+Settings > Updates only shows the one **Check now / Download and install** button, so nobody changes where updates come from by accident. To get the rest, press the **Version** line on the Updates page 7 times (like Android's build number). **Developer options** then appears at the bottom of Settings with: where updates come from (GitHub, the default, or Foyer Drop), the GitHub repo (for a fork of your own), an access token (only for a private fork), and the TMDB key for search. **Turn off developer options** hides it again; **Reset for someone new** turns it off too.
 
 ### VPN
 

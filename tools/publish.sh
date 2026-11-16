@@ -26,23 +26,23 @@ gh release create "$TAG" "$HERE/Foyer.apk" --repo "$REPO" --title "Foyer $NAME (
 echo
 echo "Published $TAG to https://github.com/$REPO/releases"
 
-# Also put it on your Foyer Drop server: friends' TVs linked to it update from there
-# (only signed-in TVs can download it; nothing is public).
-DROP_SSH="${FOYER_DROP_SSH:-cardtracker@192.168.2.24}"
+# Also put it on your Foyer Drop server, for boxes set to update from Foyer Drop
+# (most update straight from GitHub now). Skipped when no server is set (tools/drop-ssh.sh).
+DROP_SSH_ASK=0; . "$HERE/tools/drop-ssh.sh"
 DROP_DIR="${FOYER_DROP_DIR:-foyer-drop/data/releases}"
 python3 - "$HERE/update.json" "$NOTES" > "$HERE/update-drop.json" <<'PY'
 import json, sys
 j = json.load(open(sys.argv[1])); j["notes"] = sys.argv[2]; j.pop("url", None)
 print(json.dumps(j))
 PY
-if ssh -o ConnectTimeout=5 "$DROP_SSH" "mkdir -p $DROP_DIR" 2>/dev/null; then
+if [ -n "$DROP_SSH" ] && ssh -o ConnectTimeout=5 "$DROP_SSH" "mkdir -p $DROP_DIR" 2>/dev/null; then
   scp -q "$HERE/Foyer.apk" "$DROP_SSH:$DROP_DIR/Foyer.apk.new"
   scp -q "$HERE/update-drop.json" "$DROP_SSH:$DROP_DIR/update.json.new"
   # swap both in at once, so a TV never sees the new version number with the old file
   ssh "$DROP_SSH" "cd $DROP_DIR && mv Foyer.apk.new Foyer.apk && mv update.json.new update.json"
   echo "Also on Foyer Drop ($DROP_SSH:$DROP_DIR): linked TVs can update now."
 else
-  echo "(Could not reach $DROP_SSH, so Foyer Drop didn't get this version. Set FOYER_DROP_SSH if it moved.)"
+  echo "(Foyer Drop didn't get this version: no server set, or it didn't answer. Boxes update from GitHub anyway.)"
 fi
 
 # Foyer for PC (built by GitHub): put the newest one on Foyer Drop too, so PCs update themselves.
