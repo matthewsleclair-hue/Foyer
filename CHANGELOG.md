@@ -3,6 +3,10 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.35.1
+**Fixed**
+- Score alerts no longer pop up twice for the same goal, start or final. ESPN sometimes sends a slightly old scoreboard for a few seconds, which made a goal look like it happened again; Foyer now remembers what it already told you. A goal taken back on review is still handled properly.
+
 ## 1.35.0
 **Changed**
 - **Foyer TV is public on GitHub.** Every TV and PC now gets updates straight from GitHub: no account, no key and no Foyer Drop needed. Boxes that got updates from Foyer Drop switch over by themselves (you can still pick Foyer Drop in Developer options).

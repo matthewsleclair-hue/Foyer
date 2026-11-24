@@ -473,8 +473,15 @@ void showScoreAlert({
   String side = '',
   String color = '',
   String line = '',
-}) =>
-    kChannel.invokeMethod('alert', {
+  bool once = true,
+}) {
+  // the very same pop-up twice within a few minutes is always a repeat, never news
+  final sig = '$league|$event|$away $awayScore|$home $homeScore|$line';
+  final t = DateTime.now();
+  _recentAlerts.removeWhere((_, at) => t.difference(at).inMinutes >= 5);
+  if (once && _recentAlerts.containsKey(sig)) return;
+  _recentAlerts[sig] = t;
+  kChannel.invokeMethod('alert', {
       'emoji': _leagueEmoji[league] ?? '🏆',
       'event': tr(event),
       'away': away,
@@ -487,6 +494,9 @@ void showScoreAlert({
       'line': line,
       'size': kScoreAlertSize,
     }).catchError((_) => null);
+}
+
+final Map<String, DateTime> _recentAlerts = {};
 
 /// Sample on the Sports page: a Canadiens goal at the Bell Centre. Go Habs Go.
 void showSampleAlert() => showScoreAlert(
@@ -498,7 +508,8 @@ void showSampleAlert() => showScoreAlert(
     homeScore: '2',
     detail: '3rd period · 4:21',
     side: 'home',
-    color: 'af1e2d');
+    color: 'af1e2d',
+    once: false);
 const List<String> kScoreAlertNames = ['Off', 'Scores only', 'Scores, start and final'];
 
 /// Watches the games of the teams you follow and pops a note over whatever is playing
@@ -559,10 +570,18 @@ class ScoreAlerts {
       side: side,
       color: side == 'home' ? g.homeColor : (side == 'away' ? g.awayColor : '')));
 
+  // What has already been announced for each game, so a stale copy of the scoreboard
+  // (ESPN's servers sometimes hand back one that's a few seconds old: the goal vanishes for
+  // one check, then "comes back") never pops the same goal, start or final twice.
+  final Map<String, _Told> _told = {};
+
   void _onGames() {
     final now = {for (final g in kSports.games.value) _key(g): g};
     if (!_primed) {
       // first look: remember where things stand, don't announce old goals
+      for (final e in now.entries) {
+        _told[e.key] = _Told.from(e.value);
+      }
       _last = now;
       _primed = now.isNotEmpty;
       return;
@@ -570,9 +589,27 @@ class ScoreAlerts {
     if (kScoreAlertLevel > 0) {
       for (final e in now.entries) {
         final g = e.value, old = _last[e.key];
-        if (old == null) continue;
-        final starting = old.state == 'pre' && g.state == 'in';
-        final ended = old.state == 'in' && g.state == 'post';
+        final t = _told[e.key];
+        if (old == null || t == null) {
+          // a game we haven't seen yet (or one that dropped out for a check): just note it
+          _told[e.key] ??= _Told.from(g);
+          continue;
+        }
+        final a = _n(g.awayScore), h = _n(g.homeScore);
+        // the score went down: a goal taken back on review, or a stale copy. Only believe it
+        // once it has stayed down for a few checks, so the stale copy can't re-announce a goal.
+        if (a < t.away || h < t.home) {
+          if (++t.lower >= 3) {
+            t.away = a;
+            t.home = h;
+            t.lower = 0;
+          }
+        } else {
+          t.lower = 0;
+        }
+        final starting = g.state == 'in' && old.state == 'pre' && !t.started;
+        final ended = g.state == 'post' && old.state == 'in' && !t.ended;
+        if (g.state != 'pre') t.started = true;
         if (starting && kScoreAlertLevel >= 2) {
           if (g.league == 'f1') {
             _later(() => showScoreAlert(league: 'f1', event: 'FORMULA 1 · LIVE', line: g.title));
@@ -581,24 +618,38 @@ class ScoreAlerts {
           }
           continue;
         }
-        if (g.league != 'f1' && g.league != 'nba' && (g.state == 'in' || ended)) {
-          final da = _n(g.awayScore) - _n(old.awayScore), dh = _n(g.homeScore) - _n(old.homeScore);
+        if (g.league != 'f1' && g.league != 'nba' && (g.state == 'in' || g.state == 'post')) {
+          final da = a - t.away, dh = h - t.home;
+          if (da > 0) t.away = a;
+          if (dh > 0) t.home = h;
           // NFL extra points on their own aren't worth a pop-up
           final pts = da > dh ? da : dh;
           if (pts > 0 && !(g.league == 'nfl' && pts == 1)) {
             final away = da > dh;
             _game(g, '${_what(g.league, pts)} · ${away ? g.awayAbbr : g.homeAbbr}', side: away ? 'away' : 'home');
+            if (ended) t.ended = true;
             continue;
           }
         }
-        if (ended && kScoreAlertLevel >= 2) {
-          final a = _n(g.awayScore), h = _n(g.homeScore);
-          _game(g, 'FINAL', side: a == h ? '' : (a > h ? 'away' : 'home'));
+        if (ended) {
+          t.ended = true;
+          if (kScoreAlertLevel >= 2) _game(g, 'FINAL', side: a == h ? '' : (a > h ? 'away' : 'home'));
         }
       }
     }
+    // forget games that are long gone (keeps the list from growing over weeks)
+    if (_told.length > 60) _told.removeWhere((k, _) => !now.containsKey(k));
     _last = now;
   }
+}
+
+class _Told {
+  _Told(this.away, this.home, this.started, this.ended);
+  factory _Told.from(GameLine g) => _Told(ScoreAlerts._n(g.awayScore), ScoreAlerts._n(g.homeScore),
+      g.state != 'pre', g.state == 'post');
+  int away, home;
+  bool started, ended;
+  int lower = 0;
 }
 
 final ScoreAlerts kScoreAlerts = ScoreAlerts();
