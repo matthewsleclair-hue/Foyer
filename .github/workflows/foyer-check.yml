@@ -1,0 +1,47 @@
+name: Foyer checks
+
+# Reads through all of Foyer's code for mistakes (flutter analyze) and runs the tests in
+# test/. Runs on every push and by hand; it never publishes anything.
+on:
+  workflow_dispatch:
+  push:
+    paths: [lib/**, test/**, .github/workflows/foyer-check.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Make the project
+        run: |
+          flutter create --platforms=android --org com.leclair --project-name leclair_home build_check
+          rm -rf build_check/lib build_check/test
+          cp -R lib build_check/lib
+          cp -R test build_check/test
+
+      - name: Look for mistakes
+        working-directory: build_check
+        run: |
+          flutter analyze --no-fatal-infos 2>&1 | tee ../analyze.txt
+
+      - name: Tests
+        if: always()
+        working-directory: build_check
+        run: flutter test --reporter expanded 2>&1 | tee ../tests.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: check-results
+          path: |
+            analyze.txt
+            tests.txt

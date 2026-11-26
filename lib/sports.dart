@@ -603,6 +603,8 @@ class ScoreAlerts {
             t.away = a;
             t.home = h;
             t.lower = 0;
+            // the next goal may bring back the very same score: let that pop-up through
+            _recentAlerts.removeWhere((k, _) => k.contains('|${g.awayAbbr} ') && k.contains('|${g.homeAbbr} '));
           }
         } else {
           t.lower = 0;
