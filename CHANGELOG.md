@@ -3,6 +3,15 @@
 Newest first. Each update on the TV (Settings → Backup and updates → Updates) and each
 GitHub release shows the part of this list it brings.
 
+## 1.35.2
+**Fixed**
+- Opening an app or a link from your phone (Foyer Drop) now works while the TV is already in another app. Before, the phone said it was sent but nothing happened until you went back to the home screen.
+- Score alerts: if a goal is taken back on review and the same team scores again a few minutes later, that new goal now pops up (it was mistaken for a repeat).
+- Foyer for PC: a website that fails to open no longer leaves Foyer stuck.
+
+**Changed**
+- Foyer now checks itself on every change: GitHub reads through the code for mistakes and opens the home screen in English and French, in every holiday look, before anything is released.
+
 ## 1.35.1
 **Fixed**
 - Score alerts no longer pop up twice for the same goal, start or final. ESPN sometimes sends a slightly old scoreboard for a few seconds, which made a goal look like it happened again; Foyer now remembers what it already told you. A goal taken back on review is still handled properly.
