@@ -2,7 +2,6 @@
 // Build: flutter build windows -t lib/pc/main_pc.dart   (the GitHub workflow does it)
 import 'dart:async';
 import 'package:flutter/material.dart' hide Text;
-import '../i18n.dart';
 import 'package:flutter/services.dart';
 import '../main.dart';
 import 'apps.dart';

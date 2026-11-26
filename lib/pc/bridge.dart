@@ -288,7 +288,7 @@ Future<bool> launchPcApp(String id) async {
       if (app.id != 'pc.steam') Win.fullScreenNext();
       return true;
     }
-    return openWeb(app.url, tv: app.tv);
+    return await openWeb(app.url, tv: app.tv);
   } catch (_) {
     return false;
   }

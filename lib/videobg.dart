@@ -4,7 +4,6 @@
 // its photos.
 import 'dart:async';
 import 'package:flutter/material.dart' hide Text;
-import 'i18n.dart';
 import 'main.dart';
 import 'screens.dart';
 

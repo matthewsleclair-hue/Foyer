@@ -6,7 +6,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Text;
-import '../i18n.dart';
 
 class PcApp {
   const PcApp(this.id, this.label, this.color,

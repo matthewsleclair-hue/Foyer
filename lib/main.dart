@@ -2014,7 +2014,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   final Map<String, AppInfo> _cache = {};
-  bool _loaded = false;
   bool _loading = false;
   bool _again = false;
   bool _leaving = false;
@@ -2142,9 +2141,14 @@ class _HomeScreenState extends State<HomeScreen>
       putOn(value, SettingsScope.read(context));
       return;
     }
-    if (!_fg) return;
+    // apps and links too: the phone says "sent", so they open even while something else is
+    // on screen (Foyer Drop drops anything older than 20 seconds, so nothing opens by surprise)
     if (type == 'open') {
-      _openPkg(value);
+      if (_fg) {
+        _openPkg(value);
+      } else {
+        launchPackage(value);
+      }
     } else if (type == 'url') {
       kChannel.invokeMethod<bool>('openUrl', {'url': value}).catchError((Object _) => false);
     }
@@ -2321,7 +2325,7 @@ class _HomeScreenState extends State<HomeScreen>
     } while (_again && mounted);
     _loading = false;
     if (!mounted) return;
-    setState(() => _loaded = true);
+    setState(() {});
     if (!_intro.isAnimating && !_intro.isCompleted) _intro.forward();
   }
 

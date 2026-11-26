@@ -27,6 +27,7 @@ jobs:
           rm -rf build_check/lib build_check/test
           cp -R lib build_check/lib
           cp -R test build_check/test
+          python3 tools/patch_fonts.py build_check
 
       - name: Look for mistakes
         working-directory: build_check

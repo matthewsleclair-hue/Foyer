@@ -12,7 +12,6 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Text;
-import 'i18n.dart';
 import 'main.dart';
 
 final Map<String, ui.Image?> _glyphs = {};

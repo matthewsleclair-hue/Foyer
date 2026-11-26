@@ -1793,15 +1793,6 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
 
   String _friendly(Object? error) => adbFriendly(error);
 
-  Future<void> _free() async {
-    final before = (_d['ramFreeMb'] as int?) ?? 0;
-    await _run('Freeing memory', ['am kill-all', 'pm trim-caches 999G']);
-    await Future<void>.delayed(const Duration(milliseconds: 1500));
-    await _scan();
-    final after = (_d['ramFreeMb'] as int?) ?? 0;
-    _addLog('Free memory: $before MB -> $after MB');
-  }
-
   Future<void> _report() async {
     final cfg = SettingsScope.read(context);
     final settings = cfg.toJson(secrets: false)
@@ -1862,12 +1853,6 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
     if (mounted) setState(() => _busy = false);
     await _scan();
   }
-
-  List<String> _disableCmds(List<String> pkgs) =>
-      [for (final p in pkgs) if (_state[p] == 1) 'pm disable-user --user 0 $p'];
-
-  List<String> _enableCmds(List<String> pkgs) =>
-      [for (final p in pkgs) if (_state[p] == 2) 'pm enable $p'];
 
   Widget _kv(String k, String v) => Padding(
         padding: const EdgeInsets.only(bottom: 8),

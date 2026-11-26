@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart' hide Text;
-import 'i18n.dart';
 
 class GeoPlace {
   GeoPlace(this.name, this.region, this.country, this.lat, this.lon);
