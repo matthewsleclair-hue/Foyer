@@ -1736,7 +1736,6 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
   Map<String, int> _state = const {};
   final List<String> _log = [];
   final ScrollController _logScroll = ScrollController();
-  bool _busy = false;
   String _ip = '<stick IP>';
 
   @override
@@ -1791,8 +1790,6 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
   int _active(List<String> pkgs) => pkgs.where((p) => _state[p] == 1).length;
   int _present(List<String> pkgs) => pkgs.where((p) => (_state[p] ?? 0) != 0).length;
 
-  String _friendly(Object? error) => adbFriendly(error);
-
   Future<void> _report() async {
     final cfg = SettingsScope.read(context);
     final settings = cfg.toJson(secrets: false)
@@ -1825,33 +1822,6 @@ class _TuneUpScreenState extends State<TuneUpScreen> {
     } catch (_) {
       _addLog('Could not save the report.');
     }
-  }
-
-  Future<void> _run(String title, List<String> cmds, {Future<void> Function()? after}) async {
-    if (_busy) return;
-    if (cmds.isEmpty) {
-      _addLog('$title: nothing to do.');
-      return;
-    }
-    setState(() => _busy = true);
-    _addLog('▶ $title');
-    try {
-      final res = await kChannel.invokeMapMethod<String, dynamic>('adbRun', {'commands': cmds});
-      if (res?['ok'] == true) {
-        _addLog('Done.');
-        if (after != null) await after();
-      } else {
-        _addLog(_friendly(res?['error']));
-        _addLog('Or run this from your computer:');
-        for (final c in cmds) {
-          _addLog('adb shell $c');
-        }
-      }
-    } catch (e) {
-      _addLog(_friendly(e));
-    }
-    if (mounted) setState(() => _busy = false);
-    await _scan();
   }
 
   Widget _kv(String k, String v) => Padding(

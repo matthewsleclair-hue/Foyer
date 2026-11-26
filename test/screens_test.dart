@@ -1,4 +1,4 @@
-// Opens the real home screen, the first setup and the settings hub, in English and in French,
+// Opens the real home screen (in every holiday look) and the first setup, in English and French,
 // and fails on any drawing error (text that doesn't fit, a crash while building, ...).
 // Runs in real time (LiveTestWidgetsFlutterBinding) because the home screen starts timers
 // that keep running for as long as Foyer does.
